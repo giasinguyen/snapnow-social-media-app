@@ -5,6 +5,10 @@ import { PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '../config/firebase';
+import { createAdminAccount } from '../services/authService';
+
+// Import NativeWind styles
+import '../global.css';
 
 export default function RootLayout() {
   const [user, setUser] = useState<User | null>(null);
@@ -15,6 +19,9 @@ export default function RootLayout() {
       setUser(user);
       setIsLoading(false);
     });
+
+    // Create admin account on app start
+    createAdminAccount();
 
     return () => unsubscribe();
   }, []);

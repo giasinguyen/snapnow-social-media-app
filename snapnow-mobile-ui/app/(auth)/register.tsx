@@ -12,8 +12,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link } from 'expo-router';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../../config/firebase';
+// Sử dụng Firebase authService thật
+import { registerUser } from '../../services/authService';
 
 export default function RegisterScreen() {
   const [email, setEmail] = useState('');
@@ -41,8 +41,8 @@ export default function RegisterScreen() {
 
     setIsLoading(true);
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      Alert.alert('Success', 'Account created successfully!');
+      await registerUser(email, password, username, displayName);
+      // Alert sẽ được hiển thị từ registerUser
     } catch (error: any) {
       console.error('Registration error:', error);
       Alert.alert('Registration Failed', error.message);

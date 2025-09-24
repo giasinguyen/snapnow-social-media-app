@@ -3,7 +3,7 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
-// Your Firebase config from console
+// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyC3kVWu2QknSVlDShiOzeoaeSH2j0sXoxQ",
   authDomain: "snapn-9345d.firebaseapp.com",
@@ -17,13 +17,9 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase Authentication and get a reference to the service
+// Initialize Firebase services
 export const auth = getAuth(app);
-
-// Initialize Cloud Firestore and get a reference to the service
 export const db = getFirestore(app);
-
-// Initialize Cloud Storage and get a reference to the service
 export const storage = getStorage(app);
 
 export default app;

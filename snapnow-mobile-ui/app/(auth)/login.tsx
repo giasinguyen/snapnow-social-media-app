@@ -2,17 +2,19 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
   Alert,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link } from 'expo-router';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../../config/firebase';
+// Sử dụng Firebase authService thật
+import { loginUser, loginAsAdmin } from '../../services/authService';
+import { InstagramInput, InstagramButton } from '../../components/InstagramUI';
+import { LogoHeader } from '../../components/LogoHeader';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -27,7 +29,9 @@ export default function LoginScreen() {
 
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      console.log('🔄 Attempting login...');
+      await loginUser(email, password);
+      console.log('✅ Login completed, should navigate now');
     } catch (error: any) {
       console.error('Login error:', error);
       Alert.alert('Login Failed', error.message);
@@ -36,21 +40,43 @@ export default function LoginScreen() {
     }
   };
 
+  const handleAdminLogin = async () => {
+    setIsLoading(true);
+    try {
+      console.log('🔄 Attempting admin login...');
+      await loginAsAdmin();
+      console.log('✅ Admin login completed, should navigate now');
+      // Alert và navigation sẽ được xử lý trong authService
+    } catch (error: any) {
+      console.error('Admin login error:', error);
+      Alert.alert('Admin Login Failed', error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
+      <LogoHeader />
+      
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardAvoidingView}
+        style={styles.keyboardContainer}
       >
         <View style={styles.content}>
           <View style={styles.header}>
-            <Text style={styles.logo}>SnapNow</Text>
-            <Text style={styles.subtitle}>Share your moments</Text>
+            <Image 
+              source={require('../../assets/images/logo-snapnow.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+            <Text style={styles.subtitle}>
+              Share your moments
+            </Text>
           </View>
 
-          <View style={styles.form}>
-            <TextInput
-              style={styles.input}
+          <View style={styles.formContainer}>
+            <InstagramInput
               placeholder="Email"
               value={email}
               onChangeText={setEmail}
@@ -59,8 +85,7 @@ export default function LoginScreen() {
               autoComplete="email"
             />
 
-            <TextInput
-              style={styles.input}
+            <InstagramInput
               placeholder="Password"
               value={password}
               onChangeText={setPassword}
@@ -68,13 +93,19 @@ export default function LoginScreen() {
               autoComplete="password"
             />
 
-            <TouchableOpacity
-              style={[styles.button, isLoading && styles.buttonDisabled]}
+            <InstagramButton
+              title={isLoading ? 'Logging in...' : 'Log In'}
               onPress={handleLogin}
               disabled={isLoading}
+            />
+
+            <TouchableOpacity
+              style={styles.adminButton}
+              onPress={handleAdminLogin}
+              disabled={isLoading}
             >
-              <Text style={styles.buttonText}>
-                {isLoading ? 'Logging in...' : 'Log In'}
+              <Text style={styles.adminButtonText}>
+                🔑 Admin Login (admin@snapnow.com/admin123)
               </Text>
             </TouchableOpacity>
           </View>
@@ -82,7 +113,7 @@ export default function LoginScreen() {
           <View style={styles.footer}>
             <Text style={styles.footerText}>
               Don&apos;t have an account?{' '}
-              <Link href="/register" style={styles.link}>
+              <Link href="/register" style={styles.linkText}>
                 Sign up
               </Link>
             </Text>
@@ -96,9 +127,9 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
   },
-  keyboardAvoidingView: {
+  keyboardContainer: {
     flex: 1,
   },
   content: {
@@ -111,41 +142,34 @@ const styles = StyleSheet.create({
     marginBottom: 48,
   },
   logo: {
-    fontSize: 36,
+    height: 60,
+    width: 200,
+    marginBottom: 16,
+  },
+  title: {
+    fontSize: 32,
     fontWeight: 'bold',
-    color: '#000',
+    color: '#262626',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: '#8E8E8E',
   },
-  form: {
+  formContainer: {
     marginBottom: 32,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 16,
+  adminButton: {
     paddingVertical: 12,
-    fontSize: 16,
-    marginBottom: 16,
-    backgroundColor: '#fafafa',
-  },
-  button: {
-    backgroundColor: '#000',
-    borderRadius: 8,
-    paddingVertical: 14,
     alignItems: 'center',
-    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#ef4444',
+    borderRadius: 6,
+    marginBottom: 12,
+    backgroundColor: '#fef2f2',
   },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
+  adminButtonText: {
+    color: '#ef4444',
     fontWeight: '600',
   },
   footer: {
@@ -153,10 +177,10 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
-    color: '#666',
+    color: '#8E8E8E',
   },
-  link: {
-    color: '#007AFF',
+  linkText: {
+    color: '#0095F6',
     fontWeight: '600',
   },
 });
