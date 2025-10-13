@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LogoHeader } from '../../components/LogoHeader';
 import { AuthService, UserProfile } from '../../services/auth';
 
 export default function ProfileScreen() {
@@ -49,6 +50,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <LogoHeader />
       <View style={styles.header}>
         <View style={styles.topRow}>
           <Image

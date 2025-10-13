@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LogoHeader } from '../../components/LogoHeader';
 import { searchPostsByQuery, searchUsersByUsernamePrefix } from '../../services/search';
 // small debounce helper to avoid adding lodash dependency
 function debounceFn<T extends (...args: any[]) => void>(fn: T, wait = 300) {
@@ -89,9 +90,17 @@ export default function SearchScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <LogoHeader />
       <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12 }}>
         <View style={{ flex: 1 }}>
-          <TextInput placeholder={mode === 'users' ? 'Search users' : 'Search posts (hashtag or caption)'} value={query} onChangeText={onChange} style={styles.input} autoCapitalize="none" />
+          <TextInput
+            placeholder={mode === 'users' ? 'Search users' : 'Search posts (hashtag or caption)'}
+            placeholderTextColor="#999"
+            value={query}
+            onChangeText={onChange}
+            style={styles.input}
+            autoCapitalize="none"
+          />
         </View>
 
         <TouchableOpacity style={{ marginLeft: 8 }} onPress={refresh}>
@@ -136,7 +145,15 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   searchBox: { padding: 12 },
-  input: { borderWidth: 1, borderColor: '#eee', padding: 10, borderRadius: 8 },
+  input: {
+    borderWidth: 1,
+    borderColor: '#888',
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: '#fafafa',
+    color: '#111',
+    fontWeight: '600',
+  },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
   avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#eee' },
   name: { fontWeight: '700' },

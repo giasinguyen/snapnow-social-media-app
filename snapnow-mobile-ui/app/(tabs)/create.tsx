@@ -4,6 +4,7 @@ import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LogoHeader } from '../../components/LogoHeader';
 import { auth, db } from '../../config/firebase';
 import { uploadToStorage } from '../../services/storage';
 
@@ -58,6 +59,7 @@ export default function CreateScreen(){
 
   return (
     <SafeAreaView style={styles.container}>
+      <LogoHeader />
       <View style={styles.actions}>
         <TouchableOpacity style={styles.actionBtn} onPress={pickFromGallery}><Text>Gallery</Text></TouchableOpacity>
         <TouchableOpacity style={styles.actionBtn} onPress={takePhoto}><Text>Camera</Text></TouchableOpacity>
