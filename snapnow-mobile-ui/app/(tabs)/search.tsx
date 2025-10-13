@@ -1,9 +1,9 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { searchUsersByUsernamePrefix, searchPostsByQuery } from '../../services/search';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { searchPostsByQuery, searchUsersByUsernamePrefix } from '../../services/search';
 // small debounce helper to avoid adding lodash dependency
 function debounceFn<T extends (...args: any[]) => void>(fn: T, wait = 300) {
   let timeout: ReturnType<typeof setTimeout> | null = null;
