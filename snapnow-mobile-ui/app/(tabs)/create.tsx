@@ -60,6 +60,8 @@ export default function CreateScreen(){
   return (
     <SafeAreaView style={styles.container}>
       <LogoHeader />
+      <br></br>
+
       <View style={styles.actions}>
         <TouchableOpacity style={styles.actionBtn} onPress={pickFromGallery}><Text>Gallery</Text></TouchableOpacity>
         <TouchableOpacity style={styles.actionBtn} onPress={takePhoto}><Text>Camera</Text></TouchableOpacity>
