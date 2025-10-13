@@ -10,7 +10,7 @@ import { fetchPosts, Post } from '../../services/posts';
 
 // PostCard moved to components/PostCard.tsx
 
-export default function HomeScreen() {
+export default function HomeScreenComponent() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
