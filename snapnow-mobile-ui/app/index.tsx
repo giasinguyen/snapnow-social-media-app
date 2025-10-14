@@ -1,6 +1,14 @@
-import { Text, View } from "react-native";
+import { useEffect } from 'react';
+import { View, Text } from 'react-native';
+import { useRouter } from 'expo-router';
 
 export default function Index() {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace('/(auth)/login');
+  }, [router]);
+
   return (
     <View
       style={{
@@ -9,7 +17,7 @@ export default function Index() {
         alignItems: "center",
       }}
     >
-      <Text>Edit app/index.tsx to edit this screen.</Text>
+      <Text>Loading...</Text>
     </View>
   );
 }
