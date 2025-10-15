@@ -12,19 +12,7 @@ import {
   where,
 } from "firebase/firestore"
 import { db } from "../config/firebase"
-
-export interface Post {
-  id: string
-  userId?: string
-  username?: string
-  userImage?: string
-  imageUrl?: string
-  caption?: string
-  hashtags?: string[]
-  likes?: number
-  commentsCount?: number
-  createdAt?: any
-}
+import { Post } from "../types"
 
 // Fetch all posts ordered by creation date
 export async function fetchPosts(): Promise<Post[]> {

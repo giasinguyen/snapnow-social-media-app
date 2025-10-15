@@ -50,7 +50,7 @@ export default function CreateScreen(){
       });
 
       Alert.alert('Posted', 'Your post was created');
-      router.replace('/(tabs)/home-new');
+      router.replace('/(tabs)');
     } catch (err:any) {
       console.error('Failed to create post', err);
       Alert.alert('Error', err.message || 'Failed to create post');

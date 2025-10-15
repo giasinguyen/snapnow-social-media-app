@@ -79,7 +79,7 @@ export default function SearchScreen() {
     // post item
     return (
       <View style={{ paddingVertical: 8 }}>
-        <TouchableOpacity onPress={() => router.push(`/(tabs)/home-new?post=${item.id}`)}>
+        <TouchableOpacity onPress={() => router.push(`/(tabs)?post=${item.id}`)}>
           <Image source={item.imageUrl ? { uri: item.imageUrl } : require('../../assets/images/default-avatar.jpg')} style={{ width: '100%', height: 220, borderRadius: 8 }} />
           <Text style={{ marginTop: 8 }}>{item.caption}</Text>
           <Text style={{ color: '#666', marginTop: 4 }}>@{item.username}</Text>

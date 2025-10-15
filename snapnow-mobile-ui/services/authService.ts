@@ -74,7 +74,7 @@ export const loginUser = async (email: string, password: string) => {
     
     // Navigate immediately without Alert
     setTimeout(() => {
-      router.replace('/(tabs)/home-new');
+      router.replace('/(tabs)');
     }, 100);
     
     return { ...user, ...userData };
@@ -93,7 +93,7 @@ export const loginAsAdmin = async () => {
     
     // Navigate immediately without Alert
     setTimeout(() => {
-      router.replace('/(tabs)/home-new');
+      router.replace('/(tabs)');
     }, 100);
     
     return adminCredential.user;
@@ -129,7 +129,7 @@ export const registerUser = async (email: string, password: string, username: st
     
     // Navigate immediately without Alert
     setTimeout(() => {
-      router.replace('/(tabs)/home-new');
+      router.replace('/(tabs)');
     }, 100);
     
     return user;
