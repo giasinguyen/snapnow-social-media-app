@@ -1,19 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { 
-  ActivityIndicator, 
-  Image, 
-  StyleSheet, 
-  Text, 
-  TouchableOpacity, 
-  View, 
-  ScrollView,
+import {
+  ActivityIndicator,
   Dimensions,
-  RefreshControl
+  Image,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { AuthService, UserProfile } from '../../services/authService';
 import { formatFollowers } from '../../services/mockData';
 import { fetchUserPosts } from '../../services/posts';
@@ -88,7 +88,7 @@ export default function ProfileScreen() {
           <ActivityIndicator size="large" color="#0095F6" />
         </View>
       </SafeAreaView>
-    );
+    )
   }
 
   if (!profile) {
@@ -100,7 +100,7 @@ export default function ProfileScreen() {
           <Text style={styles.subText}>Please login or register to see your profile.</Text>
         </View>
       </SafeAreaView>
-    );
+    )
   }
 
   return (
@@ -383,7 +383,7 @@ export default function ProfileScreen() {
         )}
       </ScrollView>
     </SafeAreaView>
-  );
+  )
 }
 
 const styles = StyleSheet.create({

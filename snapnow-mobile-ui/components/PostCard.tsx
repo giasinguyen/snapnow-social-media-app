@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useRef, useState, useCallback } from 'react';
-import { Animated, Image, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import React, { useState } from 'react';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Post } from '../types';
 import CommentsModal from './CommentsModal';
 import { COLORS, SPACING, TYPOGRAPHY, RADIUS, SIZES, TIMINGS } from '../src/constants/theme';
@@ -194,12 +194,8 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment,
         {post.createdAt ? getTimeAgo(post.createdAt) : 'Just now'}
       </Text>
     </View>
-  );
-});
-
-PostCard.displayName = 'PostCard';
-
-export default PostCard;
+  )
+}
 
 // Helper function for time ago
 function getTimeAgo(date: any): string {

@@ -1,0 +1,1 @@
+ninja: error: Stat(safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/E_/1.HK1_2025/ReactNative/deTai/snapnow-social-media-app/snapnow-mobile-ui/node_modules/react-native-safe-area-context/common/cpp/react/renderer/components/safeareacontext/RNCSafeAreaViewShadowNode.cpp.o): Filename longer than 260 characters

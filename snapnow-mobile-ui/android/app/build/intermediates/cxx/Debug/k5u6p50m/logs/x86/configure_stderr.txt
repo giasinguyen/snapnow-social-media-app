@@ -1,0 +1,84 @@
+CMake Warning in E:/1.HK1_2025/ReactNative/deTai/snapnow-social-media-app/snapnow-mobile-ui/node_modules/@react-native-async-storage/async-storage/android/build/generated/source/codegen/jni/CMakeLists.txt:
+  The object file directory
+
+    E:/1.HK1_2025/ReactNative/deTai/snapnow-social-media-app/snapnow-mobile-ui/android/app/.cxx/Debug/k5u6p50m/x86/rnasyncstorage_autolinked_build/CMakeFiles/react_codegen_rnasyncstorage.dir/./
+
+  has 189 characters.  The maximum full path to an object file is 250
+  characters (see CMAKE_OBJECT_PATH_MAX).  Object file
+
+    react/renderer/components/rnasyncstorage/rnasyncstorageJSI-generated.cpp.o
+
+  cannot be safely placed under this directory.  The build may not work
+  correctly.
+
+
+CMake Warning in E:/1.HK1_2025/ReactNative/deTai/snapnow-social-media-app/snapnow-mobile-ui/node_modules/react-native-gesture-handler/android/build/generated/source/codegen/jni/CMakeLists.txt:
+  The object file directory
+
+    E:/1.HK1_2025/ReactNative/deTai/snapnow-social-media-app/snapnow-mobile-ui/android/app/.cxx/Debug/k5u6p50m/x86/rngesturehandler_codegen_autolinked_build/CMakeFiles/react_codegen_rngesturehandler_codegen.dir/./
+
+  has 209 characters.  The maximum full path to an object file is 250
+  characters (see CMAKE_OBJECT_PATH_MAX).  Object file
+
+    react/renderer/components/rngesturehandler_codegen/ShadowNodes.cpp.o
+
+  cannot be safely placed under this directory.  The build may not work
+  correctly.
+
+
+CMake Warning in E:/1.HK1_2025/ReactNative/deTai/snapnow-social-media-app/snapnow-mobile-ui/node_modules/react-native-vector-icons/android/build/generated/source/codegen/jni/CMakeLists.txt:
+  The object file directory
+
+    E:/1.HK1_2025/ReactNative/deTai/snapnow-social-media-app/snapnow-mobile-ui/android/app/.cxx/Debug/k5u6p50m/x86/RNVectorIconsSpec_autolinked_build/CMakeFiles/react_codegen_RNVectorIconsSpec.dir/./
+
+  has 195 characters.  The maximum full path to an object file is 250
+  characters (see CMAKE_OBJECT_PATH_MAX).  Object file
+
+    react/renderer/components/RNVectorIconsSpec/RNVectorIconsSpecJSI-generated.cpp.o
+
+  cannot be safely placed under this directory.  The build may not work
+  correctly.
+
+
+CMake Warning in E:/1.HK1_2025/ReactNative/deTai/snapnow-social-media-app/snapnow-mobile-ui/node_modules/react-native-webview/android/build/generated/source/codegen/jni/CMakeLists.txt:
+  The object file directory
+
+    E:/1.HK1_2025/ReactNative/deTai/snapnow-social-media-app/snapnow-mobile-ui/android/app/.cxx/Debug/k5u6p50m/x86/RNCWebViewSpec_autolinked_build/CMakeFiles/react_codegen_RNCWebViewSpec.dir/./
+
+  has 189 characters.  The maximum full path to an object file is 250
+  characters (see CMAKE_OBJECT_PATH_MAX).  Object file
+
+    react/renderer/components/RNCWebViewSpec/RNCWebViewSpecJSI-generated.cpp.o
+
+  cannot be safely placed under this directory.  The build may not work
+  correctly.
+
+
+CMake Warning in E:/1.HK1_2025/ReactNative/deTai/snapnow-social-media-app/snapnow-mobile-ui/node_modules/react-native-safe-area-context/android/src/main/jni/CMakeLists.txt:
+  The object file directory
+
+    E:/1.HK1_2025/ReactNative/deTai/snapnow-social-media-app/snapnow-mobile-ui/android/app/.cxx/Debug/k5u6p50m/x86/safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/./
+
+  has 191 characters.  The maximum full path to an object file is 250
+  characters (see CMAKE_OBJECT_PATH_MAX).  Object file
+
+    E_/1.HK1_2025/ReactNative/deTai/snapnow-social-media-app/snapnow-mobile-ui/node_modules/react-native-safe-area-context/android/build/generated/source/codegen/jni/safeareacontext-generated.cpp.o
+
+  cannot be safely placed under this directory.  The build may not work
+  correctly.
+
+
+CMake Warning in E:/1.HK1_2025/ReactNative/deTai/snapnow-social-media-app/snapnow-mobile-ui/node_modules/react-native-screens/android/src/main/jni/CMakeLists.txt:
+  The object file directory
+
+    E:/1.HK1_2025/ReactNative/deTai/snapnow-social-media-app/snapnow-mobile-ui/android/app/.cxx/Debug/k5u6p50m/x86/rnscreens_autolinked_build/CMakeFiles/react_codegen_rnscreens.dir/./
+
+  has 179 characters.  The maximum full path to an object file is 250
+  characters (see CMAKE_OBJECT_PATH_MAX).  Object file
+
+    E_/1.HK1_2025/ReactNative/deTai/snapnow-social-media-app/snapnow-mobile-ui/node_modules/react-native-screens/common/cpp/react/renderer/components/rnscreens/RNSScreenStackHeaderConfigShadowNode.cpp.o
+
+  cannot be safely placed under this directory.  The build may not work
+  correctly.
+
+
