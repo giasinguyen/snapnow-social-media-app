@@ -1,0 +1,98 @@
+[
+    {
+        "merged": "com.haphu2512.snapnowmobileui.app-debug-92:/mipmap-xxhdpi_ic_launcher.webp.flat",
+        "source": "com.haphu2512.snapnowmobileui.app-main-94:/mipmap-xxhdpi/ic_launcher.webp"
+    },
+    {
+        "merged": "com.haphu2512.snapnowmobileui.app-debug-92:/drawable-hdpi_splashscreen_logo.png.flat",
+        "source": "com.haphu2512.snapnowmobileui.app-main-94:/drawable-hdpi/splashscreen_logo.png"
+    },
+    {
+        "merged": "com.haphu2512.snapnowmobileui.app-debug-92:/drawable-xxhdpi_splashscreen_logo.png.flat",
+        "source": "com.haphu2512.snapnowmobileui.app-main-94:/drawable-xxhdpi/splashscreen_logo.png"
+    },
+    {
+        "merged": "com.haphu2512.snapnowmobileui.app-debug-92:/mipmap-mdpi_ic_launcher_round.webp.flat",
+        "source": "com.haphu2512.snapnowmobileui.app-main-94:/mipmap-mdpi/ic_launcher_round.webp"
+    },
+    {
+        "merged": "com.haphu2512.snapnowmobileui.app-debug-92:/mipmap-xxhdpi_ic_launcher_round.webp.flat",
+        "source": "com.haphu2512.snapnowmobileui.app-main-94:/mipmap-xxhdpi/ic_launcher_round.webp"
+    },
+    {
+        "merged": "com.haphu2512.snapnowmobileui.app-debug-92:/mipmap-hdpi_ic_launcher.webp.flat",
+        "source": "com.haphu2512.snapnowmobileui.app-main-94:/mipmap-hdpi/ic_launcher.webp"
+    },
+    {
+        "merged": "com.haphu2512.snapnowmobileui.app-debug-92:/drawable-xhdpi_splashscreen_logo.png.flat",
+        "source": "com.haphu2512.snapnowmobileui.app-main-94:/drawable-xhdpi/splashscreen_logo.png"
+    },
+    {
+        "merged": "com.haphu2512.snapnowmobileui.app-debug-92:/mipmap-xhdpi_ic_launcher.webp.flat",
+        "source": "com.haphu2512.snapnowmobileui.app-main-94:/mipmap-xhdpi/ic_launcher.webp"
+    },
+    {
+        "merged": "com.haphu2512.snapnowmobileui.app-debug-92:/mipmap-xxhdpi_ic_launcher_foreground.webp.flat",
+        "source": "com.haphu2512.snapnowmobileui.app-main-94:/mipmap-xxhdpi/ic_launcher_foreground.webp"
+    },
+    {
+        "merged": "com.haphu2512.snapnowmobileui.app-debug-92:/mipmap-hdpi_ic_launcher_foreground.webp.flat",
+        "source": "com.haphu2512.snapnowmobileui.app-main-94:/mipmap-hdpi/ic_launcher_foreground.webp"
+    },
+    {
+        "merged": "com.haphu2512.snapnowmobileui.app-debug-92:/mipmap-mdpi_ic_launcher_foreground.webp.flat",
+        "source": "com.haphu2512.snapnowmobileui.app-main-94:/mipmap-mdpi/ic_launcher_foreground.webp"
+    },
+    {
+        "merged": "com.haphu2512.snapnowmobileui.app-debug-92:/mipmap-xhdpi_ic_launcher_round.webp.flat",
+        "source": "com.haphu2512.snapnowmobileui.app-main-94:/mipmap-xhdpi/ic_launcher_round.webp"
+    },
+    {
+        "merged": "com.haphu2512.snapnowmobileui.app-debug-92:/mipmap-xxxhdpi_ic_launcher.webp.flat",
+        "source": "com.haphu2512.snapnowmobileui.app-main-94:/mipmap-xxxhdpi/ic_launcher.webp"
+    },
+    {
+        "merged": "com.haphu2512.snapnowmobileui.app-debug-92:/drawable_ic_launcher_background.xml.flat",
+        "source": "com.haphu2512.snapnowmobileui.app-main-94:/drawable/ic_launcher_background.xml"
+    },
+    {
+        "merged": "com.haphu2512.snapnowmobileui.app-debug-92:/drawable_rn_edit_text_material.xml.flat",
+        "source": "com.haphu2512.snapnowmobileui.app-main-94:/drawable/rn_edit_text_material.xml"
+    },
+    {
+        "merged": "com.haphu2512.snapnowmobileui.app-debug-92:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "com.haphu2512.snapnowmobileui.app-main-94:/mipmap-anydpi-v26/ic_launcher_round.xml"
+    },
+    {
+        "merged": "com.haphu2512.snapnowmobileui.app-debug-92:/mipmap-hdpi_ic_launcher_round.webp.flat",
+        "source": "com.haphu2512.snapnowmobileui.app-main-94:/mipmap-hdpi/ic_launcher_round.webp"
+    },
+    {
+        "merged": "com.haphu2512.snapnowmobileui.app-debug-92:/mipmap-xhdpi_ic_launcher_foreground.webp.flat",
+        "source": "com.haphu2512.snapnowmobileui.app-main-94:/mipmap-xhdpi/ic_launcher_foreground.webp"
+    },
+    {
+        "merged": "com.haphu2512.snapnowmobileui.app-debug-92:/mipmap-xxxhdpi_ic_launcher_round.webp.flat",
+        "source": "com.haphu2512.snapnowmobileui.app-main-94:/mipmap-xxxhdpi/ic_launcher_round.webp"
+    },
+    {
+        "merged": "com.haphu2512.snapnowmobileui.app-debug-92:/drawable-mdpi_splashscreen_logo.png.flat",
+        "source": "com.haphu2512.snapnowmobileui.app-main-94:/drawable-mdpi/splashscreen_logo.png"
+    },
+    {
+        "merged": "com.haphu2512.snapnowmobileui.app-debug-92:/mipmap-mdpi_ic_launcher.webp.flat",
+        "source": "com.haphu2512.snapnowmobileui.app-main-94:/mipmap-mdpi/ic_launcher.webp"
+    },
+    {
+        "merged": "com.haphu2512.snapnowmobileui.app-debug-92:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "com.haphu2512.snapnowmobileui.app-main-94:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "com.haphu2512.snapnowmobileui.app-debug-92:/drawable-xxxhdpi_splashscreen_logo.png.flat",
+        "source": "com.haphu2512.snapnowmobileui.app-main-94:/drawable-xxxhdpi/splashscreen_logo.png"
+    },
+    {
+        "merged": "com.haphu2512.snapnowmobileui.app-debug-92:/mipmap-xxxhdpi_ic_launcher_foreground.webp.flat",
+        "source": "com.haphu2512.snapnowmobileui.app-main-94:/mipmap-xxxhdpi/ic_launcher_foreground.webp"
+    }
+]

@@ -1,0 +1,20 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.haphu2512.snapnowmobileui.app-mergeDebugResources-90:/values-night-v33/values-night-v33.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\haxua\\.gradle\\caches\\8.14.3\\transforms\\4850fbef1209610068a8a0d89123d03b\\transformed\\core-splashscreen-1.2.0-alpha02\\res\\values-night-v33\\values-night-v33.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endLines": "4",
+                        "endColumns": "12",
+                        "endOffsets": "215"
+                    }
+                }
+            ]
+        }
+    ]
+}

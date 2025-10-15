@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { Image, Text, TouchableOpacity, View, StyleSheet } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Post } from '../types';
 
 interface PostCardProps {
@@ -117,7 +117,7 @@ export default function PostCard({ post, onLike, onComment, onShare }: PostCardP
         {post.createdAt ? getTimeAgo(post.createdAt) : 'Just now'}
       </Text>
     </View>
-  );
+  )
 }
 
 // Helper function for time ago
