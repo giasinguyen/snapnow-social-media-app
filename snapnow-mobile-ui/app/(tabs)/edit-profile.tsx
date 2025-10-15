@@ -6,7 +6,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth, db } from '../../config/firebase';
-import { AuthService, UserProfile } from '../../services/auth';
+import { AuthService, UserProfile } from '../../services/authService';
 import { uploadToStorage } from '../../services/storage';
 
 export default function EditProfileScreen() {

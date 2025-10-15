@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LogoHeader } from '../../components/LogoHeader';
-import { AuthService, UserProfile } from '../../services/auth';
+import { AuthService, UserProfile } from '../../services/authService';
 
 export default function ProfileScreen() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
