@@ -89,9 +89,9 @@ export default function EditProfileScreen() {
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      setAvatarUri(result.assets[0].uri);
+      setAvatarUri(result.assets[0].uri)
     }
-  };
+  }
 
   const showImageOptions = () => {
     Alert.alert(
