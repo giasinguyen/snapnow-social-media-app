@@ -1,20 +1,20 @@
+import { Link } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
-  TouchableOpacity,
   StyleSheet,
-  Image,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Link } from 'expo-router';
 // Sử dụng Firebase authService thật
-import { loginUser, loginAsAdmin } from '../../services/authService';
-import { InstagramInput, InstagramButton } from '../../components/InstagramUI';
+import { InstagramButton, InstagramInput } from '../../components/InstagramUI';
 import { LogoHeader } from '../../components/LogoHeader';
+import { loginAsAdmin, loginUser } from '../../services/authService';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');

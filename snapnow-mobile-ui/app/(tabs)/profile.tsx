@@ -1,31 +1,69 @@
-import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LogoHeader } from '../../components/LogoHeader';
-import { AuthService, UserProfile } from '../../services/auth';
+"use client"
+
+import { useRouter } from "expo-router"
+import { collection, getDocs, orderBy, query, where } from "firebase/firestore"
+import { useEffect, useState } from "react"
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { SafeAreaView } from "react-native-safe-area-context"
+import { LogoHeader } from "../../components/LogoHeader"
+import UserProfileHeader from "../../components/UserProfileHeader"
+import { db } from "../../config/firebase"
+import { AuthService, type UserProfile } from "../../services/auth"
+import type { Post } from "../../types"
 
 export default function ProfileScreen() {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const router = useRouter();
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [posts, setPosts] = useState<Post[]>([])
+  const [loadingPosts, setLoadingPosts] = useState(false)
+  const router = useRouter()
 
   useEffect(() => {
-    let mounted = true;
+    let mounted = true
     const load = async () => {
       try {
-        const p = await AuthService.getCurrentUserProfile();
-        if (mounted) setProfile(p);
+        const p = await AuthService.getCurrentUserProfile()
+        if (mounted) {
+          setProfile(p)
+          if (p) {
+            await loadUserPosts(p.id)
+          }
+        }
       } catch (err) {
-        console.error('Failed to load profile', err);
+        console.error("Failed to load profile", err)
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted) setLoading(false)
       }
-    };
+    }
 
-    load();
-    return () => { mounted = false; };
-  }, []);
+    load()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  const loadUserPosts = async (userId: string) => {
+    setLoadingPosts(true)
+    try {
+      const postsRef = collection(db, "posts")
+      const q = query(postsRef, where("userId", "==", userId), orderBy("createdAt", "desc"))
+      const snapshot = await getDocs(q)
+      const userPosts: Post[] = []
+      snapshot.forEach((doc) => {
+        const data = doc.data()
+        userPosts.push({
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt?.toDate?.() || new Date(),
+        } as Post)
+      })
+      setPosts(userPosts)
+    } catch (error) {
+      console.error("Error loading user posts:", error)
+    } finally {
+      setLoadingPosts(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -34,7 +72,7 @@ export default function ProfileScreen() {
           <ActivityIndicator size="large" />
         </View>
       </SafeAreaView>
-    );
+    )
   }
 
   if (!profile) {
@@ -45,68 +83,56 @@ export default function ProfileScreen() {
           <Text style={styles.subText}>Please login or register to see your profile.</Text>
         </View>
       </SafeAreaView>
-    );
+    )
   }
 
   return (
     <SafeAreaView style={styles.container}>
       <LogoHeader />
-      <View style={styles.header}>
-        <View style={styles.topRow}>
-          <Image
-            source={profile.profileImage ? { uri: profile.profileImage } : require('../../assets/images/default-avatar.jpg')}
-            style={styles.avatar}
-          />
-          <View style={styles.stats}>
-            <Text style={styles.statNumber}>{profile.postsCount ?? 0}</Text>
-            <Text style={styles.statLabel}>Posts</Text>
-          </View>
-          <View style={styles.stats}>
-            <Text style={styles.statNumber}>{profile.followersCount ?? 0}</Text>
-            <Text style={styles.statLabel}>Followers</Text>
-          </View>
-          <View style={styles.stats}>
-            <Text style={styles.statNumber}>{profile.followingCount ?? 0}</Text>
-            <Text style={styles.statLabel}>Following</Text>
-          </View>
+      <ScrollView>
+        <UserProfileHeader
+          user={profile}
+          isOwnProfile={true}
+          onEditProfile={() => router.push({ pathname: "/(tabs)/edit-profile" })}
+          onFollowersPress={() => console.log("Show followers")}
+          onFollowingPress={() => console.log("Show following")}
+        />
+
+        <View style={styles.postsSection}>
+          <Text style={styles.sectionTitle}>Posts</Text>
+          {loadingPosts ? (
+            <ActivityIndicator style={{ marginTop: 20 }} />
+          ) : posts.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>No posts yet</Text>
+              <Text style={styles.emptySubtext}>Share your first moment!</Text>
+            </View>
+          ) : (
+            <View style={styles.postsGrid}>
+              {posts.map((post) => (
+                <TouchableOpacity key={post.id} style={styles.gridItem}>
+                  <Image source={{ uri: post.imageUrl }} style={styles.gridImage} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </View>
-
-        <View style={styles.infoRow}>
-          <View>
-            <Text style={styles.displayName}>{profile.displayName}</Text>
-            <Text style={styles.username}>@{profile.username}</Text>
-            {profile.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
-          </View>
-
-          <TouchableOpacity
-            style={styles.editButton}
-            onPress={() => router.push({ pathname: '/(tabs)/edit-profile' })}
-          >
-            <Text style={styles.editButtonText}>Edit Profile</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Additional profile content could go here (posts grid, highlights, etc.) */}
+      </ScrollView>
     </SafeAreaView>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { padding: 16 },
-  topRow: { flexDirection: 'row', alignItems: 'center' },
-  avatar: { width: 88, height: 88, borderRadius: 44, marginRight: 16, backgroundColor: '#eee' },
-  stats: { alignItems: 'center', marginHorizontal: 8 },
-  statNumber: { fontSize: 16, fontWeight: '700' },
-  statLabel: { fontSize: 12, color: '#666' },
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 },
-  displayName: { fontSize: 16, fontWeight: '700' },
-  username: { color: '#666', marginTop: 2 },
-  bio: { marginTop: 8, color: '#333' },
-  editButton: { paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#ccc', borderRadius: 6 },
-  editButtonText: { fontSize: 14 },
-  placeholderText: { fontSize: 18, fontWeight: '600', color: '#333', marginBottom: 8 },
-  subText: { fontSize: 14, color: '#666', textAlign: 'center' },
-});
+  container: { flex: 1, backgroundColor: "#fff" },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  placeholderText: { fontSize: 18, fontWeight: "600", color: "#333", marginBottom: 8 },
+  subText: { fontSize: 14, color: "#666", textAlign: "center" },
+  postsSection: { padding: 16 },
+  sectionTitle: { fontSize: 16, fontWeight: "700", marginBottom: 12 },
+  postsGrid: { flexDirection: "row", flexWrap: "wrap", marginHorizontal: -1 },
+  gridItem: { width: "33.33%", aspectRatio: 1, padding: 1 },
+  gridImage: { width: "100%", height: "100%", backgroundColor: "#f0f0f0" },
+  emptyState: { alignItems: "center", paddingVertical: 40 },
+  emptyText: { fontSize: 16, fontWeight: "600", color: "#666", marginBottom: 4 },
+  emptySubtext: { fontSize: 14, color: "#999" },
+})
