@@ -1,86 +1,306 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useState } from 'react';
-import { Image, ScrollView, Text, View } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { 
+  Image, 
+  ScrollView, 
+  Text, 
+  View, 
+  StyleSheet, 
+  TouchableOpacity, 
+  RefreshControl,
+  ActivityIndicator 
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LogoHeader } from '../../components/LogoHeader';
 import PostCard from '../../components/PostCard';
-import { fetchPosts, Post } from '../../services/posts';
+import SuggestionCard from '../../components/SuggestionCard';
+import { Post } from '../../types';
+import { 
+  MOCK_POSTS, 
+  MOCK_STORIES, 
+  SUGGESTED_USERS,
+  simulateDelay 
+} from '../../services/mockData';
 
-// using Firestore-backed posts
-
-// PostCard moved to components/PostCard.tsx
-
-export default function HomeScreenComponent() {
+export default function HomeScreen() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadPosts = useCallback(async () => {
+    try {
+      // Simulate network delay
+      await simulateDelay(1000);
+      setPosts(MOCK_POSTS);
+    } catch (err) {
+      console.error('Failed to fetch posts', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const data = await fetchPosts();
-        if (mounted) setPosts(data);
-      } catch (err) {
-        console.error('Failed to fetch posts', err);
-      } finally { if (mounted) setLoading(false); }
-    })();
-    return () => { mounted = false; };
+    loadPosts();
+  }, [loadPosts]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadPosts();
+    setRefreshing(false);
+  }, [loadPosts]);
+
+  const handleFollow = (userId: string) => {
+    console.log('Following user:', userId);
+  };
+
+  const handleLike = useCallback((postId: string, liked: boolean) => {
+    console.log('Like toggled:', postId, liked);
+    // TODO: Implement like functionality with backend
+  }, []);
+
+  const handleComment = useCallback((postId: string) => {
+    console.log('Open comments for post:', postId);
+    // TODO: Navigate to comments screen
+  }, []);
+
+  const handleShare = useCallback((postId: string) => {
+    console.log('Share post:', postId);
+    // TODO: Implement share functionality
   }, []);
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header */}
       <LogoHeader />
       
-      <ScrollView className="flex-1">
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          className="py-4 border-b border-instagram-border"
-        >
-          <View className="flex-row px-4 space-x-4">
-            <View className="items-center">
-              <View className="w-16 h-16 rounded-full bg-gradient-to-r from-purple-400 to-pink-400 p-0.5">
-                <View className="w-full h-full rounded-full bg-white items-center justify-center">
-                  <Ionicons name="add" size={24} color="#0095F6" />
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {/* Stories Section */}
+        <View style={styles.storiesContainer}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.storiesContent}
+          >
+            {MOCK_STORIES.map((story) => (
+              <TouchableOpacity 
+                key={story.id} 
+                style={styles.storyItem}
+                activeOpacity={0.7}
+              >
+                <View style={[
+                  styles.storyBorder,
+                  story.isYourStory && styles.yourStoryBorder
+                ]}>
+                  <Image 
+                    source={{ uri: story.avatar }}
+                    style={styles.storyAvatar}
+                  />
+                  {story.isYourStory && (
+                    <View style={styles.addStoryButton}>
+                      <Ionicons name="add" size={16} color="#fff" />
+                    </View>
+                  )}
                 </View>
-              </View>
-              <Text className="text-xs text-instagram-dark mt-1">Your Story</Text>
-            </View>
-
-            {[1, 2, 3, 4, 5].map((i) => (
-              <View key={i} className="items-center">
-                <View className="w-16 h-16 rounded-full bg-gradient-to-r from-purple-400 to-pink-400 p-0.5">
-                  <View className="w-full h-full rounded-full bg-white p-0.5">
-                    <Image 
-                      source={{ uri: 'https://via.placeholder.com/60' }}
-                      className="w-full h-full rounded-full"
-                    />
-                  </View>
-                </View>
-                <Text className="text-xs text-instagram-dark mt-1">user_{i}</Text>
-              </View>
+                <Text style={styles.storyUsername} numberOfLines={1}>
+                  {story.isYourStory ? 'Your story' : story.username}
+                </Text>
+              </TouchableOpacity>
             ))}
-          </View>
-        </ScrollView>
-
-        {!loading && posts.map((post) => (
-          <PostCard key={post.id} post={{
-            id: post.id,
-            username: post.username || 'user',
-            userImage: post.userImage,
-            imageUrl: post.imageUrl || '',
-            likes: post.likes || 0,
-            caption: post.caption || ''
-          }} onLike={async (id, liked) => {
-            // naive local like handling; server updates should be handled in service
-            console.log('like toggled', id, liked);
-          }} />
-        ))}
-
-        <View className="items-center py-8">
-          <Text className="text-instagram-gray">Loading more posts...</Text>
+          </ScrollView>
         </View>
+
+        {/* Posts Section */}
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#262626" />
+          </View>
+        ) : posts.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="images-outline" size={64} color="#DBDBDB" />
+            <Text style={styles.emptyTitle}>No Posts Yet</Text>
+            <Text style={styles.emptySubtitle}>
+              Follow people to see their posts in your feed
+            </Text>
+          </View>
+        ) : (
+          <>
+            {posts.map((post, index) => (
+              <React.Fragment key={post.id}>
+                <PostCard 
+                  post={post}
+                  onLike={handleLike}
+                  onComment={handleComment}
+                  onShare={handleShare}
+                />
+                
+                {/* Suggestions For You after 3rd post */}
+                {index === 2 && (
+                  <View style={styles.suggestionsContainer}>
+                    <View style={styles.suggestionsHeader}>
+                      <Text style={styles.suggestionsTitle}>Suggestions For You</Text>
+                      <TouchableOpacity>
+                        <Text style={styles.seeAllText}>See All</Text>
+                      </TouchableOpacity>
+                    </View>
+                    
+                    {SUGGESTED_USERS.slice(0, 3).map((user) => (
+                      <SuggestionCard 
+                        key={user.id}
+                        user={user}
+                        onFollow={handleFollow}
+                      />
+                    ))}
+                  </View>
+                )}
+              </React.Fragment>
+            ))}
+            
+            {/* Footer */}
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>You&apos;re all caught up!</Text>
+              <Text style={styles.footerSubtext}>
+                You&apos;ve seen all new posts from the past 3 days
+              </Text>
+            </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  storiesContainer: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#DBDBDB',
+    backgroundColor: '#fff',
+  },
+  storiesContent: {
+    paddingHorizontal: 8,
+    paddingVertical: 12,
+  },
+  storyItem: {
+    alignItems: 'center',
+    marginHorizontal: 6,
+    width: 72,
+  },
+  storyBorder: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    padding: 2,
+    borderWidth: 2,
+    borderColor: '#E91E63',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  yourStoryBorder: {
+    borderColor: '#DBDBDB',
+  },
+  storyAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  addStoryButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#0095F6',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  storyUsername: {
+    fontSize: 12,
+    color: '#262626',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 100,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 100,
+    paddingHorizontal: 40,
+  },
+  emptyTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#262626',
+    marginTop: 16,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#8E8E8E',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  suggestionsContainer: {
+    backgroundColor: '#fff',
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#EFEFEF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EFEFEF',
+    marginVertical: 8,
+  },
+  suggestionsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  suggestionsTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#262626',
+  },
+  seeAllText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0095F6',
+  },
+  footer: {
+    alignItems: 'center',
+    paddingVertical: 32,
+    paddingHorizontal: 40,
+  },
+  footerText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#262626',
+    marginBottom: 4,
+  },
+  footerSubtext: {
+    fontSize: 12,
+    color: '#8E8E8E',
+    textAlign: 'center',
+  },
+});
