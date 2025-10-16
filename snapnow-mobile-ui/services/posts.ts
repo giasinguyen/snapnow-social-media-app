@@ -14,7 +14,6 @@ import {
 import { db } from "../config/firebase"
 import { Post } from "../types"
 
-// Fetch all posts ordered by creation date
 export async function fetchPosts(): Promise<Post[]> {
   const q = query(collection(db, "posts"), orderBy("createdAt", "desc"))
   const snap = await getDocs(q)
@@ -30,23 +29,18 @@ export async function fetchPosts(): Promise<Post[]> {
   return posts
 }
 
-// Fetch posts from users that the current user follows
 export async function fetchFeedPosts(userId: string): Promise<Post[]> {
   try {
-    // Get list of users the current user is following
     const followingQuery = query(collection(db, "follows"), where("followerId", "==", userId))
     const followingSnap = await getDocs(followingQuery)
     const followingIds = followingSnap.docs.map((doc) => doc.data().followingId)
 
-    // Include the user's own posts
     followingIds.push(userId)
 
     if (followingIds.length === 0) {
       return []
     }
 
-    // Fetch posts from followed users (Firestore 'in' query supports up to 10 items)
-    // For production, you'd need to batch this or use a different approach
     const postsQuery = query(
       collection(db, "posts"),
       where("userId", "in", followingIds.slice(0, 10)),
@@ -72,7 +66,6 @@ export async function fetchFeedPosts(userId: string): Promise<Post[]> {
   }
 }
 
-// Get a single post by ID
 export async function getPost(postId: string): Promise<Post | null> {
   try {
     const postDoc = await getDoc(doc(db, "posts", postId))
@@ -91,19 +84,16 @@ export async function getPost(postId: string): Promise<Post | null> {
   }
 }
 
-// Like a post
 export async function likePost(postId: string) {
   const ref = doc(db, "posts", postId)
   await updateDoc(ref, { likes: increment(1) })
 }
 
-// Unlike a post
 export async function unlikePost(postId: string) {
   const ref = doc(db, "posts", postId)
   await updateDoc(ref, { likes: increment(-1) })
 }
 
-// Create a new post
 export async function createPost(postData: {
   userId: string
   username: string
@@ -126,7 +116,6 @@ export async function createPost(postData: {
   }
 }
 
-// Extract hashtags from caption
 export function extractHashtags(caption: string): string[] {
   const hashtagRegex = /#[\w]+/g
   const matches = caption.match(hashtagRegex)
