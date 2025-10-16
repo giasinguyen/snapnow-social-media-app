@@ -8,26 +8,31 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: '#fff',
-          borderTopWidth: 1,
-          borderTopColor: '#e0e0e0',
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
+          borderTopWidth: 0.5,
+          borderTopColor: '#DBDBDB',
+          height: 50,
+          paddingBottom: 6,
+          paddingTop: 4,
         },
-        tabBarActiveTintColor: '#000',
-        tabBarInactiveTintColor: '#666',
+        tabBarActiveTintColor: '#262626',
+        tabBarInactiveTintColor: '#8E8E8E',
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
+          fontSize: 10,
+          fontWeight: '600',
         },
+        tabBarShowLabel: false, // Hide labels for cleaner look (Instagram style)
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
+          tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
+            <Ionicons 
+              name={focused ? "home" : "home-outline"} 
+              size={26} 
+              color={color} 
+            />
           ),
         }}
       />
@@ -35,8 +40,12 @@ export default function TabsLayout() {
         name="search"
         options={{
           title: 'Search',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="search-outline" size={size} color={color} />
+          tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
+            <Ionicons 
+              name={focused ? "search" : "search-outline"} 
+              size={26} 
+              color={color} 
+            />
           ),
         }}
       />
@@ -44,8 +53,12 @@ export default function TabsLayout() {
         name="create"
         options={{
           title: 'Create',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="add-circle-outline" size={size} color={color} />
+          tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
+            <Ionicons 
+              name={focused ? "add-circle" : "add-circle-outline"} 
+              size={26} 
+              color={color} 
+            />
           ),
         }}
       />
@@ -53,8 +66,12 @@ export default function TabsLayout() {
         name="activity"
         options={{
           title: 'Activity',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="heart-outline" size={size} color={color} />
+          tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
+            <Ionicons 
+              name={focused ? "heart" : "heart-outline"} 
+              size={26} 
+              color={color} 
+            />
           ),
         }}
       />
@@ -62,9 +79,36 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" size={size} color={color} />
+          tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
+            <Ionicons 
+              name={focused ? "person" : "person-outline"} 
+              size={26} 
+              color={color} 
+            />
           ),
+        }}
+      />
+      
+      {/* Hidden screens - Not shown in tab bar */}
+      <Tabs.Screen
+        name="edit-profile"
+        options={{
+          href: null,
+          title: 'Edit Profile',
+        }}
+      />
+      <Tabs.Screen
+        name="share-profile"
+        options={{
+          href: null,
+          title: 'Share Profile',
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          href: null,
+          title: 'Settings',
         }}
       />
     </Tabs>
