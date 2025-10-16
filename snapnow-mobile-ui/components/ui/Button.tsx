@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, Text, ActivityIndicator, StyleProp, ViewStyle, TextStyle } from 'react-native';
+import { TouchableOpacity, Text, ActivityIndicator, StyleProp, ViewStyle, TextStyle, StyleSheet } from 'react-native';
 
 interface ButtonProps {
   title: string;
@@ -24,62 +24,103 @@ export default function Button({
   style,
   textStyle,
 }: ButtonProps) {
-  const getButtonClasses = () => {
-    const base = 'rounded-lg items-center justify-center';
-    const width = fullWidth ? 'w-full' : '';
-    
-    const sizes = {
-      small: 'py-2 px-4',
-      medium: 'py-3 px-6',
-      large: 'py-4 px-8',
-    };
+  const buttonStyle = [
+    styles.base,
+    fullWidth && styles.fullWidth,
+    styles[`size_${size}`],
+    styles[`variant_${variant}`],
+    (disabled || loading) && styles.disabled,
+    style,
+  ];
 
-    const variants = {
-      primary: 'bg-blue-500',
-      secondary: 'bg-gray-200',
-      outline: 'border-2 border-gray-300 bg-transparent',
-      danger: 'bg-red-500',
-    };
-
-    const disabledClass = disabled || loading ? 'opacity-50' : '';
-
-    return `${base} ${width} ${sizes[size]} ${variants[variant]} ${disabledClass}`;
-  };
-
-  const getTextClasses = () => {
-    const base = 'font-semibold';
-    
-    const sizes = {
-      small: 'text-sm',
-      medium: 'text-base',
-      large: 'text-lg',
-    };
-
-    const colors = {
-      primary: 'text-white',
-      secondary: 'text-gray-800',
-      outline: 'text-gray-800',
-      danger: 'text-white',
-    };
-
-    return `${base} ${sizes[size]} ${colors[variant]}`;
-  };
+  const textStyles = [
+    styles.textBase,
+    styles[`textSize_${size}`],
+    styles[`textColor_${variant}`],
+    textStyle,
+  ];
 
   return (
     <TouchableOpacity
-      className={getButtonClasses()}
+      style={buttonStyle}
       onPress={onPress}
       disabled={disabled || loading}
-      style={style}
       activeOpacity={0.7}
     >
       {loading ? (
         <ActivityIndicator color={variant === 'primary' || variant === 'danger' ? '#fff' : '#333'} />
       ) : (
-        <Text className={getTextClasses()} style={textStyle}>
+        <Text style={textStyles}>
           {title}
         </Text>
       )}
     </TouchableOpacity>
   );
 }
+
+const styles = StyleSheet.create({
+  base: {
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fullWidth: {
+    width: '100%',
+  },
+  // Sizes
+  size_small: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  size_medium: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+  },
+  size_large: {
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+  },
+  // Variants
+  variant_primary: {
+    backgroundColor: '#0095F6',
+  },
+  variant_secondary: {
+    backgroundColor: '#EFEFEF',
+  },
+  variant_outline: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: '#DBDBDB',
+  },
+  variant_danger: {
+    backgroundColor: '#ED4956',
+  },
+  disabled: {
+    opacity: 0.5,
+  },
+  // Text styles
+  textBase: {
+    fontWeight: '600',
+  },
+  textSize_small: {
+    fontSize: 14,
+  },
+  textSize_medium: {
+    fontSize: 16,
+  },
+  textSize_large: {
+    fontSize: 18,
+  },
+  textColor_primary: {
+    color: '#fff',
+  },
+  textColor_secondary: {
+    color: '#262626',
+  },
+  textColor_outline: {
+    color: '#262626',
+  },
+  textColor_danger: {
+    color: '#fff',
+  },
+});

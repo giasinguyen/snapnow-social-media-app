@@ -22,7 +22,6 @@ const POST_SIZE = (width - 4) / 3;
 
 type TabType = 'grid' | 'reels' | 'tagged';
 
-// Mock highlights data
 const HIGHLIGHTS = [
   { id: '1', title: 'Travel', cover: 'https://picsum.photos/200/200?random=1' },
   { id: '2', title: 'Food', cover: 'https://picsum.photos/200/200?random=2' },
@@ -171,7 +170,10 @@ export default function ProfileScreen() {
           >
             <Text style={styles.editButtonText}>Edit Profile</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.shareButton}>
+          <TouchableOpacity 
+            style={styles.shareButton}
+            onPress={() => router.push({ pathname: '/(tabs)/share-profile' })}
+          >
             <Text style={styles.shareButtonText}>Share Profile</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.addFriendButton} onPress={handleActivity}>

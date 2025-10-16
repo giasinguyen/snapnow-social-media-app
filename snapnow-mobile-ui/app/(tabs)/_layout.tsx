@@ -67,6 +67,35 @@ export default function TabsLayout() {
           ),
         }}
       />
+      
+      {/* Hidden screens - Not shown in tab bar */}
+      <Tabs.Screen
+        name="edit-profile"
+        options={{
+          href: null, // Hide from tab bar
+          title: 'Edit Profile',
+        }}
+      />
+      <Tabs.Screen
+        name="share-profile"
+        options={{
+          href: null, // Hide from tab bar
+          title: 'Share Profile',
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          href: null, // Hide from tab bar
+          title: 'Settings',
+        }}
+      />
+      <Tabs.Screen
+        name="home-new"
+        options={{
+          href: null, // Hide from tab bar (old file)
+        }}
+      />
     </Tabs>
   );
 }

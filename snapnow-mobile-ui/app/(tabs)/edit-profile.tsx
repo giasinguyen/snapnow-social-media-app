@@ -3,11 +3,15 @@ import { useRouter } from 'expo-router';
 import { updateProfile } from 'firebase/auth';
 import { doc, updateDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, View, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth, db } from '../../config/firebase';
 import { AuthService, UserProfile } from '../../services/authService';
 import { uploadToStorage } from '../../services/storage';
+import Header from '../../components/ui/Header';
+import Input from '../../components/ui/Input';
+import Button from '../../components/ui/Button';
+import Avatar from '../../components/ui/Avatar';
 
 export default function EditProfileScreen() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -87,40 +91,146 @@ export default function EditProfileScreen() {
 
   if (!profile) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.center}><ActivityIndicator /></View>
+      <SafeAreaView style={styles.loadingContainer}>
+        <View style={styles.loadingContent}>
+          <ActivityIndicator size="large" color="#0095F6" />
+        </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <TouchableOpacity onPress={pickImage} style={styles.avatarWrap}>
-          <Image source={avatarUri ? { uri: avatarUri } : require('../../assets/images/default-avatar.jpg')} style={styles.avatar} />
-          <Text style={styles.changeText}>Change</Text>
-        </TouchableOpacity>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <Header
+        title="Edit Profile"
+        showBack
+        rightAction={{
+          text: 'Done',
+          onPress: save,
+        }}
+      />
 
-        <TextInput style={styles.input} value={displayName} onChangeText={setDisplayName} placeholder="Display name" />
-        <TextInput style={styles.input} value={username} onChangeText={setUsername} placeholder="Username" autoCapitalize="none" />
-        <TextInput style={[styles.input, { height: 100 }]} value={bio} onChangeText={setBio} placeholder="Bio" multiline />
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <View style={styles.avatarSection}>
+          <Avatar
+            uri={avatarUri}
+            size="large"
+            editable
+            onPress={pickImage}
+          />
+          <Text style={styles.changePhotoText}>
+            Change Profile Photo
+          </Text>
+        </View>
 
-        <TouchableOpacity style={styles.saveButton} onPress={save} disabled={saving}>
-          {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveText}>Save</Text>}
-        </TouchableOpacity>
-      </View>
+        <View style={styles.formSection}>
+          <Input
+            label="Display Name"
+            value={displayName}
+            onChangeText={setDisplayName}
+            placeholder="Enter your display name"
+            autoCapitalize="words"
+          />
+          
+          <Input
+            label="Username"
+            value={username}
+            onChangeText={setUsername}
+            placeholder="Enter your username"
+            autoCapitalize="none"
+          />
+          
+          <Input
+            label="Bio"
+            value={bio}
+            onChangeText={setBio}
+            placeholder="Tell us about yourself"
+            multiline
+            numberOfLines={4}
+            style={styles.bioInput}
+          />
+
+          <View style={styles.infoSection}>
+            <Text style={styles.infoTitle}>
+              Profile Information
+            </Text>
+            <Text style={styles.infoText}>
+              Your profile information will be visible to all users. 
+              Choose a unique username and write a bio that represents you.
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.buttonSection}>
+          <Button
+            title={saving ? 'Saving...' : 'Save Changes'}
+            onPress={save}
+            loading={saving}
+            disabled={saving}
+            variant="primary"
+          />
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  content: { padding: 16 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  avatarWrap: { alignItems: 'center', marginBottom: 16 },
-  avatar: { width: 120, height: 120, borderRadius: 60, backgroundColor: '#eee' },
-  changeText: { marginTop: 8, color: '#0066cc' },
-  input: { borderWidth: 1, borderColor: '#ddd', padding: 10, borderRadius: 8, marginBottom: 12 },
-  saveButton: { backgroundColor: '#111', padding: 12, borderRadius: 8, alignItems: 'center' },
-  saveText: { color: '#fff', fontWeight: '600' },
-});
+const styles = {
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  loadingContent: {
+    flex: 1,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  container: {
+    flex: 1,
+    backgroundColor: '#FAFAFA',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  avatarSection: {
+    alignItems: 'center' as const,
+    paddingVertical: 24,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#DBDBDB',
+  },
+  changePhotoText: {
+    color: '#0095F6',
+    fontWeight: '600' as const,
+    fontSize: 16,
+    marginTop: 12,
+  },
+  formSection: {
+    backgroundColor: '#fff',
+    marginTop: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  bioInput: {
+    height: 96,
+    textAlignVertical: 'top' as const,
+  },
+  infoSection: {
+    marginBottom: 16,
+  },
+  infoTitle: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#262626',
+    marginBottom: 8,
+  },
+  infoText: {
+    fontSize: 12,
+    color: '#8E8E8E',
+    lineHeight: 18,
+  },
+  buttonSection: {
+    paddingHorizontal: 16,
+    paddingVertical: 24,
+  },
+};
