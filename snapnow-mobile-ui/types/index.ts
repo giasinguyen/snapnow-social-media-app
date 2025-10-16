@@ -13,16 +13,16 @@ export interface User {
 
 export interface Post {
   id: string;
-  userId: string;
-  username: string;
-  userProfileImage?: string;
-  imageUrl: string;
-  caption: string;
-  hashtags: string[];
-  likesCount: number;
-  commentsCount: number;
-  isLiked: boolean;
-  createdAt: Date;
+  userId?: string;
+  username?: string;
+  userImage?: string;
+  imageUrl?: string;
+  caption?: string;
+  hashtags?: string[];
+  likes?: number;
+  commentsCount?: number;
+  isLiked?: boolean;
+  createdAt?: any;
 }
 
 export interface Comment {

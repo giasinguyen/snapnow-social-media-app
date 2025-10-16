@@ -2,8 +2,7 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
   signOut,
-  onAuthStateChanged,
-  User as FirebaseUser
+  onAuthStateChanged
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
@@ -11,7 +10,7 @@ import { Alert } from 'react-native';
 import { router } from 'expo-router';
 
 // Interface cho User
-interface User {
+export interface UserProfile {
   id: string;
   email: string;
   username: string;
@@ -25,9 +24,12 @@ interface User {
   isAdmin?: boolean;
 }
 
+// Alias for backward compatibility
+export type User = UserProfile;
+
 // Tài khoản admin mặc định
-const ADMIN_EMAIL = 'admin@snapnow.com';
-const ADMIN_PASSWORD = 'admin123';
+const ADMIN_EMAIL = 'admin@admin.com';
+const ADMIN_PASSWORD = '123';
 
 // Tạo tài khoản admin
 export const createAdminAccount = async () => {
@@ -74,7 +76,7 @@ export const loginUser = async (email: string, password: string) => {
     
     // Navigate immediately without Alert
     setTimeout(() => {
-      router.replace('/(tabs)/home-new');
+      router.replace('/(tabs)');
     }, 100);
     
     return { ...user, ...userData };
@@ -93,7 +95,7 @@ export const loginAsAdmin = async () => {
     
     // Navigate immediately without Alert
     setTimeout(() => {
-      router.replace('/(tabs)/home-new');
+      router.replace('/(tabs)');
     }, 100);
     
     return adminCredential.user;
@@ -129,7 +131,7 @@ export const registerUser = async (email: string, password: string, username: st
     
     // Navigate immediately without Alert
     setTimeout(() => {
-      router.replace('/(tabs)/home-new');
+      router.replace('/(tabs)');
     }, 100);
     
     return user;
@@ -149,6 +151,51 @@ export const signOutUser = async () => {
     Alert.alert('Lỗi đăng xuất', error.message);
   }
 };
+
+// Get current user profile
+export const getCurrentUserProfile = async (): Promise<UserProfile | null> => {
+  try {
+    const user = auth.currentUser;
+    if (!user) return null;
+
+    const userDoc = await getDoc(doc(db, 'users', user.uid));
+    if (userDoc.exists()) {
+      const data = userDoc.data();
+      return {
+        ...data,
+        createdAt: data.createdAt?.toDate?.() || new Date(),
+      } as UserProfile;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error getting current user profile:', error);
+    throw error;
+  }
+};
+
+// Class-based API for backward compatibility
+export class AuthService {
+  static async signIn(email: string, password: string) {
+    return loginUser(email, password);
+  }
+
+  static async signUp(email: string, password: string, username: string, displayName: string) {
+    return registerUser(email, password, username, displayName);
+  }
+
+  static async signOut() {
+    return signOutUser();
+  }
+
+  static async getCurrentUserProfile(): Promise<UserProfile | null> {
+    return getCurrentUserProfile();
+  }
+
+  static getCurrentUser() {
+    return auth.currentUser;
+  }
+}
 
 // Lắng nghe thay đổi auth state
 export const onAuthStateChange = onAuthStateChanged;
