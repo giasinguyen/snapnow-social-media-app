@@ -29,7 +29,6 @@ export default function HomeScreen() {
 
   const loadPosts = useCallback(async () => {
     try {
-      // Simulate network delay
       await simulateDelay(1000);
       setPosts(MOCK_POSTS);
     } catch (err) {
