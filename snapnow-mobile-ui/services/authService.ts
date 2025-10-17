@@ -1,13 +1,13 @@
-import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged
-} from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../config/firebase';
-import { Alert } from 'react-native';
 import { router } from 'expo-router';
+import {
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut
+} from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { Alert } from 'react-native';
+import { auth, db } from '../config/firebase';
 
 // Interface cho User
 export interface UserProfile {
@@ -285,3 +285,4 @@ export const onAuthStateChange = onAuthStateChanged;
 
 // Export auth để sử dụng ở nơi khác
 export { auth };
+

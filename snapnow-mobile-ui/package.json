@@ -6,8 +6,8 @@
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "seed": "node scripts/seedFirebase.js",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint"
   },
@@ -63,6 +63,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@react-native-community/cli": "^20.0.2",
     "@types/react": "~19.1.10",
     "autoprefixer": "^10.4.21",
     "dotenv": "^17.2.3",
