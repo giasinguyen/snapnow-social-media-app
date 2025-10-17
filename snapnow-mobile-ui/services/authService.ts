@@ -1,13 +1,13 @@
-import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged
-} from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../config/firebase';
-import { Alert } from 'react-native';
 import { router } from 'expo-router';
+import {
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut
+} from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { Alert } from 'react-native';
+import { auth, db } from '../config/firebase';
 
 // Interface cho User
 export interface UserProfile {
@@ -28,8 +28,8 @@ export interface UserProfile {
 export type User = UserProfile;
 
 // Tài khoản admin mặc định
-const ADMIN_EMAIL = 'admin@admin.com';
-const ADMIN_PASSWORD = '123';
+const ADMIN_EMAIL = 'admin@snapnow.com';
+const ADMIN_PASSWORD = 'admin123';
 
 // Tạo tài khoản admin
 export const createAdminAccount = async () => {
@@ -202,3 +202,4 @@ export const onAuthStateChange = onAuthStateChanged;
 
 // Export auth để sử dụng ở nơi khác
 export { auth };
+
