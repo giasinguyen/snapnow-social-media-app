@@ -92,7 +92,7 @@ export default function ProfileScreen() {
           <ActivityIndicator size="large" color="#0095F6" />
         </View>
       </SafeAreaView>
-    )
+    );
   }
 
   if (!profile) {
@@ -104,7 +104,7 @@ export default function ProfileScreen() {
           <Text style={styles.subText}>Please login or register to see your profile.</Text>
         </View>
       </SafeAreaView>
-    )
+    );
   }
 
   return (
@@ -389,7 +389,7 @@ export default function ProfileScreen() {
         )}
       </ScrollView>
     </SafeAreaView>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
