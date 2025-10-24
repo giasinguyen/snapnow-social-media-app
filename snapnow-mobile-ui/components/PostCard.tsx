@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
-import CommentsModal from './CommentsModal';
-import { Image, Text, TouchableOpacity, View, StyleSheet } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { Animated, Image, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { Post } from '../types';
+import CommentsModal from './CommentsModal';
 
 interface PostCardProps {
   post: Post;
@@ -14,7 +14,45 @@ interface PostCardProps {
 export default function PostCard({ post, onLike, onComment, onShare }: PostCardProps) {
   const [liked, setLiked] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
+  const heartScale = useState(new Animated.Value(0))[0];
+  const [showHeart, setShowHeart] = useState(false);
+  let lastTap = useRef<number>(0);
+
+  const handleDoubleTap = () => {
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300; // 0.3s
+
+    if (now - lastTap.current < DOUBLE_TAP_DELAY) {
+      triggerLikeAnimation();
+      if (!liked) {
+        setLiked(true);
+        onLike?.(post.id, true);
+      }
+    }
+    lastTap.current = now;
+  };
+
+  const triggerLikeAnimation = () => {
+    setShowHeart(true);
+    heartScale.setValue(0);
+
+    Animated.sequence([
+      Animated.spring(heartScale, {
+        toValue: 1,
+        friction: 4,
+        tension: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(heartScale, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start(() => setShowHeart(false));
+  };
+
   const [commentsModalVisible, setCommentsModalVisible] = useState(false);
+
 
   const toggleLike = () => {
     setLiked((s) => {
@@ -43,8 +81,8 @@ export default function PostCard({ post, onLike, onComment, onShare }: PostCardP
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Image 
-            source={{ uri: post.userImage || 'https://via.placeholder.com/40' }} 
+          <Image
+            source={{ uri: post.userImage || 'https://via.placeholder.com/40' }}
             style={styles.avatar}
           />
           <View style={styles.userInfo}>
@@ -58,20 +96,41 @@ export default function PostCard({ post, onLike, onComment, onShare }: PostCardP
       </View>
 
       {/* Image */}
-      <Image 
-        source={{ uri: post.imageUrl }} 
-        style={styles.postImage}
-        resizeMode="cover"
-      />
+      <TouchableWithoutFeedback onPress={handleDoubleTap}>
+        <View style={{ position: 'relative' }}>
+          <Image
+            source={{ uri: post.imageUrl }}
+            style={styles.postImage}
+            resizeMode="cover"
+          />
+
+          {showHeart && (
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.heartOverlay,            
+                { transform: [{ scale: heartScale }] },
+              ]}
+            >
+              <Ionicons
+                name="heart"
+                size={60}
+                color="#FFFFFF"
+                style={{ textShadowColor: 'rgba(0,0,0,0.35)', textShadowRadius: 8 }}
+              />
+            </Animated.View>
+          )}
+        </View>
+      </TouchableWithoutFeedback>
 
       {/* Actions */}
       <View style={styles.actions}>
         <View style={styles.leftActions}>
           <TouchableOpacity onPress={toggleLike} style={styles.actionButton}>
-            <Ionicons 
-              name={liked ? 'heart' : 'heart-outline'} 
-              size={28} 
-              color={liked ? '#FF3040' : '#262626'} 
+            <Ionicons
+              name={liked ? 'heart' : 'heart-outline'}
+              size={28}
+              color={liked ? '#FF3040' : '#262626'}
             />
           </TouchableOpacity>
           <TouchableOpacity onPress={handleComment} style={styles.actionButton}>
@@ -82,10 +141,10 @@ export default function PostCard({ post, onLike, onComment, onShare }: PostCardP
           </TouchableOpacity>
         </View>
         <TouchableOpacity onPress={toggleBookmark}>
-          <Ionicons 
-            name={bookmarked ? 'bookmark' : 'bookmark-outline'} 
-            size={26} 
-            color="#262626" 
+          <Ionicons
+            name={bookmarked ? 'bookmark' : 'bookmark-outline'}
+            size={26}
+            color="#262626"
           />
         </TouchableOpacity>
       </View>
@@ -233,5 +292,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingTop: 4,
     paddingBottom: 12,
+  },
+  heartOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    opacity: 0.9,
   },
 });
