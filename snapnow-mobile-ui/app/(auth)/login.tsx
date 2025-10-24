@@ -1,17 +1,34 @@
+<<<<<<< HEAD
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link } from 'expo-router';
+=======
+>>>>>>> a399b07 (update branch)
 import React, { useState } from 'react';
 import {
+  View,
+  Text,
   Alert,
   KeyboardAvoidingView,
   Platform,
+<<<<<<< HEAD
   ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+=======
+  TouchableOpacity,
+  TextInput,
+  ScrollView,
+  StyleSheet,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Link } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+>>>>>>> a399b07 (update branch)
 import { loginUser } from '../../services/authService';
 
 const COLORS = {
