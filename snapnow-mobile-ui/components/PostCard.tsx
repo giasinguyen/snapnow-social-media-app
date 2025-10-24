@@ -1,6 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
+<<<<<<< HEAD
 import React, { useRef, useState } from 'react';
 import { Animated, Image, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+=======
+import React, { useState } from 'react';
+import CommentsModal from './CommentsModal';
+import { Image, Text, TouchableOpacity, View, StyleSheet } from 'react-native';
+>>>>>>> ab323040b50c9b2900dd9c262a32acf3808279da
 import { Post } from '../types';
 
 interface PostCardProps {
@@ -50,6 +56,9 @@ export default function PostCard({ post, onLike, onComment, onShare }: PostCardP
     ]).start(() => setShowHeart(false));
   };
 
+  const [commentsModalVisible, setCommentsModalVisible] = useState(false);
+
+
   const toggleLike = () => {
     setLiked((s) => {
       const next = !s;
@@ -63,6 +72,8 @@ export default function PostCard({ post, onLike, onComment, onShare }: PostCardP
   };
 
   const handleComment = () => {
+    // Open the comments modal for this post and notify parent
+    setCommentsModalVisible(true);
     onComment?.(post.id);
   };
 
@@ -168,6 +179,13 @@ export default function PostCard({ post, onLike, onComment, onShare }: PostCardP
           </Text>
         </TouchableOpacity>
       )}
+
+      {/* Comments modal (opened when tapping comments) */}
+      <CommentsModal
+        visible={commentsModalVisible}
+        postId={post.id}
+        onClose={() => setCommentsModalVisible(false)}
+      />
 
       {/* Timestamp */}
       <Text style={styles.timestamp}>

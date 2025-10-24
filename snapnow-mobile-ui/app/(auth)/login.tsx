@@ -15,6 +15,7 @@ import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { loginUser } from '../../services/authService';
+// import {loginBypass } from '../../services/authService';
 
 const COLORS = {
   white: '#FFFFFF',
@@ -181,6 +182,28 @@ export default function LoginScreen() {
                 <Ionicons name="logo-facebook" size={20} color="#1877F2" />
                 <Text style={styles.socialText}>Continue with Facebook</Text>
               </TouchableOpacity>
+
+              {/* Dev-only bypass login */}
+              {/* {typeof __DEV__ !== 'undefined' && __DEV__ && (
+                <TouchableOpacity
+                  onPress={async () => {
+                    setIsLoading(true);
+                    try {
+                      await loginBypass();
+                    } catch (error: any) {
+                      Alert.alert('Bypass Failed', error?.message || 'Unable to bypass login');
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }}
+                  style={[styles.socialBtn, styles.mb0, { backgroundColor: '#FEF3C7', borderColor: '#F59E0B' }]}
+                >
+                  <Ionicons name="code-slash-outline" size={20} color="#92400E" />
+                  <Text style={[styles.socialText, { color: '#92400E' }]}>Bypass Login (Dev)</Text>
+                </TouchableOpacity>
+              )} */}
+
+
             </View>
 
             {/* Sign Up */}

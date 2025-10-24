@@ -15,7 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import PostCard from '../../components/PostCard';
 import { Post } from '../../types';
 import { 
-  MOCK_POSTS, 
+  MOCK_POSTS,  
   MOCK_STORIES, 
   SUGGESTED_USERS,
   simulateDelay 
