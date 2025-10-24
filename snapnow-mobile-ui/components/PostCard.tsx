@@ -1,13 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-<<<<<<< HEAD
 import React, { useRef, useState } from 'react';
 import { Animated, Image, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
-=======
-import React, { useState } from 'react';
-import CommentsModal from './CommentsModal';
-import { Image, Text, TouchableOpacity, View, StyleSheet } from 'react-native';
->>>>>>> ab323040b50c9b2900dd9c262a32acf3808279da
 import { Post } from '../types';
+import CommentsModal from './CommentsModal';
 
 interface PostCardProps {
   post: Post;
