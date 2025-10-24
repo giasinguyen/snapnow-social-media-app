@@ -33,8 +33,8 @@ const COLORS = {
 };
 
 export default function LoginScreen() {
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('admin');
+  const [username, setUsername] = useState('admin@snapnow.com');
+  const [password, setPassword] = useState('admin123');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -45,9 +45,18 @@ export default function LoginScreen() {
     }
     setIsLoading(true);
     try {
-      const email = username.includes('@') ? username : `${username}@snapnow.com`;
+      // Nếu nhập "admin" thì tự động convert sang email
+      let email = username;
+      if (username.toLowerCase() === 'admin' || username === 'admin@admin.com') {
+        email = 'admin@snapnow.com';
+      } else if (!username.includes('@')) {
+        email = `${username}@snapnow.com`;
+      }
+      
+      console.log('Attempting login with:', email);
       await loginUser(email, password);
     } catch (error: any) {
+      console.error('Login error:', error);
       Alert.alert('Login Failed', error.message || 'Invalid credentials');
     } finally {
       setIsLoading(false);
@@ -55,8 +64,8 @@ export default function LoginScreen() {
   };
 
   const handleQuickLogin = () => {
-    setUsername('admin');
-    setPassword('admin');
+    setUsername('admin@snapnow.com');
+    setPassword('admin123');
   };
 
   return (
@@ -138,7 +147,7 @@ export default function LoginScreen() {
               <TouchableOpacity onPress={handleQuickLogin} style={styles.quickTip}>
                 <Ionicons name="information-circle" size={20} color="#0095F6" />
                 <Text style={styles.quickText}>
-                  Default: <Text style={styles.quickTextBold}>admin / admin</Text>
+                  Default: <Text style={styles.quickTextBold}>admin@snapnow.com / admin123</Text>
                 </Text>
                 <Text style={styles.quickRight}>Tap to fill</Text>
               </TouchableOpacity>
