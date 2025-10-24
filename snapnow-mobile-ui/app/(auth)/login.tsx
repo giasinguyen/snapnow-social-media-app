@@ -1,28 +1,10 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Link } from 'expo-router';
-=======
->>>>>>> a399b07 (update branch)
-=======
-import { Link } from 'expo-router';
->>>>>>> 85353d0 (update UI and Acitivity Functionally)
 import React, { useState } from 'react';
 import {
+  View,
+  Text,
   Alert,
-  Image,
   KeyboardAvoidingView,
   Platform,
-<<<<<<< HEAD
-<<<<<<< HEAD
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-=======
   TouchableOpacity,
   TextInput,
   ScrollView,
@@ -32,7 +14,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
->>>>>>> a399b07 (update branch)
 import { loginUser } from '../../services/authService';
 // import {loginBypass } from '../../services/authService';
 
@@ -50,18 +31,6 @@ const COLORS = {
   blue500: '#3B82F6',
   blue600: '#2563EB',
 };
-=======
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-// Sử dụng Firebase authService thật
-import { InstagramButton, InstagramInput } from '../../components/InstagramUI';
-import { LogoHeader } from '../../components/LogoHeader';
-import { loginAsAdmin, loginUser } from '../../services/authService';
->>>>>>> 85353d0 (update UI and Acitivity Functionally)
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('admin@snapnow.com');
