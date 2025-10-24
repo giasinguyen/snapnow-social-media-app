@@ -14,7 +14,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { loginUser, loginBypass } from '../../services/authService';
+import { loginUser } from '../../services/authService';
+// import {loginBypass } from '../../services/authService';
 
 const COLORS = {
   white: '#FFFFFF',
@@ -183,7 +184,7 @@ export default function LoginScreen() {
               </TouchableOpacity>
 
               {/* Dev-only bypass login */}
-              {typeof __DEV__ !== 'undefined' && __DEV__ && (
+              {/* {typeof __DEV__ !== 'undefined' && __DEV__ && (
                 <TouchableOpacity
                   onPress={async () => {
                     setIsLoading(true);
@@ -200,7 +201,9 @@ export default function LoginScreen() {
                   <Ionicons name="code-slash-outline" size={20} color="#92400E" />
                   <Text style={[styles.socialText, { color: '#92400E' }]}>Bypass Login (Dev)</Text>
                 </TouchableOpacity>
-              )}
+              )} */}
+
+
             </View>
 
             {/* Sign Up */}
