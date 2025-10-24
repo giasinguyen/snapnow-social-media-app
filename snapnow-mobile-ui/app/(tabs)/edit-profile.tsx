@@ -39,28 +39,25 @@ export default function EditProfileScreen() {
   const router = useRouter();
 
   useEffect(() => {
-    let mounted = true
-    ;(async () => {
-      const p = await AuthService.getCurrentUserProfile()
+    let mounted = true;
+    (async () => {
+      const p = await AuthService.getCurrentUserProfile();
       if (mounted && p) {
-        setProfile(p)
-        setDisplayName(p.displayName || "")
-        setUsername(p.username || "")
-        setBio(p.bio || "")
-        setAvatarUri(p.profileImage || null)
+        setProfile(p);
+        setDisplayName(p.displayName || '');
+        setUsername(p.username || '');
+        setBio(p.bio || '');
+        setAvatarUri(p.profileImage || null);
       }
-      if (mounted) setLoading(false)
-    })()
-    return () => {
-      mounted = false
-    }
-  }, [])
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   const pickImage = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert("Permission required", "Permission to access photos is required.")
-      return
+      Alert.alert('Permission required', 'Permission to access photos is required.');
+      return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({ 
@@ -71,9 +68,9 @@ export default function EditProfileScreen() {
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      setAvatarUri(result.assets[0].uri)
+      setAvatarUri(result.assets[0].uri);
     }
-  }
+  };
 
   const takePhoto = async () => {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
@@ -165,57 +162,7 @@ export default function EditProfileScreen() {
     } finally {
       setSaving(false);
     }
-    if (!username.trim()) {
-      Alert.alert("Error", "Username is required")
-      return
-    }
-
-    if (!profile) return
-    setSaving(true)
-    try {
-      let photoURL = profile.profileImage || null
-
-      if (avatarUri && avatarUri.startsWith("file")) {
-        const res = await fetch(avatarUri)
-        const blob = await res.blob()
-        const path = `users/${profile.id}/avatar.jpg`
-        photoURL = await uploadToStorage(path, blob as any)
-      }
-
-      const userRef = doc(db, "users", profile.id)
-      await updateDoc(userRef, {
-        displayName: displayName.trim(),
-        username: username.trim().toLowerCase(),
-        bio: bio.trim(),
-        profileImage: photoURL,
-      })
-
-      if (auth.currentUser) {
-        await updateProfile(auth.currentUser, {
-          displayName: displayName.trim(),
-          photoURL,
-        })
-      }
-
-      Alert.alert("Success", "Your profile was updated successfully.")
-      router.back()
-    } catch (err: any) {
-      console.error("Failed to save profile", err)
-      Alert.alert("Error", err.message || "Failed to save profile")
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.center}>
-          <ActivityIndicator />
-        </View>
-      </SafeAreaView>
-    )
-  }
+  };
 
   if (!profile) {
     return (
@@ -224,7 +171,7 @@ export default function EditProfileScreen() {
           <ActivityIndicator size="large" color="#0095F6" />
         </View>
       </SafeAreaView>
-    )
+    );
   }
 
   const bioLength = bio.length;
@@ -468,7 +415,7 @@ export default function EditProfileScreen() {
         </View>
       </ScrollView>
     </SafeAreaView>
-  )
+  );
 }
 
 const styles = StyleSheet.create({

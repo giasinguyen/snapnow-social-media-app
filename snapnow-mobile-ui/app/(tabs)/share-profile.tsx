@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, Share as RNShare, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
-import { AuthService, UserProfile } from '../../services/authService';
-import Header from '../../components/ui/Header';
+import React, { useEffect, useState } from 'react';
+import { Alert, Share as RNShare, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Avatar from '../../components/ui/Avatar';
 import Button from '../../components/ui/Button';
+import Header from '../../components/ui/Header';
+import { AuthService, UserProfile } from '../../services/authService';
 
 interface ShareOptionProps {
   icon: keyof typeof Ionicons.glyphMap;
