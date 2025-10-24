@@ -106,6 +106,35 @@ export const loginAsAdmin = async () => {
   }
 };
 
+// Bypass login for development/testing (uses the mock in __mocks__)
+// export const loginBypass = async (email?: string, password?: string) => {
+//   // Only allow bypass in development
+//   // React Native exposes global.__DEV__ when in development mode
+//   if (!(global as any).__DEV__) {
+//     throw new Error('Bypass login is allowed in development only');
+//   }
+
+//   try {
+//     // Dynamically require the mock so it isn't bundled in production builds
+//     // eslint-disable-next-line @typescript-eslint/no-var-requires
+//     const mockModule = require('../__mocks__/authService.mock');
+//     const mock = mockModule.mockAuth || mockModule.authService;
+
+//     // Call the mock login; fallback to admin demo account
+//     const user = await mock.loginUser(email || 'admin@snapnow.com', password || 'admin');
+
+//     // Navigate to main tabs (mirror real login behavior)
+//     setTimeout(() => {
+//       router.replace('/(tabs)');
+//     }, 100);
+
+//     return user;
+//   } catch (error: any) {
+//     console.error('Bypass login error:', error);
+//     throw error;
+//   }
+// };
+
 // Đăng ký user mới
 export const registerUser = async (email: string, password: string, username: string, displayName: string) => {
   try {
