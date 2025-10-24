@@ -1,0 +1,7 @@
+{
+  "abi": "armeabi-v7a",
+  "api": 24,
+  "ndk": 27,
+  "stl": "c++_shared",
+  "static": false
+}

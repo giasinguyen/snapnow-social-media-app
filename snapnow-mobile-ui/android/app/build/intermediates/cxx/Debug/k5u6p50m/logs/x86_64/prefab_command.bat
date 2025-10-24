@@ -1,0 +1,24 @@
+@echo off
+"C:\\Program Files\\Java\\jdk-21\\bin\\java" ^
+  --class-path ^
+  "C:\\Users\\haxua\\.gradle\\caches\\modules-2\\files-2.1\\com.google.prefab\\cli\\2.1.0\\aa32fec809c44fa531f01dcfb739b5b3304d3050\\cli-2.1.0-all.jar" ^
+  com.google.prefab.cli.AppKt ^
+  --build-system ^
+  cmake ^
+  --platform ^
+  android ^
+  --abi ^
+  x86_64 ^
+  --os-version ^
+  24 ^
+  --stl ^
+  c++_shared ^
+  --ndk-version ^
+  27 ^
+  --output ^
+  "C:\\Users\\haxua\\AppData\\Local\\Temp\\agp-prefab-staging1247447387725057339\\staged-cli-output" ^
+  "C:\\Users\\haxua\\.gradle\\caches\\8.14.3\\transforms\\e4bfd4183f33df9a777088d5a34becbb\\transformed\\react-android-0.81.4-debug\\prefab" ^
+  "E:\\1.HK1_2025\\ReactNative\\deTai\\snapnow-social-media-app\\snapnow-mobile-ui\\android\\app\\build\\intermediates\\cxx\\refs\\react-native-reanimated\\3201l1i2" ^
+  "E:\\1.HK1_2025\\ReactNative\\deTai\\snapnow-social-media-app\\snapnow-mobile-ui\\android\\app\\build\\intermediates\\cxx\\refs\\react-native-worklets\\r27ox6i3" ^
+  "C:\\Users\\haxua\\.gradle\\caches\\8.14.3\\transforms\\a245e1a7ebe96402517c2149f4f499da\\transformed\\hermes-android-0.81.4-debug\\prefab" ^
+  "C:\\Users\\haxua\\.gradle\\caches\\8.14.3\\transforms\\ddfab28b096acf1a26f05197686526b7\\transformed\\fbjni-0.7.0\\prefab"

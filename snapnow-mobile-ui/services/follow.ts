@@ -1,14 +1,14 @@
 import {
-    collection,
-    deleteDoc,
-    doc,
-    getDoc,
-    getDocs,
-    increment,
-    query,
-    setDoc,
-    updateDoc,
-    where,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  increment,
+  query,
+  setDoc,
+  updateDoc,
+  where,
 } from "firebase/firestore"
 import { db } from "../config/firebase"
 import { createNotification } from "./notifications"
