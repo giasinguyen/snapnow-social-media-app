@@ -21,6 +21,7 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
 
 const app = initializeApp(firebaseConfig);
 
+// Use getAuth() instead of initializeAuth() for React Native
 export const auth = getAuth(app);
 
 export const db = getFirestore(app);

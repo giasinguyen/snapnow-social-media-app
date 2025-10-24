@@ -16,6 +16,43 @@ interface PostCardProps {
 const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment, onShare, onPress }) => {
   const [liked, setLiked] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
+  const heartScale = useState(new Animated.Value(0))[0];
+  const [showHeart, setShowHeart] = useState(false);
+  let lastTap = useRef<number>(0);
+
+  const handleDoubleTap = () => {
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300; // 0.3s
+
+    if (now - lastTap.current < DOUBLE_TAP_DELAY) {
+      triggerLikeAnimation();
+      if (!liked) {
+        setLiked(true);
+        onLike?.(post.id, true);
+      }
+    }
+    lastTap.current = now;
+  };
+
+  const triggerLikeAnimation = () => {
+    setShowHeart(true);
+    heartScale.setValue(0);
+
+    Animated.sequence([
+      Animated.spring(heartScale, {
+        toValue: 1,
+        friction: 4,
+        tension: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(heartScale, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start(() => setShowHeart(false));
+  };
+
   const [commentsModalVisible, setCommentsModalVisible] = useState(false);
   const heartScale = useState(new Animated.Value(0))[0];
   const [showHeart, setShowHeart] = useState(false);
@@ -299,6 +336,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingTop: SPACING.xs,
     paddingBottom: SPACING.md,
+  },
+  heartOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    opacity: 0.9,
   },
   heartOverlay: {
     position: 'absolute',
