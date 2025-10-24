@@ -7,7 +7,6 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import { createAdminAccount } from '../services/authService';
 
-// Import NativeWind styles
 import '../global.css';
 
 export default function RootLayout() {
@@ -20,7 +19,6 @@ export default function RootLayout() {
       setIsLoading(false);
     });
 
-    // Create admin account on app start
     createAdminAccount();
 
     return () => unsubscribe();
