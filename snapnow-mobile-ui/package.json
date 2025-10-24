@@ -5,9 +5,8 @@
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
-    "seed": "node scripts/seedFirebase.js",
-    "android": "expo run:android",
-    "ios": "expo run:ios",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint"
   },
@@ -26,7 +25,6 @@
     "expo": "54.0.20",
     "expo-blur": "~15.0.7",
     "expo-camera": "^17.0.8",
-    "expo-clipboard": "~8.0.7",
     "expo-constants": "~18.0.9",
     "expo-device": "~8.0.9",
     "expo-file-system": "~19.0.17",
@@ -44,11 +42,16 @@
     "expo-system-ui": "~6.0.8",
     "expo-web-browser": "~15.0.8",
     "firebase": "^12.3.0",
+    "nativewind": "^4.2.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+<<<<<<< HEAD
     "react-native": "0.81.5",
     "react-native-chart-kit": "^6.12.0",
     "react-native-css": "^3.0.1",
+=======
+    "react-native": "0.81.4",
+>>>>>>> 7ea6728 (modified)
     "react-native-gesture-handler": "~2.28.0",
     "react-native-paper": "^5.14.5",
     "react-native-reanimated": "~4.1.1",
@@ -63,15 +66,10 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
-    "@react-native-community/cli": "^20.0.2",
     "@types/react": "~19.1.10",
-    "autoprefixer": "^10.4.21",
-    "dotenv": "^17.2.3",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
-    "nativewind": "^4.2.1",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^3.4.18",
+    "tailwindcss": "^3.4.17",
     "typescript": "~5.9.2"
   },
   "private": true
