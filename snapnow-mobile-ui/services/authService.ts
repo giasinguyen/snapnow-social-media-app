@@ -28,15 +28,29 @@ export interface UserProfile {
 export type User = UserProfile;
 
 // Tài khoản admin mặc định
-const ADMIN_EMAIL = 'admin@admin.com';
-const ADMIN_PASSWORD = '123';
+const ADMIN_EMAIL = 'admin@snapnow.com';
+const ADMIN_PASSWORD = 'admin123'; // Firebase requires minimum 6 characters
 
 // Tạo tài khoản admin
 export const createAdminAccount = async () => {
   try {
-    console.log('🔥 Creating admin account...');
+    console.log('🔥 Checking admin account...');
     
-    // Tạo tài khoản admin
+    // Kiểm tra xem admin đã tồn tại chưa
+    try {
+      await signInWithEmailAndPassword(auth, ADMIN_EMAIL, ADMIN_PASSWORD);
+      console.log('✅ Admin account already exists');
+      await signOut(auth); // Logout sau khi check
+      return;
+    } catch (signInError: any) {
+      if (signInError.code !== 'auth/user-not-found' && signInError.code !== 'auth/invalid-credential') {
+        console.log('ℹ️ Admin check error:', signInError.message);
+        return;
+      }
+    }
+    
+    // Tạo tài khoản admin nếu chưa tồn tại
+    console.log('🔥 Creating admin account...');
     const adminCredential = await createUserWithEmailAndPassword(auth, ADMIN_EMAIL, ADMIN_PASSWORD);
     
     // Lưu thông tin admin vào Firestore
@@ -53,11 +67,12 @@ export const createAdminAccount = async () => {
     });
     
     console.log('✅ Admin account created successfully');
+    await signOut(auth); // Logout sau khi tạo
   } catch (error: any) {
     if (error.code === 'auth/email-already-in-use') {
       console.log('✅ Admin account already exists');
     } else {
-      console.log('ℹ️ Admin account setup:', error.message);
+      console.log('ℹ️ Admin account setup error:', error.message);
     }
   }
 };
@@ -65,12 +80,36 @@ export const createAdminAccount = async () => {
 // Đăng nhập user thông thường
 export const loginUser = async (email: string, password: string) => {
   try {
+    console.log('🔐 Attempting login with:', email);
+    
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
     
+    console.log('✅ Firebase Auth successful for:', user.uid);
+    
     // Lấy thông tin user từ Firestore
     const userDoc = await getDoc(doc(db, 'users', user.uid));
-    const userData = userDoc.data();
+    
+    if (!userDoc.exists()) {
+      console.warn('⚠️ User document not found in Firestore, creating one...');
+      // Tạo document nếu chưa có
+      const newUserData: UserProfile = {
+        id: user.uid,
+        email: user.email || email,
+        username: email.split('@')[0],
+        displayName: email.split('@')[0],
+        followersCount: 0,
+        followingCount: 0,
+        postsCount: 0,
+        createdAt: new Date(),
+        isAdmin: email === ADMIN_EMAIL,
+      };
+      
+      await setDoc(doc(db, 'users', user.uid), newUserData);
+      console.log('✅ User document created in Firestore');
+    }
+    
+    const userData = userDoc.exists() ? userDoc.data() : null;
     
     console.log('✅ Login successful:', userData?.displayName || user.email);
     
@@ -81,8 +120,23 @@ export const loginUser = async (email: string, password: string) => {
     
     return { ...user, ...userData };
   } catch (error: any) {
-    console.error('Login error:', error);
-    throw error;
+    console.error('❌ Login error:', error.code, error.message);
+    
+    // Provide user-friendly error messages
+    let errorMessage = 'Invalid credentials';
+    if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
+      errorMessage = 'Invalid email or password';
+    } else if (error.code === 'auth/user-not-found') {
+      errorMessage = 'User not found';
+    } else if (error.code === 'auth/too-many-requests') {
+      errorMessage = 'Too many failed attempts. Please try again later.';
+    } else if (error.code === 'auth/network-request-failed') {
+      errorMessage = 'Network error. Please check your connection.';
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    throw new Error(errorMessage);
   }
 };
 
