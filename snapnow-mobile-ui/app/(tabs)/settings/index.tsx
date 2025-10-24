@@ -2,16 +2,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
+  Alert,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TouchableOpacity,
   View,
-  Switch,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AuthService } from '../../services/authService';
+import { AuthService } from '../../../services/authService';
 
 interface SettingItemProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -263,9 +263,9 @@ export default function SettingsScreen() {
           />
           <SettingItem
             icon="time-outline"
-            title="Time Spent"
+            title="Time Management"
             subtitle="Manage your time on SnapNow"
-            onPress={() => console.log('Time Spent')}
+            onPress={() => router.push('/(tabs)/settings/time-spent')}
           />
         </SettingSection>
 
@@ -275,23 +275,23 @@ export default function SettingsScreen() {
             icon="help-circle-outline"
             title="Help Center"
             subtitle="Get help and support"
-            onPress={() => console.log('Help')}
+            onPress={() => router.push('/(tabs)/settings/help-center')}
           />
           <SettingItem
             icon="information-circle-outline"
             title="About"
             subtitle="App version and information"
-            onPress={() => console.log('About')}
+            onPress={() => router.push('/(tabs)/settings/about')}
           />
           <SettingItem
             icon="document-text-outline"
             title="Terms of Service"
-            onPress={() => console.log('Terms')}
+            onPress={() => router.push('/(tabs)/settings/term')}
           />
           <SettingItem
             icon="shield-outline"
             title="Privacy Policy"
-            onPress={() => console.log('Privacy Policy')}
+            onPress={() => router.push('/(tabs)/settings/privacy')}
           />
         </SettingSection>
 
