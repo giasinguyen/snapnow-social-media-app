@@ -28,8 +28,8 @@ export interface UserProfile {
 export type User = UserProfile;
 
 // Tài khoản admin mặc định
-const ADMIN_EMAIL = 'admin@snapnow.com';
-const ADMIN_PASSWORD = 'admin123';
+const ADMIN_EMAIL = 'admin@admin.com';
+const ADMIN_PASSWORD = '123';
 
 // Tạo tài khoản admin
 export const createAdminAccount = async () => {
@@ -202,4 +202,3 @@ export const onAuthStateChange = onAuthStateChanged;
 
 // Export auth để sử dụng ở nơi khác
 export { auth };
-
