@@ -1,20 +1,35 @@
-import { Link } from 'expo-router';
 import React, { useState } from 'react';
 import {
+  View,
+  Text,
   Alert,
-  Image,
   KeyboardAvoidingView,
   Platform,
-  StyleSheet,
-  Text,
   TouchableOpacity,
-  View,
+  TextInput,
+  ScrollView,
+  StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-// Sử dụng Firebase authService thật
-import { InstagramButton, InstagramInput } from '../../components/InstagramUI';
-import { LogoHeader } from '../../components/LogoHeader';
-import { loginAsAdmin, loginUser } from '../../services/authService';
+import { Link } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { loginUser } from '../../services/authService';
+
+const COLORS = {
+  white: '#FFFFFF',
+  gray50: '#F9FAFB',
+  gray200: '#E5E7EB',
+  gray400: '#9CA3AF',
+  gray500: '#6B7280',
+  gray600: '#4B5563',
+  gray700: '#374151',
+  gray900: '#111827',
+  blue50: '#EFF6FF',
+  blue200: '#BFDBFE',
+  blue500: '#3B82F6',
+  blue600: '#2563EB',
+};
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('admin');
