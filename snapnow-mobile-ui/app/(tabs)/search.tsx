@@ -3,9 +3,8 @@ import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LogoHeader } from '../../components/LogoHeader';
 import { searchPostsByQuery, searchUsersByUsernamePrefix } from '../../services/search';
-// small debounce helper to avoid adding lodash dependency
+import { COLORS, SPACING, TYPOGRAPHY } from '../../src/constants/theme';
 function debounceFn<T extends (...args: any[]) => void>(fn: T, wait = 300) {
   let timeout: ReturnType<typeof setTimeout> | null = null;
   return (...args: Parameters<T>) => {
@@ -39,8 +38,6 @@ export default function SearchScreen() {
     } finally { setLoading(false); }
   };
 
-  // debounce to avoid too many queries
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const debouncedSearch = useCallback(debounceFn((q: string) => doSearch(q), 350), []);
 
   const onChange = (text: string) => {
@@ -61,7 +58,6 @@ export default function SearchScreen() {
   };
 
   const refresh = () => {
-    // force re-search
     debouncedSearch(query);
   };
 
@@ -90,7 +86,11 @@ export default function SearchScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LogoHeader />
+      {/* Search Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Search</Text>
+      </View>
+
       <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12 }}>
         <View style={{ flex: 1 }}>
           <TextInput
@@ -143,23 +143,42 @@ export default function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  searchBox: { padding: 12 },
+  container: { flex: 1, backgroundColor: COLORS.backgroundWhite },
+  header: {
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    backgroundColor: COLORS.backgroundWhite,
+    borderBottomWidth: 0.5,
+    borderBottomColor: COLORS.border,
+  },
+  headerTitle: {
+    fontSize: TYPOGRAPHY.fontSize.display,
+    fontWeight: TYPOGRAPHY.fontWeight.bold,
+    color: COLORS.textPrimary,
+    letterSpacing: -0.5,
+  },
+  searchBox: { padding: SPACING.md },
   input: {
     borderWidth: 1,
-    borderColor: '#888',
+    borderColor: COLORS.primaryLight,
     padding: 10,
     borderRadius: 8,
-    backgroundColor: '#fafafa',
-    color: '#111',
-    fontWeight: '600',
+    backgroundColor: COLORS.background,
+    color: COLORS.textPrimary,
+    fontWeight: TYPOGRAPHY.fontWeight.semibold,
   },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
-  avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#eee' },
-  name: { fontWeight: '700' },
-  username: { color: '#666' },
+  avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.backgroundGray },
+  name: { fontWeight: TYPOGRAPHY.fontWeight.bold },
+  username: { color: COLORS.textSecondary },
   noResults: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  noResultsText: { color: '#666', fontSize: 16 },
-  tabBtn: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: '#eee' },
-  tabActive: { backgroundColor: '#eee' },
+  noResultsText: { color: COLORS.textSecondary, fontSize: TYPOGRAPHY.fontSize.xl },
+  tabBtn: { 
+    paddingVertical: SPACING.sm, 
+    paddingHorizontal: SPACING.md, 
+    borderRadius: 8, 
+    borderWidth: 1, 
+    borderColor: COLORS.borderLight 
+  },
+  tabActive: { backgroundColor: COLORS.backgroundGray },
 });
