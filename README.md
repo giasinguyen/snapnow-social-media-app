@@ -1,4 +1,4 @@
-# 📸 SnapNow – Social Media Application
+<div align="center"> # 📸 SnapNow – Social Media Application </div>
 
 <div align="center">
 
