@@ -1,4 +1,0 @@
-E:/1.HK1_2025/ReactNative/deTai/snapnow-social-media-app/snapnow-mobile-ui/android/app/.cxx/Debug/k5u6p50m/x86/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/foo.dir
-E:/1.HK1_2025/ReactNative/deTai/snapnow-social-media-app/snapnow-mobile-ui/android/app/.cxx/Debug/k5u6p50m/x86/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/boo.dir
-E:/1.HK1_2025/ReactNative/deTai/snapnow-social-media-app/snapnow-mobile-ui/android/app/.cxx/Debug/k5u6p50m/x86/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/edit_cache.dir
-E:/1.HK1_2025/ReactNative/deTai/snapnow-social-media-app/snapnow-mobile-ui/android/app/.cxx/Debug/k5u6p50m/x86/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/rebuild_cache.dir
