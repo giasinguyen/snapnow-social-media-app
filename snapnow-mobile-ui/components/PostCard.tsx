@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import { Animated, Image, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { Post } from '../types';
 import CommentsModal from './CommentsModal';
+import { COLORS, SPACING, TYPOGRAPHY, RADIUS, SIZES, TIMINGS } from '../src/constants/theme';
 
 interface PostCardProps {
   post: Post;
@@ -11,28 +12,15 @@ interface PostCardProps {
   onShare?: (id: string) => void;
 }
 
-export default function PostCard({ post, onLike, onComment, onShare }: PostCardProps) {
+const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment, onShare }) => {
   const [liked, setLiked] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
+  const [commentsModalVisible, setCommentsModalVisible] = useState(false);
   const heartScale = useState(new Animated.Value(0))[0];
   const [showHeart, setShowHeart] = useState(false);
   let lastTap = useRef<number>(0);
 
-  const handleDoubleTap = () => {
-    const now = Date.now();
-    const DOUBLE_TAP_DELAY = 300; // 0.3s
-
-    if (now - lastTap.current < DOUBLE_TAP_DELAY) {
-      triggerLikeAnimation();
-      if (!liked) {
-        setLiked(true);
-        onLike?.(post.id, true);
-      }
-    }
-    lastTap.current = now;
-  };
-
-  const triggerLikeAnimation = () => {
+  const triggerLikeAnimation = useCallback(() => {
     setShowHeart(true);
     heartScale.setValue(0);
 
@@ -45,36 +33,46 @@ export default function PostCard({ post, onLike, onComment, onShare }: PostCardP
       }),
       Animated.timing(heartScale, {
         toValue: 0,
-        duration: 250,
+        duration: TIMINGS.base,
         useNativeDriver: true,
       }),
     ]).start(() => setShowHeart(false));
-  };
+  }, [heartScale]);
 
-  const [commentsModalVisible, setCommentsModalVisible] = useState(false);
+  const handleDoubleTap = useCallback(() => {
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300;
 
+    if (now - lastTap.current < DOUBLE_TAP_DELAY) {
+      triggerLikeAnimation();
+      if (!liked) {
+        setLiked(true);
+        onLike?.(post.id, true);
+      }
+    }
+    lastTap.current = now;
+  }, [liked, post.id, onLike, triggerLikeAnimation]);
 
-  const toggleLike = () => {
+  const toggleLike = useCallback(() => {
     setLiked((s) => {
       const next = !s;
       onLike?.(post.id, next);
       return next;
     });
-  };
+  }, [post.id, onLike]);
 
-  const toggleBookmark = () => {
+  const toggleBookmark = useCallback(() => {
     setBookmarked((s) => !s);
-  };
+  }, []);
 
-  const handleComment = () => {
-    // Open the comments modal for this post and notify parent
+  const handleComment = useCallback(() => {
     setCommentsModalVisible(true);
     onComment?.(post.id);
-  };
+  }, [post.id, onComment]);
 
-  const handleShare = () => {
+  const handleShare = useCallback(() => {
     onShare?.(post.id);
-  };
+  }, [post.id, onShare]);
 
   return (
     <View style={styles.container}>
@@ -187,8 +185,12 @@ export default function PostCard({ post, onLike, onComment, onShare }: PostCardP
         {post.createdAt ? getTimeAgo(post.createdAt) : 'Just now'}
       </Text>
     </View>
-  )
-}
+  );
+});
+
+PostCard.displayName = 'PostCard';
+
+export default PostCard;
 
 // Helper function for time ago
 function getTimeAgo(date: any): string {
@@ -210,14 +212,14 @@ function getTimeAgo(date: any): string {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#fff',
-    marginBottom: 8,
+    backgroundColor: COLORS.backgroundWhite,
+    marginBottom: SPACING.sm,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
+    paddingHorizontal: SPACING.md,
     paddingVertical: 10,
   },
   headerLeft: {
@@ -226,72 +228,72 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: SIZES.avatar.sm,
+    height: SIZES.avatar.sm,
+    borderRadius: RADIUS.circle,
     marginRight: 10,
   },
   userInfo: {
     flex: 1,
   },
   username: {
-    fontWeight: '600',
-    fontSize: 14,
-    color: '#262626',
+    fontWeight: TYPOGRAPHY.fontWeight.semibold,
+    fontSize: TYPOGRAPHY.fontSize.md,
+    color: COLORS.textPrimary,
   },
   moreButton: {
-    padding: 4,
+    padding: SPACING.xs,
   },
   postImage: {
     width: '100%',
     aspectRatio: 1,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: COLORS.backgroundGray,
   },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingTop: 8,
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.sm,
   },
   leftActions: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   actionButton: {
-    marginRight: 16,
+    marginRight: SPACING.lg,
   },
   likesCount: {
-    fontWeight: '600',
-    fontSize: 14,
-    color: '#262626',
-    paddingHorizontal: 12,
-    paddingTop: 4,
+    fontWeight: TYPOGRAPHY.fontWeight.semibold,
+    fontSize: TYPOGRAPHY.fontSize.md,
+    color: COLORS.textPrimary,
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.xs,
   },
   captionContainer: {
-    paddingHorizontal: 12,
-    paddingTop: 4,
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.xs,
   },
   caption: {
-    fontSize: 14,
-    color: '#262626',
-    lineHeight: 18,
+    fontSize: TYPOGRAPHY.fontSize.md,
+    color: COLORS.textPrimary,
+    lineHeight: TYPOGRAPHY.lineHeight.tight,
   },
   captionUsername: {
-    fontWeight: '600',
+    fontWeight: TYPOGRAPHY.fontWeight.semibold,
   },
   viewComments: {
-    fontSize: 14,
-    color: '#8E8E8E',
-    paddingHorizontal: 12,
-    paddingTop: 4,
+    fontSize: TYPOGRAPHY.fontSize.md,
+    color: COLORS.textSecondary,
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.xs,
   },
   timestamp: {
-    fontSize: 12,
-    color: '#8E8E8E',
-    paddingHorizontal: 12,
-    paddingTop: 4,
-    paddingBottom: 12,
+    fontSize: TYPOGRAPHY.fontSize.sm,
+    color: COLORS.textSecondary,
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.xs,
+    paddingBottom: SPACING.md,
   },
   heartOverlay: {
     position: 'absolute',

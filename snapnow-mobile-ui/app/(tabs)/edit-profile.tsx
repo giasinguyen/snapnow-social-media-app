@@ -21,7 +21,9 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import { auth, db } from '../../config/firebase';
 import { AuthService, UserProfile } from '../../services/authService';
-import { uploadToStorage } from '../../services/storage';
+import { uploadImageFromUri } from '../../services/storage';
+import Input from '../../components/ui/Input';
+import Button from '../../components/ui/Button';
 
 const MAX_BIO_LENGTH = 150;
 const MAX_DISPLAYNAME_LENGTH = 50;
@@ -61,7 +63,7 @@ export default function EditProfileScreen() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({ 
-      mediaTypes: ImagePicker.MediaTypeOptions.Images, 
+      mediaTypes: ['images'], 
       quality: 0.8,
       allowsEditing: true,
       aspect: [1, 1]
@@ -131,10 +133,8 @@ export default function EditProfileScreen() {
       let photoURL = profile.profileImage || null;
 
       if (avatarUri && avatarUri.startsWith('file')) {
-        const res = await fetch(avatarUri);
-        const blob = await res.blob();
         const path = `users/${profile.id}/avatar.jpg`;
-        photoURL = await uploadToStorage(path, blob as any);
+        photoURL = await uploadImageFromUri(path, avatarUri);
       }
 
       // update firestore
