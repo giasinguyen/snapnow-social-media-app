@@ -37,6 +37,22 @@ export default function SettingsLayout() {
         name="time-spent" 
         options={{ title: "Time Management" }} 
       />
+      <Stack.Screen 
+        name="security" 
+        options={{ title: "Security" }} 
+      />
+      <Stack.Screen
+        name="security/change-password"
+        options={{ title: 'Change password' }}
+      />
+      <Stack.Screen
+        name="security/two-factor"
+        options={{ title: 'Two-factor authentication' }}
+      />
+      <Stack.Screen
+        name="email-notifications"
+        options={{ title: 'Email Notifications' }}
+      />
     </Stack>
   );
 }

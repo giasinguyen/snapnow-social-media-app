@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Dimensions, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Dimensions, Modal, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 import { BarChart } from "react-native-chart-kit";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -10,6 +10,12 @@ const screenWidth = Dimensions.get("window").width;
 export default function TimeSpentScreen() {
     const [showLimitModal, setShowLimitModal] = useState(false);
     const [dailyLimit, setDailyLimit] = useState<number | null>(null);
+    const [showSleepModal, setShowSleepModal] = useState(false);
+    const [sleepEnabled, setSleepEnabled] = useState(false);
+    const [startTime, setStartTime] = useState('12:00AM');
+    const [endTime, setEndTime] = useState('12:00AM');
+    const [selectedDays, setSelectedDays] = useState<boolean[]>([false,false,false,false,false,false,false]);
+    const [showTimePicker, setShowTimePicker] = useState<null | 'start' | 'end'>(null);
     const router = useRouter();
 
     const data = {
@@ -79,16 +85,118 @@ export default function TimeSpentScreen() {
                     </TouchableOpacity>
 
 
-                    <TouchableOpacity style={styles.row}>
+                    <TouchableOpacity style={styles.row} onPress={() => setShowSleepModal(true)}>
                         <View style={styles.rowLeft}>
                             <Ionicons name="moon-outline" size={20} color="#666" />
                             <Text style={styles.rowText}>Quiet Mode</Text>
                         </View>
-                        <Text style={styles.statusText}>Off</Text>
+                        <Text style={styles.statusText}>{sleepEnabled ? 'On' : 'Off'}</Text>
                         <Ionicons name="chevron-forward" size={20} color="#bbb" />
                     </TouchableOpacity>
                 </View>
             </ScrollView>
+            {/* Sleep Mode Modal (full screen white UI) */}
+            <Modal visible={showSleepModal} animationType="slide" onRequestClose={() => setShowSleepModal(false)}>
+                <SafeAreaView style={sleepStyles.safe}>
+                    <View style={sleepStyles.headerRow}>
+                        <TouchableOpacity onPress={() => setShowSleepModal(false)} style={{ padding: 8 }}>
+                            <Ionicons name="arrow-back" size={22} color="#111" />
+                        </TouchableOpacity>
+                        <Text style={sleepStyles.headerTitle}>Sleep mode</Text>
+                        <View style={{ width: 40 }} />
+                    </View>
+
+                    <ScrollView contentContainerStyle={sleepStyles.content}>
+                        <View style={sleepStyles.topRow}>
+                            <Text style={sleepStyles.topLabel}>Sleep mode</Text>
+                            <Switch value={sleepEnabled} onValueChange={setSleepEnabled} trackColor={{ true: '#0095f6' }} />
+                        </View>
+
+                        <Text style={sleepStyles.description}>Your notifications will be muted during the times you choose. People will see that you're in sleep mode.</Text>
+
+                        <View style={sleepStyles.timeRow}>
+                            <Text style={sleepStyles.timeLabel}>Start time</Text>
+                            <TouchableOpacity style={sleepStyles.timeBtn} onPress={() => setShowTimePicker('start')}>
+                                <Text style={sleepStyles.timeBtnText}>{startTime}</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={sleepStyles.timeRow}>
+                            <Text style={sleepStyles.timeLabel}>End time</Text>
+                            <TouchableOpacity style={sleepStyles.timeBtn} onPress={() => setShowTimePicker('end')}>
+                                <Text style={sleepStyles.timeBtnText}>{endTime}</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text style={[sleepStyles.timeLabel, { marginTop: 14 }]}>Choose days</Text>
+                        <View style={sleepStyles.daysRow}>
+                            {['S','M','T','W','T','F','S'].map((d, i) => (
+                                <TouchableOpacity
+                                    key={i}
+                                    style={[sleepStyles.dayBtn, selectedDays[i] && sleepStyles.dayBtnActive]}
+                                    onPress={() => {
+                                        const next = [...selectedDays];
+                                        next[i] = !next[i];
+                                        setSelectedDays(next);
+                                    }}
+                                >
+                                    <Text style={[sleepStyles.dayText, selectedDays[i] && sleepStyles.dayTextActive]}>{d}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+
+                        <Text style={sleepStyles.hint}>{sleepEnabled ? '' : 'Sleep mode is off.'}</Text>
+
+                        <TouchableOpacity style={[sleepStyles.saveBtn, !sleepEnabled && { opacity: 0.6 }]} disabled={!sleepEnabled} onPress={() => setShowSleepModal(false)}>
+                            <Text style={sleepStyles.saveBtnText}>Save</Text>
+                        </TouchableOpacity>
+                    </ScrollView>
+                </SafeAreaView>
+            </Modal>
+
+            {/* Time picker modal for start/end (simple hour + AM/PM) */}
+            <Modal visible={!!showTimePicker} transparent animationType="fade" onRequestClose={() => setShowTimePicker(null)}>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContainer}>
+                        <Text style={styles.modalTitle}>Select hour</Text>
+                        <ScrollView contentContainerStyle={styles.hourList}>
+                            {Array.from({ length: 12 }, (_, i) => i === 0 ? 12 : i).map((hour) => (
+                                <TouchableOpacity
+                                    key={hour}
+                                    style={styles.hourItem}
+                                    onPress={() => {
+                                        const ampm = 'AM';
+                                        const t = `${hour}:00${ampm}`;
+                                        if (showTimePicker === 'start') setStartTime(t);
+                                        else setEndTime(t);
+                                        setShowTimePicker(null);
+                                    }}
+                                >
+                                    <Text style={styles.hourText}>{hour}:00 AM</Text>
+                                </TouchableOpacity>
+                            ))}
+                            {Array.from({ length: 12 }, (_, i) => i === 0 ? 12 : i).map((hour) => (
+                                <TouchableOpacity
+                                    key={'pm' + hour}
+                                    style={styles.hourItem}
+                                    onPress={() => {
+                                        const ampm = 'PM';
+                                        const t = `${hour}:00${ampm}`;
+                                        if (showTimePicker === 'start') setStartTime(t);
+                                        else setEndTime(t);
+                                        setShowTimePicker(null);
+                                    }}
+                                >
+                                    <Text style={styles.hourText}>{hour}:00 PM</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                        <TouchableOpacity onPress={() => setShowTimePicker(null)} style={styles.closeBtn}>
+                            <Text style={styles.closeBtnText}>Cancel</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
             {/* Daily Limit Modal */}
             <Modal
                 visible={showLimitModal}
@@ -224,4 +332,26 @@ const styles = StyleSheet.create({
         color: "#6C2BB9",
     },
 
+});
+
+const sleepStyles = StyleSheet.create({
+    safe: { flex: 1, backgroundColor: '#fff' },
+    headerRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
+    headerTitle: { fontSize: 18, fontWeight: '600', color: '#111', flex: 1, textAlign: 'center' },
+    content: { padding: 16 },
+    topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+    topLabel: { fontSize: 16, fontWeight: '600', color: '#111' },
+    description: { color: '#666', marginBottom: 12, lineHeight: 20 },
+    timeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
+    timeLabel: { fontSize: 14, color: '#666' },
+    timeBtn: { backgroundColor: '#f6f6f6', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8, minWidth: 110, alignItems: 'center' },
+    timeBtnText: { color: '#111', fontWeight: '600' },
+    daysRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
+    dayBtn: { width: 40, height: 40, borderRadius: 8, backgroundColor: '#fff', borderWidth: StyleSheet.hairlineWidth, borderColor: '#eee', alignItems: 'center', justifyContent: 'center' },
+    dayBtnActive: { backgroundColor: '#111' },
+    dayText: { color: '#333', fontWeight: '600' },
+    dayTextActive: { color: '#fff' },
+    hint: { color: '#888', marginTop: 12 },
+    saveBtn: { marginTop: 24, backgroundColor: '#0095f6', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
+    saveBtnText: { color: '#fff', fontWeight: '700' },
 });
