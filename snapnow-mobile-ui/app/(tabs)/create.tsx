@@ -1,17 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import React, { useState, useEffect } from 'react';
-import { 
-  StyleSheet, 
-  Text, 
-  TouchableOpacity, 
-  View, 
-  Alert, 
+import React, { useEffect, useRef, useState } from 'react';
+import {
   ActivityIndicator,
+  Alert,
+  Animated,
   Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
   TouchableWithoutFeedback,
-  ScrollView 
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -21,16 +24,16 @@ import PrivacySheet, { PrivacyOption } from '../../components/create/PrivacyShee
 import SelectedImage from '../../components/create/SelectedImage';
 import UserComposer from '../../components/create/UserComposer';
 import { auth } from '../../config/firebase';
+import type { UserProfile } from '../../services/authService';
+import { getCurrentUserProfile } from '../../services/authService';
 import { createPost, extractHashtags } from '../../services/posts';
 import { uploadImageFromUri } from '../../services/storage';
-import { getCurrentUserProfile } from '../../services/authService';
-import type { UserProfile } from '../../services/authService';
 
 const privacyOptions: PrivacyOption[] = [
-  { key: 'anyone',    label: 'Bất kỳ ai' },
-  { key: 'followers', label: 'Người theo dõi bạn' },
-  { key: 'following', label: 'Trang cá nhân mà bạn theo dõi' },
-  { key: 'mentions',  label: 'Chỉ khi được nhắc đến' },
+  { key: 'anyone',    label: 'Anyone' },
+  { key: 'followers', label: 'Your followers' },
+  { key: 'following', label: 'Profiles you follow' },
+  { key: 'mentions',  label: 'Mentioned only' },
 ];
 
 const CreateSnapScreen: React.FC = () => {
@@ -41,12 +44,36 @@ const CreateSnapScreen: React.FC = () => {
   const [privacy, setPrivacy] = useState<PrivacyOption>(privacyOptions[0]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [posting, setPosting] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const animatedBottom = useRef(new Animated.Value(0)).current;
 
   const isPostEnabled = (snapContent.trim().length > 0 || !!imageUri) && !posting;
 
   useEffect(() => {
     loadUserProfile();
   }, []);
+
+  useEffect(() => {
+    const onShow = (e: any) => setKeyboardHeight(e.endCoordinates?.height || 0);
+    const onHide = () => setKeyboardHeight(0);
+
+    const showSub = Keyboard.addListener('keyboardDidShow', onShow);
+    const hideSub = Keyboard.addListener('keyboardDidHide', onHide);
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  // animate footer when keyboardHeight changes for a smooth transition
+  useEffect(() => {
+    Animated.timing(animatedBottom, {
+      toValue: keyboardHeight,
+      duration: 180,
+      useNativeDriver: false,
+    }).start();
+  }, [keyboardHeight, animatedBottom]);
 
   const loadUserProfile = async () => {
     try {
@@ -129,10 +156,15 @@ const CreateSnapScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top','left','right']}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.container}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={80}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.container}>
           <HeaderBar
-            title="Snap mới"
+            title="New snap"
             left={<Ionicons name="close" size={26} color="#000" />}
             right={
               <>
@@ -150,13 +182,14 @@ const CreateSnapScreen: React.FC = () => {
             style={styles.body}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 16 + 56 + keyboardHeight }}
           >
             <UserComposer
               avatarUri={userProfile?.profileImage || 'https://via.placeholder.com/150'}
               username={userProfile?.displayName || userProfile?.username || 'Loading...'}
               value={snapContent}
               onChangeText={setSnapContent}
-              placeholder="Có gì mới?"
+              placeholder="What's new?"
             />
 
             {imageUri && (
@@ -166,10 +199,10 @@ const CreateSnapScreen: React.FC = () => {
             <ActionBar onPickImage={pickImage} />
           </ScrollView>
 
-          <View style={styles.footer}>
+          <Animated.View style={[styles.footer, { marginBottom: animatedBottom } as any] }>
             <TouchableOpacity onPress={() => setPrivacyOpen(true)} style={styles.leftRow}>
               <Text style={styles.footerText}>
-                {privacy.label} cũng có thể trả lời và trích dẫn
+                {privacy.label} can reply & quote
               </Text>
               <Ionicons name="chevron-down" size={12} color="#8e8e8e" />
             </TouchableOpacity>
@@ -182,12 +215,13 @@ const CreateSnapScreen: React.FC = () => {
               {posting ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <Text style={styles.postTxt}>Đăng</Text>
+                <Text style={styles.postTxt}>Post</Text>
               )}
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         </View>
       </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
 
       <PrivacySheet
         visible={privacyOpen}

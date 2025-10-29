@@ -173,7 +173,7 @@ export default function SettingsScreen() {
             icon="shield-checkmark-outline"
             title="Security"
             subtitle="Password, two-factor authentication"
-            onPress={() => console.log('Security')}
+            onPress={() => router.push('/(tabs)/settings/security')}
           />
           <SettingItem
             icon="key-outline"
@@ -223,15 +223,15 @@ export default function SettingsScreen() {
             icon="notifications-outline"
             title="Push Notifications"
             subtitle="Receive push notifications"
-            isSwitch
-            value={notificationsEnabled}
-            onValueChange={setNotificationsEnabled}
+              isSwitch
+              value={notificationsEnabled}
+              onValueChange={setNotificationsEnabled}
           />
           <SettingItem
             icon="mail-outline"
             title="Email Notifications"
             subtitle="Manage email preferences"
-            onPress={() => console.log('Email Notifications')}
+              onPress={() => router.push('/(tabs)/settings/email-notifications')}
           />
           <SettingItem
             icon="megaphone-outline"
