@@ -1,19 +1,19 @@
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Link } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
   Alert,
   KeyboardAvoidingView,
   Platform,
-  TouchableOpacity,
-  TextInput,
   ScrollView,
   StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Link } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { loginUser } from '../../services/authService';
 // import {loginBypass } from '../../services/authService';
 
