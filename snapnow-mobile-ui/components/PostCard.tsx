@@ -10,9 +10,10 @@ interface PostCardProps {
   onLike?: (id: string, liked: boolean) => void;
   onComment?: (id: string) => void;
   onShare?: (id: string) => void;
+  onPress?: (id: string) => void;
 }
 
-const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment, onShare }) => {
+const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment, onShare, onPress }) => {
   const [liked, setLiked] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
   const [commentsModalVisible, setCommentsModalVisible] = useState(false);
@@ -44,14 +45,22 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment,
     const DOUBLE_TAP_DELAY = 300;
 
     if (now - lastTap.current < DOUBLE_TAP_DELAY) {
+      // Double tap - like
       triggerLikeAnimation();
       if (!liked) {
         setLiked(true);
         onLike?.(post.id, true);
       }
+    } else {
+      // Single tap - navigate to post detail
+      setTimeout(() => {
+        if (Date.now() - lastTap.current >= DOUBLE_TAP_DELAY) {
+          onPress?.(post.id);
+        }
+      }, DOUBLE_TAP_DELAY);
     }
     lastTap.current = now;
-  }, [liked, post.id, onLike, triggerLikeAnimation]);
+  }, [liked, triggerLikeAnimation, post.id, onLike, onPress]);
 
   const toggleLike = useCallback(() => {
     setLiked((s) => {

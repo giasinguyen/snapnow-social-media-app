@@ -300,6 +300,7 @@ export default function ProfileScreen() {
                   key={post.id}
                   style={styles.gridItem}
                   activeOpacity={0.9}
+                  onPress={() => router.push(`/post/${post.id}` as any)}
                 >
                   <Image source={{ uri: post.imageUrl }} style={styles.gridImage} />
                 </TouchableOpacity>

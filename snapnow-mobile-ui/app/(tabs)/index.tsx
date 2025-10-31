@@ -76,6 +76,10 @@ export default function HomeScreen() {
     console.log('Share post:', postId);
   }, []);
 
+  const handlePostPress = useCallback((postId: string) => {
+    router.push(`/post/${postId}` as any);
+  }, []);
+
   const handleNotifications = useCallback(() => {
     router.push('/(tabs)/activity');
   }, []);
@@ -155,6 +159,7 @@ export default function HomeScreen() {
                   onLike={handleLike}
                   onComment={handleComment}
                   onShare={handleShare}
+                  onPress={handlePostPress}
                 />
                 
                 {/* Suggestions Card after 2nd post */}
