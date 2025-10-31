@@ -19,7 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { auth, db } from '../../config/firebase';
 import { AuthService, UserProfile } from '../../services/authService';
-import { uploadImageFromUri } from '../../services/storage';
+import { uploadAvatar } from '../../services/cloudinary';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 
@@ -130,9 +130,11 @@ export default function EditProfileScreen() {
     try {
       let photoURL = profile.profileImage || null;
 
+      // Upload avatar to Cloudinary if new image selected
       if (avatarUri && avatarUri.startsWith('file')) {
-        const path = `users/${profile.id}/avatar.jpg`;
-        photoURL = await uploadImageFromUri(path, avatarUri);
+        console.log('📤 Uploading avatar to Cloudinary...');
+        photoURL = await uploadAvatar(avatarUri, profile.id);
+        console.log('✅ Avatar uploaded:', photoURL);
       }
 
       // update firestore

@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import { createAdminAccount } from '../services/authService';
+import { validateCloudinaryConfig } from '../services/cloudinaryValidator';
 
 import '../global.css';
 
@@ -19,7 +20,11 @@ export default function RootLayout() {
       setIsLoading(false);
     });
 
+    // Initialize admin account
     createAdminAccount();
+
+    // Validate Cloudinary configuration on startup
+    validateCloudinaryConfig();
 
     return () => unsubscribe();
   }, []);
