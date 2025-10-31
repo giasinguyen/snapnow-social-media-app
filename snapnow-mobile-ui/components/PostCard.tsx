@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Image, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { UserService } from '../services/user';
@@ -22,6 +23,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment,
   const [displayUserImage, setDisplayUserImage] = useState(post.userImage || '');
   const heartScale = useState(new Animated.Value(0))[0];
   const [showHeart, setShowHeart] = useState(false);
+  const router = useRouter();
   let lastTap = useRef<number>(0);
 
   // Fetch fresh user data when post userId changes
@@ -106,11 +108,17 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment,
     onShare?.(post.id);
   }, [post.id, onShare]);
 
+  const handleUserPress = useCallback(() => {
+    if (post.userId) {
+      router.push(`/user/${post.userId}` as any);
+    }
+  }, [post.userId, router]);
+
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
+        <TouchableOpacity style={styles.headerLeft} onPress={handleUserPress}>
           <Image
             source={{ uri: displayUserImage || 'https://via.placeholder.com/40' }}
             style={styles.avatar}
@@ -119,7 +127,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment,
             <Text style={styles.username}>{displayUsername}</Text>
             {/* Có thể thêm location hoặc thông tin khác */}
           </View>
-        </View>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.moreButton}>
           <Ionicons name="ellipsis-vertical" size={20} color="#262626" />
         </TouchableOpacity>

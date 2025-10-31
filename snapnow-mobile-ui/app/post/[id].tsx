@@ -179,6 +179,12 @@ export default function PostDetailScreen() {
     lastTap.current = now;
   };
 
+  const handleUserPress = () => {
+    if (post?.userId) {
+      router.push(`/user/${post.userId}` as any);
+    }
+  };
+
   const formatDate = (date: any) => {
     if (!date) return '';
     const d = date instanceof Date ? date : new Date(date);
@@ -241,7 +247,7 @@ export default function PostDetailScreen() {
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Post Header */}
           <View style={styles.postHeader}>
-            <View style={styles.userInfo}>
+            <TouchableOpacity style={styles.userInfo} onPress={handleUserPress}>
               <Image
                 source={{
                   uri: displayUserImage || 'https://i.pravatar.cc/150?img=1',
@@ -252,7 +258,7 @@ export default function PostDetailScreen() {
                 <Text style={styles.username}>{displayUsername || 'Anonymous'}</Text>
                 <Text style={styles.timestamp}>{formatDate(post.createdAt)}</Text>
               </View>
-            </View>
+            </TouchableOpacity>
           </View>
 
           {/* Post Image */}
