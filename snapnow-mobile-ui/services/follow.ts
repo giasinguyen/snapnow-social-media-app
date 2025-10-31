@@ -89,14 +89,18 @@ export async function unfollowUser(followerId: string, followingId: string): Pro
 // Get list of users that a user is following
 export async function getFollowing(userId: string): Promise<string[]> {
   try {
+    console.log('📡 getFollowing: Querying Firestore for userId:', userId);
     const followsQuery = query(collection(db, "follows"), where("followerId", "==", userId))
     const snapshot = await getDocs(followsQuery)
+    console.log('📡 getFollowing: Query returned', snapshot.size, 'documents');
 
     const followingIds: string[] = []
     snapshot.forEach((doc) => {
+      console.log('📡 getFollowing: Found following document:', doc.id, doc.data());
       followingIds.push(doc.data().followingId)
     })
 
+    console.log('📡 getFollowing: Returning', followingIds.length, 'following IDs:', followingIds);
     return followingIds
   } catch (error) {
     console.error("Error getting following list:", error)
@@ -107,14 +111,18 @@ export async function getFollowing(userId: string): Promise<string[]> {
 // Get list of users that follow a user
 export async function getFollowers(userId: string): Promise<string[]> {
   try {
+    console.log('📡 getFollowers: Querying Firestore for userId:', userId);
     const followsQuery = query(collection(db, "follows"), where("followingId", "==", userId))
     const snapshot = await getDocs(followsQuery)
+    console.log('📡 getFollowers: Query returned', snapshot.size, 'documents');
 
     const followerIds: string[] = []
     snapshot.forEach((doc) => {
+      console.log('📡 getFollowers: Found follower document:', doc.id, doc.data());
       followerIds.push(doc.data().followerId)
     })
 
+    console.log('📡 getFollowers: Returning', followerIds.length, 'follower IDs:', followerIds);
     return followerIds
   } catch (error) {
     console.error("Error getting followers list:", error)

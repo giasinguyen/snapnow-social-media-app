@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Animated,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -33,6 +34,7 @@ export default function PostDetailScreen() {
   const [commentText, setCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [currentUserAvatar, setCurrentUserAvatar] = useState<string>('');
   const [displayUsername, setDisplayUsername] = useState('');
   const [displayUserImage, setDisplayUserImage] = useState('');
   const heartScale = useState(new Animated.Value(0))[0];
@@ -77,6 +79,7 @@ export default function PostDetailScreen() {
       }
       setComments(commentsData);
       setCurrentUserId(profile?.id || '');
+      setCurrentUserAvatar(profile?.profileImage || '');
     } catch (error) {
       console.error('Failed to load post:', error);
     } finally {
@@ -133,6 +136,9 @@ export default function PostDetailScreen() {
       const updatedComments = await getPostComments(post.id);
       setComments(updatedComments);
       setCommentText('');
+      
+      // Dismiss keyboard
+      Keyboard.dismiss();
       
       // Update comments count
       setPost({
@@ -227,11 +233,11 @@ export default function PostDetailScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
       >
         {/* Header */}
         <View style={styles.header}>
@@ -355,12 +361,18 @@ export default function PostDetailScreen() {
             ) : (
               comments.map((comment) => (
                 <View key={comment.id} style={styles.commentItem}>
-                  <Image
-                    source={{
-                      uri: comment.userProfileImage || 'https://i.pravatar.cc/150?img=2',
-                    }}
-                    style={styles.commentAvatar}
-                  />
+                  {comment.userProfileImage ? (
+                    <Image
+                      source={{ uri: comment.userProfileImage }}
+                      style={styles.commentAvatar}
+                    />
+                  ) : (
+                    <View style={[styles.commentAvatar, { backgroundColor: '#E1E8ED' }]}>
+                      <Text style={{ fontSize: 20, color: '#657786' }}>
+                        {comment.username?.charAt(0).toUpperCase() || '?'}
+                      </Text>
+                    </View>
+                  )}
                   <View style={styles.commentContent}>
                     <View style={styles.commentHeader}>
                       <Text style={styles.commentUsername}>{comment.username}</Text>
@@ -376,12 +388,16 @@ export default function PostDetailScreen() {
 
         {/* Comment Input */}
         <View style={styles.commentInputContainer}>
-          <Image
-            source={{
-              uri: displayUserImage || 'https://i.pravatar.cc/150?img=1',
-            }}
-            style={styles.commentInputAvatar}
-          />
+          {currentUserAvatar ? (
+            <Image
+              source={{ uri: currentUserAvatar }}
+              style={styles.commentInputAvatar}
+            />
+          ) : (
+            <View style={[styles.commentInputAvatar, { backgroundColor: '#E1E8ED', justifyContent: 'center', alignItems: 'center' }]}>
+              <Text style={{ fontSize: 20, color: '#657786' }}>?</Text>
+            </View>
+          )}
           <TextInput
             style={styles.commentInput}
             placeholder="Add a comment..."
