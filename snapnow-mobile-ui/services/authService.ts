@@ -22,6 +22,7 @@ export interface UserProfile {
   postsCount: number;
   createdAt: Date;
   isAdmin?: boolean;
+  isPrivate?: boolean;
 }
 
 // Alias for backward compatibility
@@ -103,6 +104,7 @@ export const loginUser = async (email: string, password: string) => {
         postsCount: 0,
         createdAt: new Date(),
         isAdmin: email === ADMIN_EMAIL,
+        isPrivate: false,
       };
       
       await setDoc(doc(db, 'users', user.uid), newUserData);
@@ -206,6 +208,7 @@ export const registerUser = async (email: string, password: string, username: st
       postsCount: 0,
       createdAt: new Date(),
       isAdmin: false
+      ,isPrivate: false
     };
     
     await setDoc(doc(db, 'users', user.uid), userProfile);

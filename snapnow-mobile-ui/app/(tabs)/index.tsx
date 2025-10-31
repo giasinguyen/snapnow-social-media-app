@@ -23,11 +23,16 @@ import {
 } from '../../components/feed';
 
 import { Post } from '../../types';
+import postsService from '../../services/posts';
 import { 
   MOCK_STORIES, 
   SUGGESTED_USERS,
 } from '../../services/mockData';
+<<<<<<< Updated upstream
 import { fetchPosts } from '../../services/posts';
+=======
+import { AuthService } from '../../services/authService';
+>>>>>>> Stashed changes
 import { COLORS, SPACING } from '../../src/constants/theme';
 
 export default function HomeScreen() {
@@ -39,16 +44,34 @@ export default function HomeScreen() {
 
   const loadPosts = useCallback(async () => {
     try {
+<<<<<<< Updated upstream
       console.log('📥 Loading posts from Firestore...');
       const realPosts = await fetchPosts();
       console.log(`✅ Loaded ${realPosts.length} posts`);
       setPosts(realPosts);
+=======
+      setLoading(true);
+      // Determine posts based on activeTab
+      if (activeTab === 'for-you') {
+        const all = await postsService.fetchPosts()
+        setPosts(all)
+      } else {
+        const currentUser = AuthService.getCurrentUser()
+        const uid = currentUser?.uid
+        if (!uid) {
+          setPosts([])
+        } else {
+          const feed = await postsService.fetchFeedPosts(uid)
+          setPosts(feed)
+        }
+      }
+>>>>>>> Stashed changes
     } catch (err) {
       console.error('❌ Failed to fetch posts:', err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [activeTab]);
 
   useEffect(() => {
     loadPosts();

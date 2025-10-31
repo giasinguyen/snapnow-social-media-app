@@ -48,6 +48,7 @@ export default function EditProfileScreen() {
         setUsername(p.username || '');
         setBio(p.bio || '');
         setAvatarUri(p.profileImage || null);
+        setIsPrivate(!!p.isPrivate);
       }
     })();
     return () => { mounted = false; };
@@ -144,6 +145,7 @@ export default function EditProfileScreen() {
         username: username.trim().toLowerCase(),
         bio: bio.trim(),
         profileImage: photoURL,
+        isPrivate: isPrivate,
       });
 
       // update firebase auth profile

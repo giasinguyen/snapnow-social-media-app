@@ -25,10 +25,10 @@ export const mockAuth = {
     console.log('🔥 Mock: Admin login');
     currentUser = mockUsers.find(u => u.isAdmin);
     
-    Alert.alert(
-      'Demo Mode', 
-      'Logged in as Admin (Demo)',
-      [{ text: 'OK', onPress: () => router.replace('/(tabs)/home-new') }]
+      Alert.alert(
+        'Demo Mode', 
+        'Logged in as Admin (Demo)',
+        [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
     );
     
     return currentUser;
@@ -44,7 +44,7 @@ export const mockAuth = {
       Alert.alert(
         'Demo Mode',
         `Welcome ${currentUser.displayName}!`,
-        [{ text: 'OK', onPress: () => router.replace('/(tabs)/home-new') }]
+        [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
       );
       
       return currentUser;
@@ -67,7 +67,7 @@ export const mockAuth = {
     Alert.alert(
       'Demo Mode',
       'Account created successfully!',
-      [{ text: 'OK', onPress: () => router.replace('/(tabs)/home-new') }]
+      [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
     );
 
     return currentUser;
