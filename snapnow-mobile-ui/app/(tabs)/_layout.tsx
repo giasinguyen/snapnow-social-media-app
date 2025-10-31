@@ -1,7 +1,55 @@
-import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Image, View } from 'react-native';
+import { AuthService, UserProfile } from '../../services/authService';
 
 export default function TabsLayout() {
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      try {
+        const profile = await AuthService.getCurrentUserProfile();
+        setUserProfile(profile);
+      } catch (error) {
+        console.error('Failed to load user profile:', error);
+      }
+    };
+
+    loadUserProfile();
+  }, []);
+
+  const ProfileAvatar = ({ focused }: { focused: boolean }) => {
+    if (userProfile?.profileImage) {
+      return (
+        <View style={{
+          width: 26,
+          height: 26,
+          borderRadius: 13,
+          borderWidth: focused ? 2 : 1,
+          borderColor: focused ? '#262626' : '#8E8E8E',
+          overflow: 'hidden'
+        }}>
+          <Image
+            source={{ uri: userProfile.profileImage }}
+            style={{ width: '100%', height: '100%' }}
+            resizeMode="cover"
+          />
+        </View>
+      );
+    }
+    
+    // Fallback to person icon if no profile image
+    return (
+      <Ionicons 
+        name={focused ? "person" : "person-outline"} 
+        size={26} 
+        color={focused ? '#262626' : '#8E8E8E'} 
+      />
+    );
+  };
+
   return (
     <Tabs
       screenOptions={{
@@ -79,12 +127,8 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
-            <Ionicons 
-              name={focused ? "person" : "person-outline"} 
-              size={26} 
-              color={color} 
-            />
+          tabBarIcon: ({ focused }: { focused: boolean }) => (
+            <ProfileAvatar focused={focused} />
           ),
         }}
       />
