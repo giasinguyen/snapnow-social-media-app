@@ -3,12 +3,13 @@ import { useRouter } from 'expo-router';
 import React from 'react';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Avatar from '../../components/ui/Avatar';
+import { COLORS, SPACING, TYPOGRAPHY } from '../../src/constants/theme';
 
-// ================== Types ==================
+
 interface Notification {
   id: string;
-  title: string;      // câu full gồm tên + hành động + time ở cuối
-  time: string;       // ví dụ "1 tuần"
+  title: string;     
+  time: string;      
   avatarUrls: string[];
   imageUrl?: string;
   hasImagePlaceholder?: boolean;
@@ -114,10 +115,7 @@ const NotificationsScreen: React.FC = () => {
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Thông báo</Text>
+        <Text style={styles.headerTitle}>Notifications</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
@@ -132,15 +130,18 @@ const NotificationsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#fff', paddingTop: 50 },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 15,
-    paddingVertical: 12,
+    paddingHorizontal: SPACING.lg,
+    paddingBottom: SPACING.md,
+    backgroundColor: COLORS.backgroundWhite,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#eee',
+    borderBottomColor: COLORS.border,
   },
-  backButton: { marginRight: 15, padding: 5 },
-  headerTitle: { fontSize: 20, fontWeight: '700' },
+  headerTitle: { 
+    fontSize: TYPOGRAPHY.fontSize.display, 
+    fontWeight: '700', 
+    color: '#262626',
+    letterSpacing: -0.5,
+  },
   contentContainer: { paddingBottom: 20 },
   sectionTitle: {
     fontSize: 18,

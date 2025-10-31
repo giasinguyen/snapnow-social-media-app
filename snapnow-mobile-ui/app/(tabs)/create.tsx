@@ -47,7 +47,7 @@ const CreateSnapScreen: React.FC = () => {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const animatedBottom = useRef(new Animated.Value(0)).current;
 
-  const isPostEnabled = (snapContent.trim().length > 0 || !!imageUri) && !posting;
+  const isPostEnabled = (snapContent.trim().length > 0 && !!imageUri) && !posting;
 
   // Load profile on initial mount
   useEffect(() => {
