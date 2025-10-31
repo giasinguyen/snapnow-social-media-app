@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Image, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { UserService } from '../services/user';
+import { COLORS, RADIUS, SIZES, SPACING, TIMINGS, TYPOGRAPHY } from '../src/constants/theme';
 import { Post } from '../types';
 import CommentsModal from './CommentsModal';
-import { COLORS, SPACING, TYPOGRAPHY, RADIUS, SIZES, TIMINGS } from '../src/constants/theme';
 
 interface PostCardProps {
   post: Post;
@@ -17,9 +18,31 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment,
   const [liked, setLiked] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
   const [commentsModalVisible, setCommentsModalVisible] = useState(false);
+  const [displayUsername, setDisplayUsername] = useState(post.username || '');
+  const [displayUserImage, setDisplayUserImage] = useState(post.userImage || '');
   const heartScale = useState(new Animated.Value(0))[0];
   const [showHeart, setShowHeart] = useState(false);
   let lastTap = useRef<number>(0);
+
+  // Fetch fresh user data when post userId changes
+  useEffect(() => {
+    if (post.userId) {
+      (async () => {
+        try {
+          const user = await UserService.getUserProfile(post.userId!);
+          if (user) {
+            setDisplayUsername(user.username || post.username || '');
+            setDisplayUserImage(user.profileImage || post.userImage || '');
+          }
+        } catch (error) {
+          console.error('Error fetching user profile for post:', error);
+          // Fallback to post data if fetch fails
+          setDisplayUsername(post.username || '');
+          setDisplayUserImage(post.userImage || '');
+        }
+      })();
+    }
+  }, [post.userId]);
 
   const triggerLikeAnimation = useCallback(() => {
     setShowHeart(true);
@@ -89,11 +112,11 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment,
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Image
-            source={{ uri: post.userImage || 'https://via.placeholder.com/40' }}
+            source={{ uri: displayUserImage || 'https://via.placeholder.com/40' }}
             style={styles.avatar}
           />
           <View style={styles.userInfo}>
-            <Text style={styles.username}>{post.username}</Text>
+            <Text style={styles.username}>{displayUsername}</Text>
             {/* Có thể thêm location hoặc thông tin khác */}
           </View>
         </View>
@@ -167,7 +190,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment,
       {post.caption && (
         <View style={styles.captionContainer}>
           <Text style={styles.caption}>
-            <Text style={styles.captionUsername}>{post.username}</Text>{' '}
+            <Text style={styles.captionUsername}>{displayUsername}</Text>{' '}
             {post.caption}
           </Text>
         </View>
