@@ -6,7 +6,6 @@ import {
     getDoc,
     getDocs,
     increment,
-    orderBy,
     query,
     serverTimestamp,
     updateDoc,
@@ -73,7 +72,9 @@ export async function addComment(
 // Get comments for a post
 export async function getPostComments(postId: string): Promise<Comment[]> {
   try {
-    const commentsQuery = query(collection(db, "comments"), where("postId", "==", postId), orderBy("createdAt", "desc"))
+    // Only use where() to avoid composite index requirement
+    // We'll sort in memory instead
+    const commentsQuery = query(collection(db, "comments"), where("postId", "==", postId))
 
     const snapshot = await getDocs(commentsQuery)
     const comments: Comment[] = []
@@ -86,6 +87,13 @@ export async function getPostComments(postId: string): Promise<Comment[]> {
         isLiked: false,
         createdAt: data.createdAt?.toDate?.() || new Date(),
       } as Comment)
+    })
+
+    // Sort in memory by createdAt descending (newest first)
+    comments.sort((a, b) => {
+      const timeA = a.createdAt instanceof Date ? a.createdAt.getTime() : 0
+      const timeB = b.createdAt instanceof Date ? b.createdAt.getTime() : 0
+      return timeB - timeA
     })
 
     return comments

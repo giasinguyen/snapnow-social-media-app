@@ -32,7 +32,12 @@ const SuggestionsCard: React.FC<SuggestionsCardProps> = React.memo(
     title = "Suggested for you",
     subtitle = "Based on who you follow",
   }) => {
-    if (users.length === 0) return null;
+    console.log('🎴 SuggestionsCard rendering with users:', users.length);
+    
+    if (users.length === 0) {
+      console.log('⚠️ No users to suggest, hiding card');
+      return null;
+    }
 
     return (
       <View style={styles.container}>
@@ -54,7 +59,15 @@ const SuggestionsCard: React.FC<SuggestionsCardProps> = React.memo(
             style={[styles.userItem, index === 0 && styles.firstUserItem]}
           >
             <View style={styles.userLeft}>
-              <Image source={{ uri: user.avatar }} style={styles.avatar} />
+              {user.avatar ? (
+                <Image source={{ uri: user.avatar }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatar, { backgroundColor: '#E1E8ED', justifyContent: 'center', alignItems: 'center' }]}>
+                  <Text style={{ fontSize: 24, color: '#657786', fontWeight: '600' }}>
+                    {user.displayName?.charAt(0).toUpperCase() || user.username?.charAt(0).toUpperCase() || '?'}
+                  </Text>
+                </View>
+              )}
               <View style={styles.userInfo}>
                 <Text style={styles.displayName}>{user.displayName}</Text>
                 <Text style={styles.username}>@{user.username}</Text>
@@ -65,7 +78,10 @@ const SuggestionsCard: React.FC<SuggestionsCardProps> = React.memo(
             </View>
             <TouchableOpacity
               style={styles.followButton}
-              onPress={() => onFollowPress(user.id)}
+              onPress={() => {
+                console.log('🔘 Follow button pressed for:', user.id, user.username);
+                onFollowPress(user.id);
+              }}
               activeOpacity={0.7}
             >
               <Text style={styles.followButtonText}>Follow</Text>

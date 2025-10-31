@@ -1,5 +1,3 @@
-"use client"
-
 import { Ionicons } from "@expo/vector-icons"
 import { useEffect, useState } from "react"
 import {
@@ -8,7 +6,6 @@ import {
     Image,
     KeyboardAvoidingView,
     Modal,
-    Platform,
     StyleSheet,
     Text,
     TextInput,
@@ -95,14 +92,22 @@ export default function CommentsModal({ visible, postId, onClose }: CommentsModa
   }
 
   const renderComment = ({ item }: { item: Comment }) => {
-    const isOwnComment = item.userId === auth.currentUser?.uid
+    const isOwnComment = auth.currentUser && item.userId === auth.currentUser.uid
+    const hasValidAvatar = item.userProfileImage && item.userProfileImage.trim() !== ''
+    const initials = item.username ? item.username.slice(0, 2).toUpperCase() : '??'
 
     return (
       <View style={styles.commentItem}>
-        <Image
-          source={{ uri: item.userProfileImage || "https://via.placeholder.com/40" }}
-          style={styles.commentAvatar}
-        />
+        {hasValidAvatar ? (
+          <Image
+            source={{ uri: item.userProfileImage }}
+            style={styles.commentAvatar}
+          />
+        ) : (
+          <View style={[styles.commentAvatar, styles.avatarPlaceholder]}>
+            <Text style={styles.avatarText}>{initials}</Text>
+          </View>
+        )}
         <View style={styles.commentContent}>
           <View style={styles.commentHeader}>
             <Text style={styles.commentUsername}>{item.username}</Text>
@@ -122,7 +127,7 @@ export default function CommentsModal({ visible, postId, onClose }: CommentsModa
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Comments</Text>
           <TouchableOpacity onPress={onClose}>
@@ -149,11 +154,20 @@ export default function CommentsModal({ visible, postId, onClose }: CommentsModa
           />
         )}
 
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.inputContainer}>
-          <Image
-            source={{ uri: auth.currentUser?.photoURL || "https://via.placeholder.com/40" }}
-            style={styles.inputAvatar}
-          />
+        <KeyboardAvoidingView behavior="padding" style={styles.inputContainer}>
+          {auth.currentUser?.photoURL && auth.currentUser.photoURL.trim() !== '' ? (
+            <Image
+              source={{ uri: auth.currentUser.photoURL }}
+              style={styles.inputAvatar}
+            />
+          ) : (
+            <View style={[styles.inputAvatar, styles.avatarPlaceholder]}>
+              <Text style={styles.avatarText}>
+                {auth.currentUser?.displayName?.slice(0, 2).toUpperCase() || 
+                 auth.currentUser?.email?.slice(0, 2).toUpperCase() || '??'}
+              </Text>
+            </View>
+          )}
           <TextInput
             style={styles.input}
             placeholder="Add a comment..."
@@ -250,6 +264,16 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginRight: 12,
     backgroundColor: "#f0f0f0",
+  },
+  avatarPlaceholder: {
+    backgroundColor: "#DBDBDB",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#FFFFFF",
   },
   commentContent: {
     flex: 1,

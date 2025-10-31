@@ -7,6 +7,8 @@ import { UserService } from '../services/user';
 import { COLORS, RADIUS, SIZES, SPACING, TIMINGS, TYPOGRAPHY } from '../src/constants/theme';
 import { Post } from '../types';
 import CommentsModal from './CommentsModal';
+import { hasUserLikedPost } from '../services/likes';
+import { AuthService } from '../services/authService';
 
 interface PostCardProps {
   post: Post;
@@ -18,6 +20,7 @@ interface PostCardProps {
 
 const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment, onShare, onPress }) => {
   const [liked, setLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(post.likes || 0);
   const [bookmarked, setBookmarked] = useState(false);
   const [commentsModalVisible, setCommentsModalVisible] = useState(false);
   const [optionsVisible, setOptionsVisible] = useState(false);
@@ -27,6 +30,28 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment,
   const [showHeart, setShowHeart] = useState(false);
   const router = useRouter();
   let lastTap = useRef<number>(0);
+
+  // Check if user has liked this post on mount and get real likes count
+  useEffect(() => {
+    const checkLikeStatus = async () => {
+      try {
+        const currentUser = AuthService.getCurrentUser();
+        if (currentUser && post.id) {
+          const isLiked = await hasUserLikedPost(currentUser.uid, post.id);
+          setLiked(isLiked);
+          
+          // Get real likes count from Firestore
+          const { getPostLikesCount } = await import('../services/likes');
+          const count = await getPostLikesCount(post.id);
+          setLikesCount(count);
+        }
+      } catch (error) {
+        console.error('Error checking like status:', error);
+      }
+    };
+    
+    checkLikeStatus();
+  }, [post.id]);
 
   // Fetch fresh user data when post userId changes
   useEffect(() => {
@@ -89,13 +114,42 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment,
     lastTap.current = now;
   }, [liked, triggerLikeAnimation, post.id, onLike, onPress]);
 
-  const toggleLike = useCallback(() => {
-    setLiked((s) => {
-      const next = !s;
-      onLike?.(post.id, next);
-      return next;
-    });
-  }, [post.id, onLike]);
+  const toggleLike = useCallback(async () => {
+    try {
+      const currentUser = AuthService.getCurrentUser();
+      if (!currentUser) return;
+
+      const newLikedState = !liked;
+      
+      // Optimistic UI update
+      setLiked(newLikedState);
+      setLikesCount(prev => newLikedState ? prev + 1 : prev - 1);
+
+      // Import services
+      const { likePost, unlikePost } = await import('../services/likes');
+      const currentUserProfile = await AuthService.getCurrentUserProfile();
+
+      if (newLikedState) {
+        // Like the post
+        await likePost(
+          currentUser.uid,
+          post.id,
+          currentUserProfile?.username || '',
+          currentUserProfile?.profileImage
+        );
+      } else {
+        // Unlike the post
+        await unlikePost(currentUser.uid, post.id);
+      }
+
+      onLike?.(post.id, newLikedState);
+    } catch (error) {
+      console.error('Error toggling like:', error);
+      // Revert on error
+      setLiked(liked);
+      setLikesCount(prev => liked ? prev + 1 : prev - 1);
+    }
+  }, [liked, post.id, onLike]);
 
   const toggleBookmark = useCallback(() => {
     setBookmarked((s) => !s);
@@ -190,9 +244,9 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment,
       </View>
 
       {/* Likes Count */}
-      {(post.likes || 0) + (liked ? 1 : 0) > 0 && (
+      {likesCount > 0 && (
         <Text style={styles.likesCount}>
-          {(post.likes || 0) + (liked ? 1 : 0)} {(post.likes || 0) + (liked ? 1 : 0) === 1 ? 'like' : 'likes'}
+          {likesCount} {likesCount === 1 ? 'like' : 'likes'}
         </Text>
       )}
 

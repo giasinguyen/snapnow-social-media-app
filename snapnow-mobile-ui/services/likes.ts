@@ -113,6 +113,18 @@ export async function getPostLikes(postId: string): Promise<Like[]> {
   }
 }
 
+// Get likes count for a post
+export async function getPostLikesCount(postId: string): Promise<number> {
+  try {
+    const likesQuery = query(collection(db, "likes"), where("postId", "==", postId))
+    const snapshot = await getDocs(likesQuery)
+    return snapshot.size
+  } catch (error) {
+    console.error("Error getting post likes count:", error)
+    return 0
+  }
+}
+
 // Get user's liked posts
 export async function getUserLikedPosts(userId: string): Promise<string[]> {
   try {
