@@ -16,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import { auth } from "../config/firebase"
 import { addComment, deleteComment, getPostComments } from "../services/comments"
 import type { Comment } from "../types"
+import CommentItem from './CommentItem'
 
 interface CommentsModalProps {
   visible: boolean
@@ -91,37 +92,13 @@ export default function CommentsModal({ visible, postId, onClose }: CommentsModa
     }
   }
 
-  const renderComment = ({ item }: { item: Comment }) => {
-    const isOwnComment = auth.currentUser && item.userId === auth.currentUser.uid
-    const hasValidAvatar = item.userProfileImage && item.userProfileImage.trim() !== ''
-    const initials = item.username ? item.username.slice(0, 2).toUpperCase() : '??'
+  const handleReply = (commentId: string, username: string) => {
+    setCommentText(`@${username} `)
+  }
 
+  const renderComment = ({ item }: { item: Comment }) => {
     return (
-      <View style={styles.commentItem}>
-        {hasValidAvatar ? (
-          <Image
-            source={{ uri: item.userProfileImage }}
-            style={styles.commentAvatar}
-          />
-        ) : (
-          <View style={[styles.commentAvatar, styles.avatarPlaceholder]}>
-            <Text style={styles.avatarText}>{initials}</Text>
-          </View>
-        )}
-        <View style={styles.commentContent}>
-          <View style={styles.commentHeader}>
-            <Text style={styles.commentUsername}>{item.username}</Text>
-            <Text style={styles.commentTime}>{formatTimestamp(item.createdAt)}</Text>
-          </View>
-          <Text style={styles.commentText}>{item.text}</Text>
-          {item.likesCount > 0 && <Text style={styles.commentLikes}>{item.likesCount} likes</Text>}
-        </View>
-        {isOwnComment && (
-          <TouchableOpacity onPress={() => handleDeleteComment(item.id)} style={styles.deleteButton}>
-            <Ionicons name="trash-outline" size={18} color="#ed4956" />
-          </TouchableOpacity>
-        )}
-      </View>
+      <CommentItem comment={item} onDelete={handleDeleteComment} onReply={handleReply} />
     )
   }
 

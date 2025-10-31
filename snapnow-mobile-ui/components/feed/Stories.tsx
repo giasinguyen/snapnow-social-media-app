@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { COLORS, SPACING, TYPOGRAPHY, RADIUS, SIZES } from '../../src/constants/theme';
+import { useRouter } from 'expo-router';
 
 export interface Story {
   id: string;
@@ -32,6 +33,7 @@ const Stories: React.FC<StoriesProps> = React.memo(({
   onCreateStory,
   onDismiss,
 }) => {
+  const router = useRouter();
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -52,7 +54,7 @@ const Stories: React.FC<StoriesProps> = React.memo(({
           <TouchableOpacity
             key={story.id}
             style={styles.storyItem}
-            onPress={() => story.isYourStory ? onCreateStory?.() : onStoryPress?.(story.id)}
+            onPress={() => story.isYourStory ? onCreateStory?.() : router.push(`/story/${story.id}` as any)}
             activeOpacity={0.7}
           >
             {story.isYourStory ? (
