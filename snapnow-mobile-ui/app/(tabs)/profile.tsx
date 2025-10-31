@@ -1,31 +1,23 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Dimensions,
-  Image,
-  RefreshControl,
+import { 
+  ActivityIndicator, 
+  Image, 
+  StyleSheet, 
+  Text, 
+  TouchableOpacity, 
+  View, 
   ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+  Dimensions,
+  RefreshControl
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { AuthService, UserProfile } from '../../services/authService';
-<<<<<<< Updated upstream
 import { formatFollowers } from '../../services/mockData';
 import { fetchUserPosts } from '../../services/posts';
 import { Post } from '../../types';
-=======
-import { getUserLikedPosts } from '../../services/likes';
-import bookmarksService from '../../services/bookmarks';
-import postsService from '../../services/posts';
-import { Post } from '../../types';
-import { MOCK_POSTS, formatFollowers } from '../../services/mockData';
->>>>>>> Stashed changes
 
 const { width } = Dimensions.get('window');
 const POST_SIZE = (width - 2) / 3; // 2px total gap, 1px between each
@@ -43,15 +35,8 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('grid');
-<<<<<<< Updated upstream
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
-=======
-  const [albumsView, setAlbumsView] = useState<'albums' | 'bookmarked' | 'liked'>('albums');
-  const [likedPosts, setLikedPosts] = useState<Post[]>([]);
-  const [bookmarkedPosts, setBookmarkedPosts] = useState<Post[]>([]);
-  const [albumsLoading, setAlbumsLoading] = useState(false);
->>>>>>> Stashed changes
   const router = useRouter();
 
   const loadProfile = async () => {
@@ -76,49 +61,6 @@ export default function ProfileScreen() {
   useEffect(() => {
     loadProfile();
   }, []);
-
-  // Load liked / bookmarked posts when albums sub-tab is active
-  useEffect(() => {
-    let mounted = true
-    const loadLiked = async () => {
-      if (!profile) return
-      setAlbumsLoading(true)
-      try {
-        const ids = await getUserLikedPosts(profile.id)
-        const fetches = ids.map((id) => postsService.getPost(id))
-        const results = await Promise.all(fetches)
-        if (!mounted) return
-        setLikedPosts(results.filter(Boolean) as Post[])
-      } catch (err) {
-        console.error('Error loading liked posts', err)
-      } finally {
-        setAlbumsLoading(false)
-      }
-    }
-
-    const loadBookmarked = async () => {
-      if (!profile) return
-      setAlbumsLoading(true)
-      try {
-        const ids = await bookmarksService.getUserBookmarkedPosts(profile.id)
-        const fetches = ids.map((id) => postsService.getPost(id))
-        const results = await Promise.all(fetches)
-        if (!mounted) return
-        setBookmarkedPosts(results.filter(Boolean) as Post[])
-      } catch (err) {
-        console.error('Error loading bookmarked posts', err)
-      } finally {
-        setAlbumsLoading(false)
-      }
-    }
-
-    if (activeTab === 'albums') {
-      if (albumsView === 'liked') loadLiked()
-      if (albumsView === 'bookmarked') loadBookmarked()
-    }
-
-    return () => { mounted = false }
-  }, [albumsView, activeTab, profile])
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -166,6 +108,7 @@ export default function ProfileScreen() {
       {/* Minimalist Threads-style Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
+          <Ionicons name="lock-closed-outline" size={18} color="#8E8E8E" />
           <Text style={styles.headerUsername}>{profile.username}</Text>
         </View>
         <View style={styles.headerRight}>
@@ -213,12 +156,7 @@ export default function ProfileScreen() {
 
           {/* Name and Bio */}
           <View style={styles.nameSection}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Text style={styles.displayName}>{profile.displayName || profile.username}</Text>
-              {profile.isPrivate && (
-                <Ionicons name="lock-closed" size={16} color="#8E8E8E" />
-              )}
-            </View>
+            <Text style={styles.displayName}>{profile.displayName || profile.username}</Text>
             {profile.bio && <Text style={styles.bio}>{profile.bio}</Text>}
             <Text style={styles.bioLink}>snapnow.app/{profile.username}</Text>
           </View>
@@ -398,13 +336,12 @@ export default function ProfileScreen() {
         {/* Albums Tab - SnapNow Feature */}
         {activeTab === 'albums' && (
           <View style={styles.albumsContainer}>
-            <View style={[styles.albumsHeader, { alignItems: 'center' }]}>
+            <View style={styles.albumsHeader}>
               <Text style={styles.albumsTitle}>Photo Albums</Text>
               <TouchableOpacity>
                 <Ionicons name="add-circle-outline" size={28} color="#0095F6" />
               </TouchableOpacity>
             </View>
-<<<<<<< Updated upstream
             {/* TODO: Load real albums from Firestore when feature is implemented */}
             <View style={styles.emptyState}>
               <View style={styles.emptyIconContainer}>
@@ -414,91 +351,7 @@ export default function ProfileScreen() {
               <Text style={styles.emptySubtitle}>
                 Create albums to organize your photos
               </Text>
-=======
-
-            {/* Sub-tabs inside Albums: Albums / Bookmarked / Liked */}
-            <View style={styles.albumsSubTabs}>
-              <TouchableOpacity
-                style={[styles.albumSubTab, albumsView === 'albums' && styles.albumSubTabActive]}
-                onPress={() => setAlbumsView('albums')}
-              >
-                <Text style={[styles.albumSubTabText, albumsView === 'albums' && styles.albumSubTabTextActive]}>Albums</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.albumSubTab, albumsView === 'bookmarked' && styles.albumSubTabActive]}
-                onPress={() => setAlbumsView('bookmarked')}
-              >
-                <Text style={[styles.albumSubTabText, albumsView === 'bookmarked' && styles.albumSubTabTextActive]}>Bookmarked</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.albumSubTab, albumsView === 'liked' && styles.albumSubTabActive]}
-                onPress={() => setAlbumsView('liked')}
-              >
-                <Text style={[styles.albumSubTabText, albumsView === 'liked' && styles.albumSubTabTextActive]}>Liked</Text>
-              </TouchableOpacity>
->>>>>>> Stashed changes
             </View>
-
-            {/* Content for each sub-tab */}
-            {albumsView === 'albums' && (
-              <View style={styles.albumsGrid}>
-                {MOCK_ALBUMS.map((album) => (
-                  <TouchableOpacity
-                    key={album.id}
-                    style={styles.albumItem}
-                    activeOpacity={0.9}
-                  >
-                    <Image source={{ uri: album.cover }} style={styles.albumCover} />
-                    <View style={styles.albumInfo}>
-                      <Text style={styles.albumTitle}>{album.title}</Text>
-                      <Text style={styles.albumCount}>{album.count} photos</Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-
-            {albumsView === 'liked' && (
-              <View style={styles.albumsGrid}>
-                {albumsLoading ? (
-                  <ActivityIndicator size="small" color="#0095F6" />
-                ) : likedPosts.length === 0 ? (
-                  <View style={styles.emptyState}>
-                    <Text style={styles.emptyTitle}>No liked posts yet</Text>
-                    <Text style={styles.emptySubtitle}>Like posts to see them here.</Text>
-                  </View>
-                ) : (
-                  <View style={styles.postsGrid}>
-                    {likedPosts.map((p) => (
-                      <TouchableOpacity key={p.id} style={styles.gridItem} activeOpacity={0.9}>
-                        {p.imageUrl ? <Image source={{ uri: p.imageUrl }} style={styles.gridImage} /> : null}
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
-
-            {albumsView === 'bookmarked' && (
-              <View style={styles.albumsGrid}>
-                {albumsLoading ? (
-                  <ActivityIndicator size="small" color="#0095F6" />
-                ) : bookmarkedPosts.length === 0 ? (
-                  <View style={styles.emptyState}>
-                    <Text style={styles.emptyTitle}>No bookmarked posts</Text>
-                    <Text style={styles.emptySubtitle}>Save posts to view them later.</Text>
-                  </View>
-                ) : (
-                  <View style={styles.postsGrid}>
-                    {bookmarkedPosts.map((p) => (
-                      <TouchableOpacity key={p.id} style={styles.gridItem} activeOpacity={0.9}>
-                        {p.imageUrl ? <Image source={{ uri: p.imageUrl }} style={styles.gridImage} /> : null}
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
           </View>
         )}
 
@@ -915,29 +768,6 @@ const styles = StyleSheet.create({
   },
   albumsGrid: {
     gap: 16,
-  },
-  albumsSubTabs: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingHorizontal: 8,
-    marginBottom: 12,
-  },
-  albumSubTab: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderRadius: 8,
-  },
-  albumSubTabActive: {
-    backgroundColor: '#F5F5F5',
-  },
-  albumSubTabText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#8E8E8E',
-  },
-  albumSubTabTextActive: {
-    color: '#262626',
   },
   albumItem: {
     flexDirection: 'row',

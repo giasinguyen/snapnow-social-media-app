@@ -1,27 +1,27 @@
-import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { updateProfile } from 'firebase/auth';
 import { doc, updateDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
+import { 
+  ActivityIndicator, 
+  Alert, 
+  ScrollView, 
+  View, 
+  Text, 
   TouchableOpacity,
-  View
+  Image,
+  StyleSheet,
+  Switch
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Button from '../../components/ui/Button';
-import Input from '../../components/ui/Input';
+import { LinearGradient } from 'expo-linear-gradient';
 import { auth, db } from '../../config/firebase';
 import { AuthService, UserProfile } from '../../services/authService';
-import { uploadToStorage } from '../../services/storage';
+import { uploadAvatar } from '../../services/cloudinary';
+import Input from '../../components/ui/Input';
+import Button from '../../components/ui/Button';
 
 const MAX_BIO_LENGTH = 150;
 const MAX_DISPLAYNAME_LENGTH = 50;
@@ -87,9 +87,9 @@ export default function EditProfileScreen() {
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      setAvatarUri(result.assets[0].uri)
+      setAvatarUri(result.assets[0].uri);
     }
-  }
+  };
 
   const showImageOptions = () => {
     Alert.alert(

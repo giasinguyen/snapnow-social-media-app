@@ -1,13 +1,13 @@
-import { router } from 'expo-router';
-import {
+import { 
+  signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signOut
+  signOut,
+  onAuthStateChanged
 } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { Alert } from 'react-native';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
+import { Alert } from 'react-native';
+import { router } from 'expo-router';
 
 // Interface cho User
 export interface UserProfile {
