@@ -15,7 +15,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AuthService, UserProfile } from '../../services/authService';
-import { MOCK_POSTS, formatFollowers } from '../../services/mockData';
+import { formatFollowers } from '../../services/mockData';
+import { fetchUserPosts } from '../../services/posts';
+import { Post } from '../../types';
 
 const { width } = Dimensions.get('window');
 const POST_SIZE = (width - 2) / 3; // 2px total gap, 1px between each
@@ -28,33 +30,27 @@ const ACHIEVEMENTS = [
   { id: '3', icon: 'trophy', label: 'Top Creator', color: '#FFD93D' },
 ];
 
-const MOCK_ALBUMS = [
-  { id: '1', title: 'Summer 2024', cover: 'https://picsum.photos/400/400?random=1', count: 24 },
-  { id: '2', title: 'Travel', cover: 'https://picsum.photos/400/400?random=2', count: 48 },
-  { id: '3', title: 'Food', cover: 'https://picsum.photos/400/400?random=3', count: 36 },
-  { id: '4', title: 'Friends', cover: 'https://picsum.photos/400/400?random=4', count: 52 },
-];
-
-const MOCK_SNAPS = [
-  { id: '1', imageUrl: 'https://picsum.photos/400/400?random=11', time: '2h ago' },
-  { id: '2', imageUrl: 'https://picsum.photos/400/400?random=12', time: '5h ago' },
-  { id: '3', imageUrl: 'https://picsum.photos/400/400?random=13', time: '8h ago' },
-  { id: '4', imageUrl: 'https://picsum.photos/400/400?random=14', time: '12h ago' },
-  { id: '5', imageUrl: 'https://picsum.photos/400/400?random=15', time: '1d ago' },
-  { id: '6', imageUrl: 'https://picsum.photos/400/400?random=16', time: '2d ago' },
-];
-
 export default function ProfileScreen() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('grid');
+  const [userPosts, setUserPosts] = useState<Post[]>([]);
+  const [loadingPosts, setLoadingPosts] = useState(false);
   const router = useRouter();
 
   const loadProfile = async () => {
     try {
       const p = await AuthService.getCurrentUserProfile();
       setProfile(p);
+      
+      // Load user's posts
+      if (p?.id) {
+        setLoadingPosts(true);
+        const posts = await fetchUserPosts(p.id);
+        setUserPosts(posts);
+        setLoadingPosts(false);
+      }
     } catch (err) {
       console.error('Failed to load profile', err);
     } finally {
@@ -169,12 +165,12 @@ export default function ProfileScreen() {
           <View style={styles.statsRow}>
             <View style={styles.statDivider} />
             <TouchableOpacity style={styles.statItem}>
-              <Text style={styles.statNumber}>{profile.postsCount ?? MOCK_POSTS.length}</Text>
+              <Text style={styles.statNumber}>{userPosts.length}</Text>
               <Text style={styles.statLabel}>Posts</Text>
             </TouchableOpacity>
             <View style={styles.statDivider} />
             <TouchableOpacity style={styles.statItem}>
-              <Text style={styles.statNumber}>{MOCK_SNAPS.length}</Text>
+              <Text style={styles.statNumber}>0</Text>
               <Text style={styles.statLabel}>Snaps</Text>
             </TouchableOpacity>
             <View style={styles.statDivider} />
@@ -284,20 +280,31 @@ export default function ProfileScreen() {
         {/* Grid Tab - Instagram Style */}
         {activeTab === 'grid' && (
           <View style={styles.postsGrid}>
-            {MOCK_POSTS.slice(0, 12).map((post, index) => (
-              <TouchableOpacity
-                key={post.id}
-                style={styles.gridItem}
-                activeOpacity={0.9}
-              >
-                <Image source={{ uri: post.imageUrl }} style={styles.gridImage} />
-                {index % 4 === 0 && (
-                  <View style={styles.multipleIndicator}>
-                    <Ionicons name="copy-outline" size={14} color="#fff" />
-                  </View>
-                )}
-              </TouchableOpacity>
-            ))}
+            {loadingPosts ? (
+              <View style={styles.center}>
+                <ActivityIndicator size="large" color="#0095F6" />
+              </View>
+            ) : userPosts.length === 0 ? (
+              <View style={styles.emptyState}>
+                <View style={styles.emptyIconContainer}>
+                  <Ionicons name="camera-outline" size={64} color="#DBDBDB" />
+                </View>
+                <Text style={styles.emptyTitle}>No posts yet</Text>
+                <Text style={styles.emptySubtitle}>
+                  Share your first moment with the world
+                </Text>
+              </View>
+            ) : (
+              userPosts.map((post) => (
+                <TouchableOpacity
+                  key={post.id}
+                  style={styles.gridItem}
+                  activeOpacity={0.9}
+                >
+                  <Image source={{ uri: post.imageUrl }} style={styles.gridImage} />
+                </TouchableOpacity>
+              ))
+            )}
           </View>
         )}
 
@@ -317,19 +324,10 @@ export default function ProfileScreen() {
                 <Text style={styles.addSnapText}>Snap Now</Text>
               </TouchableOpacity>
 
-              {/* Existing Snaps */}
-              {MOCK_SNAPS.map((snap) => (
-                <TouchableOpacity
-                  key={snap.id}
-                  style={styles.snapItem}
-                  activeOpacity={0.9}
-                >
-                  <Image source={{ uri: snap.imageUrl }} style={styles.snapImage} />
-                  <View style={styles.snapOverlay}>
-                    <Text style={styles.snapTime}>{snap.time}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
+              {/* TODO: Load real snaps from Firestore when feature is implemented */}
+              <View style={styles.emptyState}>
+                <Text style={styles.emptySubtitle}>Snaps feature coming soon!</Text>
+              </View>
             </View>
           </View>
         )}
@@ -343,20 +341,15 @@ export default function ProfileScreen() {
                 <Ionicons name="add-circle-outline" size={28} color="#0095F6" />
               </TouchableOpacity>
             </View>
-            <View style={styles.albumsGrid}>
-              {MOCK_ALBUMS.map((album) => (
-                <TouchableOpacity
-                  key={album.id}
-                  style={styles.albumItem}
-                  activeOpacity={0.9}
-                >
-                  <Image source={{ uri: album.cover }} style={styles.albumCover} />
-                  <View style={styles.albumInfo}>
-                    <Text style={styles.albumTitle}>{album.title}</Text>
-                    <Text style={styles.albumCount}>{album.count} photos</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
+            {/* TODO: Load real albums from Firestore when feature is implemented */}
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIconContainer}>
+                <Ionicons name="albums-outline" size={64} color="#DBDBDB" />
+              </View>
+              <Text style={styles.emptyTitle}>No albums yet</Text>
+              <Text style={styles.emptySubtitle}>
+                Create albums to organize your photos
+              </Text>
             </View>
           </View>
         )}
