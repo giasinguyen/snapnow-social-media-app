@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Alert,
   ScrollView,
@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthService } from '../../../services/authService';
+import { doc, updateDoc } from 'firebase/firestore';
+import { auth, db } from '../../../config/firebase';
 
 interface SettingItemProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -94,6 +96,17 @@ export default function SettingsScreen() {
   const [privateAccount, setPrivateAccount] = useState(false);
   const [activityStatus, setActivityStatus] = useState(true);
   const [storySharingEnabled, setStorySharingEnabled] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const current = await AuthService.getCurrentUserProfile();
+        setPrivateAccount(!!(current as any)?.isPrivate);
+      } catch (err) {
+        console.warn('Could not load user privacy setting', err);
+      }
+    })();
+  }, []);
 
   const handleLogout = async () => {
     Alert.alert(
@@ -191,7 +204,20 @@ export default function SettingsScreen() {
             subtitle="Only approved followers can see your posts"
             isSwitch
             value={privateAccount}
-            onValueChange={setPrivateAccount}
+            onValueChange={async (val?: boolean) => {
+              const value = !!val;
+              setPrivateAccount(value);
+              try {
+                const uid = auth.currentUser?.uid;
+                if (!uid) {
+                  console.warn('No authenticated user to update privacy setting');
+                  return;
+                }
+                await updateDoc(doc(db, 'users', uid), { isPrivate: value });
+              } catch (err) {
+                console.error('Failed to update privacy setting:', err);
+              }
+            }}
           />
           <SettingItem
             icon="time-outline"

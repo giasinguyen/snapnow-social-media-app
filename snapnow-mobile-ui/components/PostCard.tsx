@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Image, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { Animated, Image, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View, Modal, Pressable, Alert } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { UserService } from '../services/user';
 import { COLORS, RADIUS, SIZES, SPACING, TIMINGS, TYPOGRAPHY } from '../src/constants/theme';
 import { Post } from '../types';
@@ -19,6 +20,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment,
   const [liked, setLiked] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
   const [commentsModalVisible, setCommentsModalVisible] = useState(false);
+  const [optionsVisible, setOptionsVisible] = useState(false);
   const [displayUsername, setDisplayUsername] = useState(post.username || '');
   const [displayUserImage, setDisplayUserImage] = useState(post.userImage || '');
   const heartScale = useState(new Animated.Value(0))[0];
@@ -128,7 +130,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment,
             {/* Có thể thêm location hoặc thông tin khác */}
           </View>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.moreButton}>
+        <TouchableOpacity style={styles.moreButton} onPress={() => setOptionsVisible(true)}>
           <Ionicons name="ellipsis-vertical" size={20} color="#262626" />
         </TouchableOpacity>
       </View>
@@ -219,6 +221,46 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment,
         postId={post.id}
         onClose={() => setCommentsModalVisible(false)}
       />
+
+      {/* Post options modal - appears when tapping more button */}
+      <Modal
+        animationType="fade"
+        transparent
+        visible={optionsVisible}
+        onRequestClose={() => setOptionsVisible(false)}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={() => setOptionsVisible(false)}>
+          <View style={styles.optionsCard}>
+            <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); Alert.alert('Báo cáo', 'Report flow not implemented yet'); }}>
+              <Text style={[styles.optionText, styles.optionDanger]}>Báo cáo</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); Alert.alert('Bỏ theo dõi', `Unfollow ${displayUsername} (not implemented)`); }}>
+              <Text style={styles.optionText}>Bỏ theo dõi</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); Alert.alert('Thêm vào mục yêu thích', 'Added to favorites (mock)'); }}>
+              <Text style={styles.optionText}>Thêm vào mục yêu thích</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); router.push(`/post/${post.id}` as any); }}>
+              <Text style={styles.optionText}>Đi đến bài viết</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); onShare?.(post.id); }}>
+              <Text style={styles.optionText}>Chia sẻ lên...</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.optionItem} onPress={async () => { await Clipboard.setStringAsync(`https://snapnow.app/post/${post.id}`); setOptionsVisible(false); Alert.alert('Sao chép liên kết', 'Link copied to clipboard'); }}>
+              <Text style={styles.optionText}>Sao chép liên kết</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); Alert.alert('Nhúng', 'Embed is not implemented'); }}>
+              <Text style={styles.optionText}>Nhúng</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); Alert.alert('Giới thiệu', `Giới thiệu về tài khoản ${displayUsername}`); }}>
+              <Text style={styles.optionText}>Giới thiệu về tài khoản này</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.optionItem} onPress={() => setOptionsVisible(false)}>
+              <Text style={[styles.optionText, styles.optionCancel]}>Hủy</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
 
       {/* Timestamp */}
       <Text style={styles.timestamp}>
@@ -344,5 +386,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     opacity: 0.9,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  optionsCard: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    margin: 8,
+  },
+  optionItem: {
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  optionText: {
+    fontSize: 16,
+    color: '#262626',
+  },
+  optionDanger: {
+    color: '#ED4956',
+    fontWeight: '700',
+  },
+  optionCancel: {
+    color: '#262626',
+    fontWeight: '600',
   },
 });

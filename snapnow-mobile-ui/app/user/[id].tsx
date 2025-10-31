@@ -211,7 +211,12 @@ export default function UserProfileScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#262626" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{user.username}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {(user as any)?.isPrivate ? (
+            <Ionicons name="lock-closed-outline" size={16} color="#8E8E8E" style={{ marginRight: 6 }} />
+          ) : null}
+          <Text style={styles.headerTitle}>{user.username}</Text>
+        </View>
         <TouchableOpacity style={styles.moreButton} onPress={handleOptionsMenu}>
           <Ionicons name="ellipsis-horizontal" size={24} color="#262626" />
         </TouchableOpacity>

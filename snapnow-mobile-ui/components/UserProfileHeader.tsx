@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { Ionicons } from '@expo/vector-icons';
 import { auth } from "../config/firebase"
 import { followUser, isFollowing, unfollowUser } from "../services/follow"
 import type { User } from "../types"
@@ -91,7 +92,12 @@ export default function UserProfileHeader({
       <View style={styles.infoRow}>
         <View style={styles.userInfo}>
           <Text style={styles.displayName}>{user.displayName}</Text>
-          <Text style={styles.username}>@{user.username}</Text>
+          <Text style={styles.username}>
+            {(user as any)?.isPrivate ? (
+              <Ionicons name="lock-closed-outline" size={14} color="#8E8E8E" />
+            ) : null}
+            {' '}@{user.username}
+          </Text>
           {user.bio && <Text style={styles.bio}>{user.bio}</Text>}
         </View>
       </View>

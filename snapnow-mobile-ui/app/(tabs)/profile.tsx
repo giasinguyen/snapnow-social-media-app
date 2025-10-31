@@ -111,7 +111,9 @@ export default function ProfileScreen() {
       {/* Minimalist Threads-style Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Ionicons name="lock-closed-outline" size={18} color="#8E8E8E" />
+          { (profile as any)?.isPrivate ? (
+            <Ionicons name="lock-closed-outline" size={18} color="#8E8E8E" />
+          ) : null }
           <Text style={styles.headerUsername}>{profile.username}</Text>
         </View>
         <View style={styles.headerRight}>
