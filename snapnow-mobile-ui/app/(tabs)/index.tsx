@@ -24,11 +24,10 @@ import {
 
 import { Post } from '../../types';
 import { 
-  MOCK_POSTS,  
   MOCK_STORIES, 
   SUGGESTED_USERS,
-  simulateDelay 
 } from '../../services/mockData';
+import { fetchPosts } from '../../services/posts';
 import { COLORS, SPACING } from '../../src/constants/theme';
 
 export default function HomeScreen() {
@@ -40,10 +39,12 @@ export default function HomeScreen() {
 
   const loadPosts = useCallback(async () => {
     try {
-      await simulateDelay(800);
-      setPosts(MOCK_POSTS);
+      console.log('📥 Loading posts from Firestore...');
+      const realPosts = await fetchPosts();
+      console.log(`✅ Loaded ${realPosts.length} posts`);
+      setPosts(realPosts);
     } catch (err) {
-      console.error('Failed to fetch posts', err);
+      console.error('❌ Failed to fetch posts:', err);
     } finally {
       setLoading(false);
     }
@@ -73,6 +74,10 @@ export default function HomeScreen() {
 
   const handleShare = useCallback((postId: string) => {
     console.log('Share post:', postId);
+  }, []);
+
+  const handlePostPress = useCallback((postId: string) => {
+    router.push(`/post/${postId}` as any);
   }, []);
 
   const handleNotifications = useCallback(() => {
@@ -154,6 +159,7 @@ export default function HomeScreen() {
                   onLike={handleLike}
                   onComment={handleComment}
                   onShare={handleShare}
+                  onPress={handlePostPress}
                 />
                 
                 {/* Suggestions Card after 2nd post */}

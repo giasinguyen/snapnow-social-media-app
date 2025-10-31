@@ -26,8 +26,8 @@ import UserComposer from '../../components/create/UserComposer';
 import { auth } from '../../config/firebase';
 import type { UserProfile } from '../../services/authService';
 import { getCurrentUserProfile } from '../../services/authService';
+import { uploadPostImage } from '../../services/cloudinary';
 import { createPost, extractHashtags } from '../../services/posts';
-import { uploadImageFromUri } from '../../services/storage';
 
 const privacyOptions: PrivacyOption[] = [
   { key: 'anyone',    label: 'Anyone' },
@@ -116,11 +116,11 @@ const CreateSnapScreen: React.FC = () => {
     try {
       let uploadedImageUrl = '';
 
-      // Upload image to Firebase Storage if exists
+      // Upload image to Cloudinary if exists
       if (imageUri) {
-        const timestamp = Date.now();
-        const path = `posts/${auth.currentUser.uid}/${timestamp}.jpg`;
-        uploadedImageUrl = await uploadImageFromUri(path, imageUri);
+        console.log('📤 Uploading image to Cloudinary...');
+        uploadedImageUrl = await uploadPostImage(imageUri, auth.currentUser.uid);
+        console.log('✅ Image uploaded:', uploadedImageUrl);
       }
 
       // Extract hashtags from caption

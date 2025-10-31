@@ -245,10 +245,48 @@ export async function searchPosts(searchTerm: string): Promise<Post[]> {
   }
 }
 
+/**
+ * Fetch all posts by a specific user
+ */
+export async function fetchUserPosts(userId: string): Promise<Post[]> {
+  try {
+    console.log('📥 Fetching posts for user:', userId);
+    // Use where() only, then sort in memory to avoid needing a composite index
+    const q = query(
+      collection(db, "posts"),
+      where("userId", "==", userId)
+    );
+    const snap = await getDocs(q);
+    const posts: Post[] = [];
+    snap.forEach((docSnap) => {
+      const data = docSnap.data() as any;
+      posts.push({
+        id: docSnap.id,
+        ...data,
+        createdAt: data.createdAt?.toDate?.() || new Date(),
+      } as Post);
+    });
+    
+    // Sort by createdAt in memory (newest first)
+    posts.sort((a, b) => {
+      const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+      const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+      return dateB.getTime() - dateA.getTime();
+    });
+    
+    console.log(`✅ Loaded ${posts.length} posts for user ${userId}`);
+    return posts;
+  } catch (error) {
+    console.error("Error fetching user posts:", error);
+    return [];
+  }
+}
+
 export default {
   fetchPosts,
   fetchFeedPosts,
   fetchFeedPostsPaginated,
+  fetchUserPosts,
   getPost,
   likePost,
   unlikePost,
