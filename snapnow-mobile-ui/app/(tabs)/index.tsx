@@ -27,7 +27,9 @@ import {
   MOCK_STORIES, 
   SUGGESTED_USERS,
 } from '../../services/mockData';
-import { fetchPosts } from '../../services/posts';
+import { fetchPosts, fetchFeedPosts } from '../../services/posts';
+import { getRecommendedPosts } from '../../services/recommendation';
+import { AuthService } from '../../services/authService';
 import { COLORS, SPACING } from '../../src/constants/theme';
 
 export default function HomeScreen() {
@@ -37,28 +39,64 @@ export default function HomeScreen() {
   const [activeTab, setActiveTab] = useState<FeedTab>('for-you');
   const [showStories, setShowStories] = useState(true);
 
-  const loadPosts = useCallback(async () => {
+  const loadForYou = useCallback(async () => {
     try {
-      console.log('📥 Loading posts from Firestore...');
+      setLoading(true);
+      // Try backend recommendations first, fallback to global posts
+      try {
+        const recommended = await getRecommendedPosts();
+        if (recommended && recommended.length > 0) {
+          setPosts(recommended);
+          return;
+        }
+      } catch (recErr) {
+        console.warn('Recommendation fetch failed, falling back to global posts', recErr);
+      }
+
       const realPosts = await fetchPosts();
-      console.log(`✅ Loaded ${realPosts.length} posts`);
       setPosts(realPosts);
     } catch (err) {
-      console.error('❌ Failed to fetch posts:', err);
+      console.error('❌ Failed to fetch For You posts:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadFollowing = useCallback(async () => {
+    try {
+      setLoading(true);
+      const current = await AuthService.getCurrentUserProfile();
+      if (!current?.id) {
+        setPosts([]);
+        return;
+      }
+      const feed = await fetchFeedPosts(current.id);
+      setPosts(feed);
+    } catch (err) {
+      console.error('❌ Failed to fetch Following posts:', err);
+      setPosts([]);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadPosts();
-  }, [loadPosts]);
+    if (activeTab === 'for-you') {
+      loadForYou();
+    } else {
+      loadFollowing();
+    }
+  }, [activeTab, loadForYou, loadFollowing]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadPosts();
+    if (activeTab === 'for-you') {
+      await loadForYou();
+    } else {
+      await loadFollowing();
+    }
     setRefreshing(false);
-  }, [loadPosts]);
+  }, [activeTab, loadForYou, loadFollowing]);
 
   const handleFollow = useCallback((userId: string) => {
     console.log('Following user:', userId);

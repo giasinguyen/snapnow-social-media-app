@@ -1,9 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, Image, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View, Modal, Pressable, Alert } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import { UserService } from '../services/user';
+import { COLORS, RADIUS, SIZES, SPACING, TIMINGS, TYPOGRAPHY } from '../src/constants/theme';
 import { Post } from '../types';
 import CommentsModal from './CommentsModal';
-import { COLORS, SPACING, TYPOGRAPHY, RADIUS, SIZES, TIMINGS } from '../src/constants/theme';
 
 interface PostCardProps {
   post: Post;
@@ -54,9 +57,33 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment,
   };
 
   const [commentsModalVisible, setCommentsModalVisible] = useState(false);
+  const [optionsVisible, setOptionsVisible] = useState(false);
+  const [displayUsername, setDisplayUsername] = useState(post.username || '');
+  const [displayUserImage, setDisplayUserImage] = useState(post.userImage || '');
   const heartScale = useState(new Animated.Value(0))[0];
   const [showHeart, setShowHeart] = useState(false);
+  const router = useRouter();
   let lastTap = useRef<number>(0);
+
+  // Fetch fresh user data when post userId changes
+  useEffect(() => {
+    if (post.userId) {
+      (async () => {
+        try {
+          const user = await UserService.getUserProfile(post.userId!);
+          if (user) {
+            setDisplayUsername(user.username || post.username || '');
+            setDisplayUserImage(user.profileImage || post.userImage || '');
+          }
+        } catch (error) {
+          console.error('Error fetching user profile for post:', error);
+          // Fallback to post data if fetch fails
+          setDisplayUsername(post.username || '');
+          setDisplayUserImage(post.userImage || '');
+        }
+      })();
+    }
+  }, [post.userId]);
 
   const triggerLikeAnimation = useCallback(() => {
     setShowHeart(true);
@@ -120,21 +147,27 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment,
     onShare?.(post.id);
   }, [post.id, onShare]);
 
+  const handleUserPress = useCallback(() => {
+    if (post.userId) {
+      router.push(`/user/${post.userId}` as any);
+    }
+  }, [post.userId, router]);
+
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
+        <TouchableOpacity style={styles.headerLeft} onPress={handleUserPress}>
           <Image
-            source={{ uri: post.userImage || 'https://via.placeholder.com/40' }}
+            source={{ uri: displayUserImage || 'https://via.placeholder.com/40' }}
             style={styles.avatar}
           />
           <View style={styles.userInfo}>
-            <Text style={styles.username}>{post.username}</Text>
+            <Text style={styles.username}>{displayUsername}</Text>
             {/* Có thể thêm location hoặc thông tin khác */}
           </View>
-        </View>
-        <TouchableOpacity style={styles.moreButton}>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.moreButton} onPress={() => setOptionsVisible(true)}>
           <Ionicons name="ellipsis-vertical" size={20} color="#262626" />
         </TouchableOpacity>
       </View>
@@ -204,7 +237,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment,
       {post.caption && (
         <View style={styles.captionContainer}>
           <Text style={styles.caption}>
-            <Text style={styles.captionUsername}>{post.username}</Text>{' '}
+            <Text style={styles.captionUsername}>{displayUsername}</Text>{' '}
             {post.caption}
           </Text>
         </View>
@@ -225,6 +258,46 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment,
         postId={post.id}
         onClose={() => setCommentsModalVisible(false)}
       />
+
+      {/* Post options modal - appears when tapping more button */}
+      <Modal
+        animationType="fade"
+        transparent
+        visible={optionsVisible}
+        onRequestClose={() => setOptionsVisible(false)}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={() => setOptionsVisible(false)}>
+          <View style={styles.optionsCard}>
+            <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); Alert.alert('Báo cáo', 'Report flow not implemented yet'); }}>
+              <Text style={[styles.optionText, styles.optionDanger]}>Báo cáo</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); Alert.alert('Bỏ theo dõi', `Unfollow ${displayUsername} (not implemented)`); }}>
+              <Text style={styles.optionText}>Bỏ theo dõi</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); Alert.alert('Thêm vào mục yêu thích', 'Added to favorites (mock)'); }}>
+              <Text style={styles.optionText}>Thêm vào mục yêu thích</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); router.push(`/post/${post.id}` as any); }}>
+              <Text style={styles.optionText}>Đi đến bài viết</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); onShare?.(post.id); }}>
+              <Text style={styles.optionText}>Chia sẻ lên...</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.optionItem} onPress={async () => { await Clipboard.setStringAsync(`https://snapnow.app/post/${post.id}`); setOptionsVisible(false); Alert.alert('Sao chép liên kết', 'Link copied to clipboard'); }}>
+              <Text style={styles.optionText}>Sao chép liên kết</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); Alert.alert('Nhúng', 'Embed is not implemented'); }}>
+              <Text style={styles.optionText}>Nhúng</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); Alert.alert('Giới thiệu', `Giới thiệu về tài khoản ${displayUsername}`); }}>
+              <Text style={styles.optionText}>Giới thiệu về tài khoản này</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.optionItem} onPress={() => setOptionsVisible(false)}>
+              <Text style={[styles.optionText, styles.optionCancel]}>Hủy</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
 
       {/* Timestamp */}
       <Text style={styles.timestamp}>
@@ -347,14 +420,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     opacity: 0.9,
   },
-  heartOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  optionsCard: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    margin: 8,
+  },
+  optionItem: {
+    paddingVertical: 14,
     alignItems: 'center',
-    opacity: 0.9,
+  },
+  optionText: {
+    fontSize: 16,
+    color: '#262626',
+  },
+  optionDanger: {
+    color: '#ED4956',
+    fontWeight: '700',
+  },
+  optionCancel: {
+    color: '#262626',
+    fontWeight: '600',
   },
 });

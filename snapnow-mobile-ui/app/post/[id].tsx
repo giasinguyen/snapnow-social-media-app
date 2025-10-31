@@ -1,25 +1,28 @@
 import { Ionicons } from '@expo/vector-icons';
+import { formatDistanceToNow } from 'date-fns';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Image,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Post, Comment } from '../../types';
-import { getPost } from '../../services/posts';
-import { getPostComments, addComment } from '../../services/comments';
-import { likePost, unlikePost } from '../../services/likes';
 import { AuthService } from '../../services/authService';
-import { formatDistanceToNow } from 'date-fns';
+import { addComment, getPostComments } from '../../services/comments';
+import { likePost, unlikePost } from '../../services/likes';
+import { getPost } from '../../services/posts';
+import { UserService } from '../../services/user';
+import { Comment, Post } from '../../types';
 
 export default function PostDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -30,11 +33,35 @@ export default function PostDetailScreen() {
   const [commentText, setCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [displayUsername, setDisplayUsername] = useState('');
+  const [displayUserImage, setDisplayUserImage] = useState('');
+  const heartScale = useState(new Animated.Value(0))[0];
+  const [showHeart, setShowHeart] = useState(false);
+  let lastTap = useRef<number>(0);
 
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // Fetch fresh user data when post loads
+  useEffect(() => {
+    if (post?.userId) {
+      (async () => {
+        try {
+          const user = await UserService.getUserProfile(post.userId!);
+          if (user) {
+            setDisplayUsername(user.username || post.username || '');
+            setDisplayUserImage(user.profileImage || post.userImage || '');
+          }
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
+          setDisplayUsername(post.username || '');
+          setDisplayUserImage(post.userImage || '');
+        }
+      })();
+    }
+  }, [post?.userId]);
 
   const loadData = async () => {
     try {
@@ -119,6 +146,45 @@ export default function PostDetailScreen() {
     }
   };
 
+  const triggerLikeAnimation = () => {
+    setShowHeart(true);
+    heartScale.setValue(0);
+
+    Animated.sequence([
+      Animated.spring(heartScale, {
+        toValue: 1,
+        friction: 4,
+        tension: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(heartScale, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+    ]).start(() => setShowHeart(false));
+  };
+
+  const handleDoubleTap = () => {
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300;
+
+    if (now - lastTap.current < DOUBLE_TAP_DELAY) {
+      // Double tap - like
+      triggerLikeAnimation();
+      if (!post?.isLiked) {
+        handleLike();
+      }
+    }
+    lastTap.current = now;
+  };
+
+  const handleUserPress = () => {
+    if (post?.userId) {
+      router.push(`/user/${post.userId}` as any);
+    }
+  };
+
   const formatDate = (date: any) => {
     if (!date) return '';
     const d = date instanceof Date ? date : new Date(date);
@@ -181,27 +247,50 @@ export default function PostDetailScreen() {
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Post Header */}
           <View style={styles.postHeader}>
-            <View style={styles.userInfo}>
+            <TouchableOpacity style={styles.userInfo} onPress={handleUserPress}>
               <Image
                 source={{
-                  uri: post.userImage || 'https://i.pravatar.cc/150?img=1',
+                  uri: displayUserImage || 'https://i.pravatar.cc/150?img=1',
                 }}
                 style={styles.avatar}
               />
               <View style={styles.userDetails}>
-                <Text style={styles.username}>{post.username || 'Anonymous'}</Text>
+                <Text style={styles.username}>{displayUsername || 'Anonymous'}</Text>
                 <Text style={styles.timestamp}>{formatDate(post.createdAt)}</Text>
               </View>
-            </View>
+            </TouchableOpacity>
           </View>
 
           {/* Post Image */}
           {post.imageUrl && (
-            <Image
-              source={{ uri: post.imageUrl }}
-              style={styles.postImage}
-              resizeMode="cover"
-            />
+            <TouchableWithoutFeedback onPress={handleDoubleTap}>
+              <View style={{ position: 'relative' }}>
+                <Image
+                  source={{ uri: post.imageUrl }}
+                  style={styles.postImage}
+                  resizeMode="cover"
+                />
+                {showHeart && (
+                  <Animated.View
+                    pointerEvents="none"
+                    style={[
+                      styles.heartOverlay,
+                      { transform: [{ scale: heartScale }] },
+                    ]}
+                  >
+                    <Ionicons
+                      name="heart"
+                      size={60}
+                      color="#FFFFFF"
+                      style={{
+                        textShadowColor: 'rgba(0,0,0,0.35)',
+                        textShadowRadius: 8,
+                      }}
+                    />
+                  </Animated.View>
+                )}
+              </View>
+            </TouchableWithoutFeedback>
           )}
 
           {/* Actions */}
@@ -236,7 +325,7 @@ export default function PostDetailScreen() {
           {/* Caption */}
           {post.caption && (
             <View style={styles.captionContainer}>
-              <Text style={styles.captionUsername}>{post.username} </Text>
+              <Text style={styles.captionUsername}>{displayUsername} </Text>
               <Text style={styles.captionText}>{post.caption}</Text>
             </View>
           )}
@@ -289,7 +378,7 @@ export default function PostDetailScreen() {
         <View style={styles.commentInputContainer}>
           <Image
             source={{
-              uri: post.userImage || 'https://i.pravatar.cc/150?img=1',
+              uri: displayUserImage || 'https://i.pravatar.cc/150?img=1',
             }}
             style={styles.commentInputAvatar}
           />
@@ -535,5 +624,15 @@ const styles = StyleSheet.create({
   },
   sendButtonTextDisabled: {
     color: '#B0D4F1',
+  },
+  heartOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    opacity: 0.9,
   },
 });

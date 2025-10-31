@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -47,11 +47,19 @@ const CreateSnapScreen: React.FC = () => {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const animatedBottom = useRef(new Animated.Value(0)).current;
 
-  const isPostEnabled = (snapContent.trim().length > 0 || !!imageUri) && !posting;
+  const isPostEnabled = (snapContent.trim().length > 0 && !!imageUri) && !posting;
 
+  // Load profile on initial mount
   useEffect(() => {
     loadUserProfile();
   }, []);
+
+  // Reload profile when screen comes into focus (after edit-profile navigation)
+  useFocusEffect(
+    useCallback(() => {
+      loadUserProfile();
+    }, [])
+  );
 
   useEffect(() => {
     const onShow = (e: any) => setKeyboardHeight(e.endCoordinates?.height || 0);

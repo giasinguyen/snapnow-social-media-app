@@ -67,7 +67,7 @@ export default function SearchScreen() {
 
   const renderItem = ({ item }: { item: any }) => {
     if (mode === 'users') return (
-      <TouchableOpacity style={styles.row} onPress={() => router.push(`/(tabs)/profile?user=${item.id}`)}>
+      <TouchableOpacity style={styles.row} onPress={() => router.push(`/user/${item.id}` as any)}>
         <Image source={item.profileImage ? { uri: item.profileImage } : require('../../assets/images/default-avatar.jpg')} style={styles.avatar} />
         <View style={{ marginLeft: 12 }}>
           <Text style={styles.name}>{item.displayName || item.username}</Text>

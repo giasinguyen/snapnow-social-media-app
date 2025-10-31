@@ -1,23 +1,27 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Dimensions,
-  Image,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    Image,
+    Modal,
+    RefreshControl,
+    ScrollView,
+    Share,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AuthService, UserProfile } from '../../services/authService';
 import { formatFollowers } from '../../services/mockData';
 import { fetchUserPosts } from '../../services/posts';
-import { Post } from '../../types';
+import { UserService } from '../../services/user';
+import { Post, User } from '../../types';
 
 const { width } = Dimensions.get('window');
 const POST_SIZE = (width - 2) / 3; // 2px total gap, 1px between each
@@ -30,63 +34,150 @@ const ACHIEVEMENTS = [
   { id: '3', icon: 'trophy', label: 'Top Creator', color: '#FFD93D' },
 ];
 
-export default function ProfileScreen() {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+export default function UserProfileScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('grid');
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const router = useRouter();
 
-  const loadProfile = async () => {
+  const loadUserProfile = async () => {
+    if (!id) return;
+    
     try {
       setLoading(true);
-      
-      // Load own profile
-      const currentUser = await AuthService.getCurrentUserProfile();
-      setProfile(currentUser);
+      const userData = await UserService.getUserProfile(id);
+      setUser(userData);
       
       // Load user's posts
-      if (currentUser?.id) {
+      if (userData?.id) {
         setLoadingPosts(true);
-        const posts = await fetchUserPosts(currentUser.id);
+        const posts = await fetchUserPosts(userData.id);
         setUserPosts(posts);
         setLoadingPosts(false);
       }
+      
+      // TODO: Check if current user is following this user
+      setIsFollowing(false);
     } catch (err) {
-      console.error('Failed to load profile', err);
+      console.error('Failed to load user profile', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadProfile();
-  }, []);
+    loadUserProfile();
+  }, [id]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadProfile();
+    await loadUserProfile();
     setRefreshing(false);
   };
 
-  const handleSettings = () => {
-    router.push('/(tabs)/settings');
+  const handleFollow = () => {
+    // TODO: Implement follow/unfollow functionality
+    setIsFollowing(!isFollowing);
   };
 
-  const handleSnapNow = () => {
-    console.log('Open camera for quick snap');
-    // TODO: Implement camera
+  const handleMessage = () => {
+    // TODO: Implement messaging functionality
+    console.log('Open message screen');
+  };
+
+  const handleOptionsMenu = () => {
+    setShowOptionsMenu(true);
+  };
+
+  const handleBlock = () => {
+    setShowOptionsMenu(false);
+    Alert.alert(
+      'Block User',
+      `Are you sure you want to block @${user?.username}? They won't be able to find your profile, posts or story on SnapNow. SnapNow won't let them know you blocked them.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Block', 
+          style: 'destructive',
+          onPress: () => {
+            // TODO: Implement block functionality
+            console.log('Block user:', user?.id);
+            Alert.alert('User Blocked', `You have blocked @${user?.username}`);
+          }
+        }
+      ]
+    );
+  };
+
+  const handleReport = () => {
+    setShowOptionsMenu(false);
+    Alert.alert(
+      'Report User',
+      'Why are you reporting this account?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Spam', onPress: () => submitReport('spam') },
+        { text: 'Inappropriate Content', onPress: () => submitReport('inappropriate') },
+        { text: 'Harassment', onPress: () => submitReport('harassment') },
+        { text: 'Other', onPress: () => submitReport('other') }
+      ]
+    );
+  };
+
+  const submitReport = (reason: string) => {
+    // TODO: Implement report functionality
+    console.log('Report user:', user?.id, 'Reason:', reason);
+    Alert.alert('Report Submitted', 'Thank you for your report. We\'ll review this account and take appropriate action.');
+  };
+
+  const handleCopyProfileUrl = async () => {
+    setShowOptionsMenu(false);
+    const profileUrl = `https://snapnow.app/user/${user?.id}`;
+    
+    try {
+      await Clipboard.setStringAsync(profileUrl);
+      Alert.alert('Copied to clipboard', 'Profile URL has been copied to your clipboard.');
+    } catch (error) {
+      console.error('Error copying profile URL:', error);
+      Alert.alert('Error', 'Failed to copy profile URL to clipboard.');
+    }
   };
 
   const handleShare = () => {
-    console.log('Share profile');
+    setShowOptionsMenu(false);
+    const shareContent = {
+      title: `Check out @${user?.username} on SnapNow`,
+      message: `Check out @${user?.username}'s profile on SnapNow: https://snapnow.app/user/${user?.id}`,
+      url: `https://snapnow.app/user/${user?.id}`,
+    };
+
+    Share.share(shareContent)
+      .then((result) => {
+        if (result.action === Share.sharedAction) {
+          console.log('Profile shared successfully');
+        }
+      })
+      .catch((error) => {
+        console.error('Error sharing profile:', error);
+      });
   };
 
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#262626" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Profile</Text>
+          <View style={{ width: 24 }} />
+        </View>
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#0095F6" />
         </View>
@@ -94,13 +185,20 @@ export default function ProfileScreen() {
     );
   }
 
-  if (!profile) {
+  if (!user) {
     return (
       <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#262626" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Profile</Text>
+          <View style={{ width: 24 }} />
+        </View>
         <View style={styles.center}>
           <Ionicons name="person-circle-outline" size={80} color="#DBDBDB" />
-          <Text style={styles.placeholderText}>No profile found</Text>
-          <Text style={styles.subText}>Please login or register to see your profile.</Text>
+          <Text style={styles.placeholderText}>User not found</Text>
+          <Text style={styles.subText}>This user may no longer exist.</Text>
         </View>
       </SafeAreaView>
     );
@@ -108,22 +206,20 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Minimalist Threads-style Header */}
+      {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          { (profile as any)?.isPrivate ? (
-            <Ionicons name="lock-closed-outline" size={18} color="#8E8E8E" />
-          ) : null }
-          <Text style={styles.headerUsername}>{profile.username}</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#262626" />
+        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {(user as any)?.isPrivate ? (
+            <Ionicons name="lock-closed-outline" size={16} color="#8E8E8E" style={{ marginRight: 6 }} />
+          ) : null}
+          <Text style={styles.headerTitle}>{user.username}</Text>
         </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerButton} onPress={handleSnapNow}>
-            <Ionicons name="camera-outline" size={24} color="#262626" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.headerButton} onPress={handleSettings}>
-            <Ionicons name="menu-outline" size={24} color="#262626" />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={styles.moreButton} onPress={handleOptionsMenu}>
+          <Ionicons name="ellipsis-horizontal" size={24} color="#262626" />
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -134,7 +230,7 @@ export default function ProfileScreen() {
       >
         {/* Profile Header Section */}
         <View style={styles.profileHeader}>
-          {/* Large Centered Avatar with Camera Overlay - SnapNow Focus */}
+          {/* Large Centered Avatar */}
           <View style={styles.avatarContainer}>
             <LinearGradient
               colors={['#0095F6', '#E91E63', '#9C27B0']}
@@ -145,28 +241,24 @@ export default function ProfileScreen() {
               <View style={styles.avatarInner}>
                 <Image
                   source={
-                    profile.profileImage 
-                      ? { uri: profile.profileImage } 
+                    user.profileImage 
+                      ? { uri: user.profileImage } 
                       : { uri: 'https://i.pravatar.cc/150?img=1' }
                   }
                   style={styles.avatar}
                 />
               </View>
             </LinearGradient>
-            {/* Camera Icon Overlay - SnapNow Feature */}
-            <TouchableOpacity style={styles.cameraOverlay} onPress={handleSnapNow}>
-              <Ionicons name="camera" size={20} color="#fff" />
-            </TouchableOpacity>
           </View>
 
           {/* Name and Bio */}
           <View style={styles.nameSection}>
-            <Text style={styles.displayName}>{profile.displayName || profile.username}</Text>
-            {profile.bio && <Text style={styles.bio}>{profile.bio}</Text>}
-            <Text style={styles.bioLink}>snapnow.app/{profile.username}</Text>
+            <Text style={styles.displayName}>{user.displayName || user.username}</Text>
+            {user.bio && <Text style={styles.bio}>{user.bio}</Text>}
+            <Text style={styles.bioLink}>snapnow.app/{user.username}</Text>
           </View>
 
-          {/* Horizontal Stats - Threads Style */}
+          {/* Stats Row */}
           <View style={styles.statsRow}>
             <View style={styles.statDivider} />
             <TouchableOpacity style={styles.statItem}>
@@ -179,25 +271,19 @@ export default function ProfileScreen() {
               <Text style={styles.statLabel}>Snaps</Text>
             </TouchableOpacity>
             <View style={styles.statDivider} />
-            <TouchableOpacity 
-              style={styles.statItem}
-              onPress={() => router.push('/followers/followers' as any)}
-            >
-              <Text style={styles.statNumber}>{formatFollowers(profile.followersCount ?? 1234)}</Text>
+            <TouchableOpacity style={styles.statItem}>
+              <Text style={styles.statNumber}>{formatFollowers(user.followersCount ?? 1234)}</Text>
               <Text style={styles.statLabel}>Followers</Text>
             </TouchableOpacity>
             <View style={styles.statDivider} />
-            <TouchableOpacity 
-              style={styles.statItem}
-              onPress={() => router.push('/followers/following' as any)}
-            >
-              <Text style={styles.statNumber}>{profile.followingCount ?? 567}</Text>
+            <TouchableOpacity style={styles.statItem}>
+              <Text style={styles.statNumber}>{user.followingCount ?? 567}</Text>
               <Text style={styles.statLabel}>Following</Text>
             </TouchableOpacity>
             <View style={styles.statDivider} />
           </View>
 
-          {/* Achievement Badges - SnapNow Unique Feature */}
+          {/* Achievement Badges */}
           <View style={styles.achievementsSection}>
             <Text style={styles.sectionTitle}>Achievements</Text>
             <View style={styles.achievementsList}>
@@ -212,24 +298,26 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          {/* Action Buttons - Clean Threads Style */}
+          {/* Action Buttons - Follow and Message */}
           <View style={styles.actionButtons}>
-              <TouchableOpacity
-                style={styles.primaryButton}
-                onPress={() => router.push({ pathname: '/(tabs)/edit-profile' })}
-              >
-                <Text style={styles.primaryButtonText}>Edit Profile</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.secondaryButton} onPress={handleShare}>
-                <Text style={styles.secondaryButtonText}>Share Profile</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.iconButton} onPress={handleSnapNow}>
-                <Ionicons name="camera" size={20} color="#262626" />
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={[styles.primaryButton, isFollowing && styles.followingButton]}
+              onPress={handleFollow}
+            >
+              <Text style={[styles.primaryButtonText, isFollowing && styles.followingButtonText]}>
+                {isFollowing ? 'Following' : 'Follow'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.secondaryButton} onPress={handleMessage}>
+              <Text style={styles.secondaryButtonText}>Message</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.iconButton} onPress={handleShare}>
+              <Ionicons name="share-outline" size={20} color="#262626" />
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Tabs - Border Bottom Style (Threads) */}
+        {/* Tabs */}
         <View style={styles.tabsContainer}>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'grid' && styles.activeTab]}
@@ -288,7 +376,7 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Grid Tab - Instagram Style */}
+        {/* Grid Tab */}
         {activeTab === 'grid' && (
           <View style={styles.postsGrid}>
             {loadingPosts ? (
@@ -302,7 +390,7 @@ export default function ProfileScreen() {
                 </View>
                 <Text style={styles.emptyTitle}>No posts yet</Text>
                 <Text style={styles.emptySubtitle}>
-                  Share your first moment with the world
+                  When {user.displayName || user.username} shares photos, they'll appear here.
                 </Text>
               </View>
             ) : (
@@ -320,79 +408,69 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* Snaps Tab - SnapNow Unique Feature */}
-        {activeTab === 'snaps' && (
-          <View style={styles.snapsContainer}>
-            <View style={styles.snapsHeader}>
-              <Text style={styles.snapsTitle}>Quick Snaps</Text>
-              <Text style={styles.snapsSubtitle}>Your spontaneous moments</Text>
-            </View>
-            <View style={styles.snapsGrid}>
-              {/* Add Snap Button */}
-              <TouchableOpacity style={styles.addSnapButton} onPress={handleSnapNow}>
-                <View style={styles.addSnapIconContainer}>
-                  <Ionicons name="camera" size={32} color="#0095F6" />
-                </View>
-                <Text style={styles.addSnapText}>Snap Now</Text>
-              </TouchableOpacity>
-
-              {/* TODO: Load real snaps from Firestore when feature is implemented */}
-              <View style={styles.emptyState}>
-                <Text style={styles.emptySubtitle}>Snaps feature coming soon!</Text>
-              </View>
-            </View>
-          </View>
-        )}
-
-        {/* Albums Tab - SnapNow Feature */}
-        {activeTab === 'albums' && (
-          <View style={styles.albumsContainer}>
-            <View style={styles.albumsHeader}>
-              <Text style={styles.albumsTitle}>Photo Albums</Text>
-              <TouchableOpacity>
-                <Ionicons name="add-circle-outline" size={28} color="#0095F6" />
-              </TouchableOpacity>
-            </View>
-            {/* TODO: Load real albums from Firestore when feature is implemented */}
-            <View style={styles.emptyState}>
-              <View style={styles.emptyIconContainer}>
-                <Ionicons name="albums-outline" size={64} color="#DBDBDB" />
-              </View>
-              <Text style={styles.emptyTitle}>No albums yet</Text>
-              <Text style={styles.emptySubtitle}>
-                Create albums to organize your photos
-              </Text>
-            </View>
-          </View>
-        )}
-
-        {/* Tagged Tab */}
-        {activeTab === 'tagged' && (
+        {/* Other tabs - Empty states */}
+        {activeTab !== 'grid' && (
           <View style={styles.emptyState}>
             <View style={styles.emptyIconContainer}>
-              <Ionicons name="person-circle-outline" size={64} color="#DBDBDB" />
+              <Ionicons 
+                name={
+                  activeTab === 'snaps' ? 'flash-outline' :
+                  activeTab === 'albums' ? 'albums-outline' : 'person-circle-outline'
+                } 
+                size={64} 
+                color="#DBDBDB" 
+              />
             </View>
-            <Text style={styles.emptyTitle}>Photos and videos of you</Text>
+            <Text style={styles.emptyTitle}>
+              {activeTab === 'snaps' ? 'No snaps yet' :
+               activeTab === 'albums' ? 'No albums yet' : 'No tagged photos'}
+            </Text>
             <Text style={styles.emptySubtitle}>
-              When people tag you in photos and videos, they&apos;ll appear here.
+              {activeTab === 'snaps' ? 'Quick snaps will appear here.' :
+               activeTab === 'albums' ? 'Photo albums will appear here.' :
+               'Photos and videos of this user will appear here.'}
             </Text>
           </View>
         )}
-
-        {/* Floating Snap Button - Always Visible */}
-        {activeTab !== 'snaps' && (
-          <TouchableOpacity style={styles.floatingSnapButton} onPress={handleSnapNow}>
-            <LinearGradient
-              colors={['#0095F6', '#E91E63']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.floatingSnapGradient}
-            >
-              <Ionicons name="camera" size={28} color="#fff" />
-            </LinearGradient>
-          </TouchableOpacity>
-        )}
       </ScrollView>
+
+      {/* Options Menu Modal */}
+      <Modal
+        visible={showOptionsMenu}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowOptionsMenu(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowOptionsMenu(false)}
+        >
+          <View style={styles.optionsMenu}>
+            <TouchableOpacity style={styles.optionItem} onPress={handleCopyProfileUrl}>
+              <Ionicons name="link-outline" size={20} color="#262626" />
+              <Text style={styles.optionText}>Copy profile URL</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.optionItem} onPress={handleShare}>
+              <Ionicons name="share-outline" size={20} color="#262626" />
+              <Text style={styles.optionText}>Share this profile</Text>
+            </TouchableOpacity>
+            
+            <View style={styles.optionDivider} />
+            
+            <TouchableOpacity style={styles.optionItem} onPress={handleBlock}>
+              <Ionicons name="ban-outline" size={20} color="#E53E3E" />
+              <Text style={[styles.optionText, styles.dangerText]}>Block</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.optionItem} onPress={handleReport}>
+              <Ionicons name="flag-outline" size={20} color="#E53E3E" />
+              <Text style={[styles.optionText, styles.dangerText]}>Report</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -421,7 +499,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // Header - Minimalist Threads Style
+  // Header
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -432,27 +510,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.5,
     borderBottomColor: '#DBDBDB',
   },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  backButton: {
+    padding: 4,
   },
-  headerUsername: {
+  headerTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: '#262626',
+    flex: 1,
+    textAlign: 'center',
   },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  headerButton: {
+  moreButton: {
     padding: 4,
-  },
-  backButton: {
-    padding: 8,
-    marginRight: 8,
   },
 
   // Profile Header
@@ -463,7 +532,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
 
-  // Avatar - Large Centered (SnapNow Style)
+  // Avatar
   avatarContainer: {
     alignSelf: 'center',
     marginBottom: 16,
@@ -486,19 +555,6 @@ const styles = StyleSheet.create({
     width: 114,
     height: 114,
     borderRadius: 57,
-  },
-  cameraOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#0095F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#fff',
   },
 
   // Name Section
@@ -526,7 +582,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  // Stats Row - Horizontal (Threads Style)
+  // Stats Row
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -558,7 +614,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#EFEFEF',
   },
 
-  // Achievements - SnapNow Unique
+  // Achievements
   achievementsSection: {
     marginBottom: 20,
   },
@@ -596,7 +652,7 @@ const styles = StyleSheet.create({
     color: '#262626',
   },
 
-  // Action Buttons - Clean Threads Style
+  // Action Buttons
   actionButtons: {
     flexDirection: 'row',
     gap: 8,
@@ -604,7 +660,7 @@ const styles = StyleSheet.create({
   primaryButton: {
     flex: 1,
     paddingVertical: 10,
-    backgroundColor: '#262626',
+    backgroundColor: '#0095F6',
     borderRadius: 8,
     alignItems: 'center',
   },
@@ -612,6 +668,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#fff',
+  },
+  followingButton: {
+    backgroundColor: '#EFEFEF',
+  },
+  followingButtonText: {
+    color: '#262626',
   },
   secondaryButton: {
     flex: 1,
@@ -634,7 +696,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // Tabs - Border Bottom (Threads Style)
+  // Tabs
   tabsContainer: {
     flexDirection: 'row',
     backgroundColor: '#fff',
@@ -664,7 +726,7 @@ const styles = StyleSheet.create({
     color: '#262626',
   },
 
-  // Grid Tab - Instagram Style
+  // Grid
   postsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -680,134 +742,6 @@ const styles = StyleSheet.create({
   gridImage: {
     width: '100%',
     height: '100%',
-  },
-  multipleIndicator: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  // Snaps Tab - SnapNow Unique
-  snapsContainer: {
-    backgroundColor: '#fff',
-    paddingTop: 20,
-    paddingHorizontal: 16,
-    minHeight: 400,
-  },
-  snapsHeader: {
-    marginBottom: 20,
-  },
-  snapsTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#262626',
-    marginBottom: 4,
-  },
-  snapsSubtitle: {
-    fontSize: 14,
-    color: '#8E8E8E',
-  },
-  snapsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  addSnapButton: {
-    width: (width - 56) / 3,
-    height: (width - 56) / 3,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#0095F6',
-    borderStyle: 'dashed',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F0F8FF',
-  },
-  addSnapIconContainer: {
-    marginBottom: 8,
-  },
-  addSnapText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#0095F6',
-  },
-  snapItem: {
-    width: (width - 56) / 3,
-    height: (width - 56) / 3,
-    borderRadius: 12,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  snapImage: {
-    width: '100%',
-    height: '100%',
-  },
-  snapOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-  },
-  snapTime: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#fff',
-  },
-
-  // Albums Tab - SnapNow Feature
-  albumsContainer: {
-    backgroundColor: '#fff',
-    paddingTop: 20,
-    paddingHorizontal: 16,
-    minHeight: 400,
-  },
-  albumsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  albumsTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#262626',
-  },
-  albumsGrid: {
-    gap: 16,
-  },
-  albumItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FAFAFA',
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  albumCover: {
-    width: 100,
-    height: 100,
-  },
-  albumInfo: {
-    flex: 1,
-    paddingHorizontal: 16,
-  },
-  albumTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#262626',
-    marginBottom: 4,
-  },
-  albumCount: {
-    fontSize: 13,
-    color: '#8E8E8E',
   },
 
   // Empty State
@@ -836,25 +770,45 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  // Floating Snap Button - SnapNow Feature
-  floatingSnapButton: {
-    position: 'absolute',
-    bottom: 24,
-    right: 24,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-  },
-  floatingSnapGradient: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+  // Options Menu Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  optionsMenu: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginHorizontal: 40,
+    paddingVertical: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  optionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+  },
+  optionText: {
+    fontSize: 16,
+    color: '#262626',
+    marginLeft: 12,
+    fontWeight: '400',
+  },
+  dangerText: {
+    color: '#E53E3E',
+  },
+  optionDivider: {
+    height: 1,
+    backgroundColor: '#EFEFEF',
+    marginVertical: 4,
   },
 });
