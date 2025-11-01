@@ -1,32 +1,32 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { 
-  ScrollView, 
-  StyleSheet, 
-  View,
-  RefreshControl,
-  ActivityIndicator,
+import { router } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+    ActivityIndicator,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 
 import PostCard from '../../components/PostCard';
-import { 
-  FeedHeader, 
-  FeedTabs, 
-  Stories, 
-  SuggestionsCard, 
-  FeedEmpty, 
-  FeedFooter,
-  type FeedTab,
-  type Story,
-  type SuggestedUser 
+import {
+    FeedEmpty,
+    FeedFooter,
+    FeedHeader,
+    FeedTabs,
+    Stories,
+    SuggestionsCard,
+    type FeedTab,
+    type Story,
+    type SuggestedUser
 } from '../../components/feed';
 
-import { Post } from '../../types';
-import { 
-  MOCK_STORIES,
+import {
+    MOCK_STORIES,
 } from '../../services/mockData';
-import { fetchPosts, fetchFeedPosts } from '../../services/posts';
+import { fetchFeedPosts, fetchPosts } from '../../services/posts';
+import { Post } from '../../types';
 // import { getRecommendedPosts } from '../../services/recommendation';
 import { AuthService } from '../../services/authService';
 import { COLORS, SPACING } from '../../src/constants/theme';
@@ -178,6 +178,11 @@ export default function HomeScreen() {
     router.push(`/post/${postId}` as any);
   }, []);
 
+  const handleDelete = useCallback((postId: string) => {
+    // Remove the deleted post from the local state to update UI immediately
+    setPosts(currentPosts => currentPosts.filter(post => post.id !== postId));
+  }, []);
+
   const handleNotifications = useCallback(() => {
     router.push('/(tabs)/activity');
   }, []);
@@ -252,6 +257,7 @@ export default function HomeScreen() {
                   onComment={handleComment}
                   onShare={handleShare}
                   onPress={handlePostPress}
+                  onDelete={handleDelete}
                 />
                 
                 {/* Suggestions Card after 2nd post */}

@@ -183,7 +183,7 @@ export default function ProfileScreen() {
               style={styles.statItem}
               onPress={() => {
                 console.log('🔘 Followers button pressed on own profile, userId:', profile.id);
-                router.push(`/user/followers?userId=${profile.id}`);
+                router.push(`/user/follow/followers?userId=${profile.id}`);
               }}
             >
               <Text style={styles.statNumber}>{formatFollowers(profile.followersCount ?? 1234)}</Text>
@@ -194,7 +194,7 @@ export default function ProfileScreen() {
               style={styles.statItem}
               onPress={() => {
                 console.log('🔘 Following button pressed on own profile, userId:', profile.id);
-                router.push(`/user/following?userId=${profile.id}`);
+                router.push(`/user/follow/following?userId=${profile.id}`);
               }}
             >
               <Text style={styles.statNumber}>{profile.followingCount ?? 567}</Text>

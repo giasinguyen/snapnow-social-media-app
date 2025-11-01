@@ -21,7 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import ActionBar from '../../components/create/ActionBar';
 import HeaderBar from '../../components/create/HeaderBar';
 import PrivacySheet, { PrivacyOption } from '../../components/create/PrivacySheet';
-import SelectedImage from '../../components/create/SelectedImage';
+import SelectedImages from '../../components/create/SelectedImages';
 import UserComposer from '../../components/create/UserComposer';
 import { auth } from '../../config/firebase';
 import type { UserProfile } from '../../services/authService';
@@ -39,7 +39,7 @@ const privacyOptions: PrivacyOption[] = [
 const CreateSnapScreen: React.FC = () => {
   const router = useRouter();
   const [snapContent, setSnapContent] = useState('');
-  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [imageUris, setImageUris] = useState<string[]>([]); // Changed from single imageUri to array
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [privacy, setPrivacy] = useState<PrivacyOption>(privacyOptions[0]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -47,7 +47,7 @@ const CreateSnapScreen: React.FC = () => {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const animatedBottom = useRef(new Animated.Value(0)).current;
 
-  const isPostEnabled = (snapContent.trim().length > 0 && !!imageUri) && !posting;
+  const isPostEnabled = (snapContent.trim().length > 0 && imageUris.length > 0) && !posting; // Updated condition
 
   // Load profile on initial mount
   useEffect(() => {
@@ -98,12 +98,27 @@ const CreateSnapScreen: React.FC = () => {
       Alert.alert('Permission Required', 'Please grant permission to access photo library.');
       return;
     }
+    
     const res = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsEditing: true,
+      allowsEditing: false, // Disable editing for multiple selection
+      allowsMultipleSelection: true, // Enable multiple selection
+      selectionLimit: 10, // Limit to 10 images
       quality: 0.8,
     });
-    if (!res.canceled) setImageUri(res.assets[0].uri);
+    
+    if (!res.canceled && res.assets) {
+      const selectedUris = res.assets.map(asset => asset.uri);
+      setImageUris(selectedUris);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setImageUris(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const clearAllImages = () => {
+    setImageUris([]);
   };
 
   const post = async () => {
@@ -112,7 +127,7 @@ const CreateSnapScreen: React.FC = () => {
       return;
     }
 
-    if (!imageUri && !snapContent.trim()) {
+    if (imageUris.length === 0 && !snapContent.trim()) {
       Alert.alert('Error', 'Please add an image or write something');
       return;
     }
@@ -122,24 +137,31 @@ const CreateSnapScreen: React.FC = () => {
 
     setPosting(true);
     try {
-      let uploadedImageUrl = '';
+      let uploadedImageUrls: string[] = [];
 
-      // Upload image to Cloudinary if exists
-      if (imageUri) {
-        console.log('📤 Uploading image to Cloudinary...');
-        uploadedImageUrl = await uploadPostImage(imageUri, auth.currentUser.uid);
-        console.log('✅ Image uploaded:', uploadedImageUrl);
+      // Upload multiple images to Cloudinary if exists
+      if (imageUris.length > 0) {
+        console.log('📤 Uploading images to Cloudinary...');
+        
+        // Upload all images in parallel
+        const uploadPromises = imageUris.map(uri => 
+          uploadPostImage(uri, auth.currentUser!.uid)
+        );
+        
+        uploadedImageUrls = await Promise.all(uploadPromises);
+        console.log('✅ Images uploaded:', uploadedImageUrls);
       }
 
       // Extract hashtags from caption
       const hashtags = extractHashtags(snapContent);
 
-      // Create post in Firestore
+      // Create post in Firestore with multiple images
       await createPost({
         userId: userProfile.id,
         username: userProfile.username,
         userImage: userProfile.profileImage,
-        imageUrl: uploadedImageUrl,
+        imageUrls: uploadedImageUrls, // Use new imageUrls field
+        imageUrl: uploadedImageUrls[0] || '', // Keep first image for backward compatibility
         caption: snapContent.trim(),
         hashtags,
       });
@@ -149,7 +171,7 @@ const CreateSnapScreen: React.FC = () => {
           text: 'OK', 
           onPress: () => {
             setSnapContent('');
-            setImageUri(null);
+            setImageUris([]); // Clear image array
             router.replace('/(tabs)');
           }
         }
@@ -200,9 +222,11 @@ const CreateSnapScreen: React.FC = () => {
               placeholder="What's new?"
             />
 
-            {imageUri && (
-              <SelectedImage uri={imageUri} onClear={() => setImageUri(null)} />
-            )}
+            <SelectedImages
+              imageUris={imageUris}
+              onRemoveImage={removeImage}
+              onClearAll={clearAllImages}
+            />
 
             <ActionBar onPickImage={pickImage} />
           </ScrollView>

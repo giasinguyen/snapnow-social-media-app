@@ -4,11 +4,15 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Animated,
+  Dimensions,
   Image,
   Keyboard,
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,6 +22,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import MultiImageViewer from '../../components/MultiImageViewer';
 import { AuthService } from '../../services/authService';
 import { addComment, getPostComments } from '../../services/comments';
 import { likePost, unlikePost } from '../../services/likes';
@@ -37,9 +42,15 @@ export default function PostDetailScreen() {
   const [currentUserAvatar, setCurrentUserAvatar] = useState<string>('');
   const [displayUsername, setDisplayUsername] = useState('');
   const [displayUserImage, setDisplayUserImage] = useState('');
+  const [showFullscreen, setShowFullscreen] = useState(false);
+  const [currentZoom, setCurrentZoom] = useState(1);
+  const [optionsVisible, setOptionsVisible] = useState(false);
+  const [isOwnPost, setIsOwnPost] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
   const heartScale = useState(new Animated.Value(0))[0];
   const [showHeart, setShowHeart] = useState(false);
   let lastTap = useRef<number>(0);
+  let lastFullscreenTap = useRef<number>(0);
 
   useEffect(() => {
     loadData();
@@ -75,7 +86,19 @@ export default function PostDetailScreen() {
       ]);
       
       if (postData) {
-        setPost(postData);
+        // Get real-time likes count from the likes collection
+        const { getPostLikesCount, hasUserLikedPost } = await import('../../services/likes');
+        const realLikesCount = await getPostLikesCount(postData.id);
+        const isLiked = profile?.id ? await hasUserLikedPost(profile.id, postData.id) : false;
+        
+        setPost({
+          ...postData,
+          likes: realLikesCount,
+          isLiked: isLiked
+        });
+        
+        // Check if this is user's own post
+        setIsOwnPost(profile?.id === postData.userId);
       }
       setComments(commentsData);
       setCurrentUserId(profile?.id || '');
@@ -94,11 +117,6 @@ export default function PostDetailScreen() {
       const profile = await AuthService.getCurrentUserProfile();
       if (post.isLiked) {
         await unlikePost(currentUserId, post.id);
-        setPost({
-          ...post,
-          isLiked: false,
-          likes: (post.likes || 0) - 1,
-        });
       } else {
         await likePost(
           currentUserId,
@@ -106,12 +124,20 @@ export default function PostDetailScreen() {
           profile?.username || 'Anonymous',
           profile?.profileImage
         );
-        setPost({
-          ...post,
-          isLiked: true,
-          likes: (post.likes || 0) + 1,
-        });
       }
+      
+      // Get updated likes count and like status from the database
+      const { getPostLikesCount, hasUserLikedPost } = await import('../../services/likes');
+      const [updatedLikesCount, isLiked] = await Promise.all([
+        getPostLikesCount(post.id),
+        hasUserLikedPost(currentUserId, post.id)
+      ]);
+      
+      setPost({
+        ...post,
+        isLiked: isLiked,
+        likes: updatedLikesCount,
+      });
     } catch (error) {
       console.error('Failed to like/unlike post:', error);
     }
@@ -181,14 +207,86 @@ export default function PostDetailScreen() {
       if (!post?.isLiked) {
         handleLike();
       }
+    } else {
+      // Single tap - show fullscreen after delay
+      setTimeout(() => {
+        if (Date.now() - lastTap.current >= DOUBLE_TAP_DELAY) {
+          setCurrentZoom(1); // Reset zoom when opening fullscreen
+          setShowFullscreen(true);
+        }
+      }, DOUBLE_TAP_DELAY);
     }
     lastTap.current = now;
+  };
+
+  const handleImagePress = () => {
+    setCurrentZoom(1); // Reset zoom when opening fullscreen
+    setShowFullscreen(true);
   };
 
   const handleUserPress = () => {
     if (post?.userId) {
       router.push(`/user/${post.userId}` as any);
     }
+  };
+
+  const handleDeletePost = async () => {
+    if (!post || !currentUserId) return;
+    
+    try {
+      Alert.alert(
+        'Delete Post',
+        'Are you sure you want to delete this post? This action cannot be undone.',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                const { deletePost } = await import('../../services/posts');
+                await deletePost(post.id, currentUserId);
+                
+                Alert.alert('Success', 'Post deleted successfully', [
+                  {
+                    text: 'OK',
+                    onPress: () => router.back() // Navigate back after successful deletion
+                  }
+                ]);
+              } catch (error: any) {
+                console.error('Error deleting post:', error);
+                Alert.alert('Error', error.message || 'Failed to delete post');
+              }
+            },
+          },
+        ]
+      );
+    } catch (error: any) {
+      console.error('Error deleting post:', error);
+      Alert.alert('Error', error.message || 'Failed to delete post');
+    }
+  };
+
+  const handleFullscreenDoubleTap = () => {
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300;
+
+    if (now - lastFullscreenTap.current < DOUBLE_TAP_DELAY) {
+      // Double tap - toggle zoom
+      const newZoom = currentZoom === 1 ? 2 : 1;
+      setCurrentZoom(newZoom);
+    } else {
+      // Single tap - close if not zoomed
+      setTimeout(() => {
+        if (Date.now() - lastFullscreenTap.current >= DOUBLE_TAP_DELAY && currentZoom <= 1.1) {
+          setShowFullscreen(false);
+        }
+      }, DOUBLE_TAP_DELAY);
+    }
+    lastFullscreenTap.current = now;
   };
 
   const formatDate = (date: any) => {
@@ -245,7 +343,7 @@ export default function PostDetailScreen() {
             <Ionicons name="arrow-back" size={24} color="#262626" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Post</Text>
-          <TouchableOpacity style={styles.moreButton}>
+          <TouchableOpacity style={styles.moreButton} onPress={() => setOptionsVisible(true)}>
             <Ionicons name="ellipsis-horizontal" size={24} color="#262626" />
           </TouchableOpacity>
         </View>
@@ -267,36 +365,39 @@ export default function PostDetailScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Post Image */}
-          {post.imageUrl && (
-            <TouchableWithoutFeedback onPress={handleDoubleTap}>
-              <View style={{ position: 'relative' }}>
-                <Image
-                  source={{ uri: post.imageUrl }}
-                  style={styles.postImage}
-                  resizeMode="cover"
-                />
-                {showHeart && (
-                  <Animated.View
-                    pointerEvents="none"
-                    style={[
-                      styles.heartOverlay,
-                      { transform: [{ scale: heartScale }] },
-                    ]}
-                  >
-                    <Ionicons
-                      name="heart"
-                      size={60}
-                      color="#FFFFFF"
-                      style={{
-                        textShadowColor: 'rgba(0,0,0,0.35)',
-                        textShadowRadius: 8,
-                      }}
-                    />
-                  </Animated.View>
-                )}
-              </View>
-            </TouchableWithoutFeedback>
+          {/* Post Image(s) */}
+          {((post.imageUrls && post.imageUrls.length > 0) || post.imageUrl) && (
+            <View style={{ position: 'relative' }}>
+              <MultiImageViewer
+                imageUrls={post.imageUrls && post.imageUrls.length > 0 ? post.imageUrls : (post.imageUrl ? [post.imageUrl] : [])}
+                onDoublePress={() => {
+                  triggerLikeAnimation();
+                  if (!post.isLiked) {
+                    handleLike();
+                  }
+                }}
+                onSinglePress={handleImagePress}
+              />
+              {showHeart && (
+                <Animated.View
+                  pointerEvents="none"
+                  style={[
+                    styles.heartOverlay,
+                    { transform: [{ scale: heartScale }] },
+                  ]}
+                >
+                  <Ionicons
+                    name="heart"
+                    size={60}
+                    color="#FFFFFF"
+                    style={{
+                      textShadowColor: 'rgba(0,0,0,0.35)',
+                      textShadowRadius: 8,
+                    }}
+                  />
+                </Animated.View>
+              )}
+            </View>
           )}
 
           {/* Actions */}
@@ -426,6 +527,87 @@ export default function PostDetailScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Fullscreen Image Modal */}
+      <Modal
+        visible={showFullscreen}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowFullscreen(false)}
+      >
+        <View style={styles.fullscreenContainer}>
+          <TouchableOpacity 
+            style={styles.fullscreenCloseButton}
+            onPress={() => setShowFullscreen(false)}
+          >
+            <Ionicons name="close" size={30} color="#fff" />
+          </TouchableOpacity>
+          
+          {currentZoom > 1 && (
+            <View style={styles.zoomIndicator}>
+              <Text style={styles.zoomText}>{currentZoom.toFixed(1)}x</Text>
+            </View>
+          )}
+          
+          {post?.imageUrl && (
+            <ScrollView
+              style={styles.scrollViewContainer}
+              contentContainerStyle={styles.scrollViewContent}
+              minimumZoomScale={1}
+              maximumZoomScale={3}
+              bouncesZoom={true}
+              showsHorizontalScrollIndicator={false}
+              showsVerticalScrollIndicator={false}
+              centerContent={true}
+            >
+              <TouchableWithoutFeedback onPress={handleFullscreenDoubleTap}>
+                <Image
+                  source={{ uri: post.imageUrl }}
+                  style={styles.fullscreenImage}
+                  resizeMode="contain"
+                />
+              </TouchableWithoutFeedback>
+            </ScrollView>
+          )}
+        </View>
+      </Modal>
+
+      {/* Post options modal */}
+      <Modal
+        animationType="fade"
+        transparent
+        visible={optionsVisible}
+        onRequestClose={() => setOptionsVisible(false)}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={() => setOptionsVisible(false)}>
+          <View style={styles.optionsCard}>
+            {isOwnPost ? (
+              // Options for user's own posts
+              <>
+                <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); handleDeletePost(); }}>
+                  <Text style={[styles.optionText, styles.optionDanger]}>Delete Post</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); }}>
+                  <Text style={styles.optionText}>Edit Post</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              // Options for other users' posts
+              <>
+                <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); Alert.alert('Report', 'Report flow not implemented yet'); }}>
+                  <Text style={[styles.optionText, styles.optionDanger]}>Report</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); Alert.alert('Unfollow', `Unfollow ${displayUsername} (not implemented)`); }}>
+                  <Text style={styles.optionText}>Unfollow</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            <TouchableOpacity style={styles.optionItem} onPress={() => setOptionsVisible(false)}>
+              <Text style={[styles.optionText, styles.optionCancel]}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -650,5 +832,83 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     opacity: 0.9,
+  },
+  fullscreenContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullscreenCloseButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 1,
+    padding: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 25,
+  },
+  zoomIndicator: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    zIndex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 15,
+  },
+  zoomText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  fullscreenImage: {
+    width: Dimensions.get('window').width,
+    height: Dimensions.get('window').height,
+  },
+  imageContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scrollViewContainer: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  scrollViewContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  optionsCard: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    margin: 8,
+  },
+  optionItem: {
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  optionText: {
+    fontSize: 16,
+    color: '#262626',
+  },
+  optionDanger: {
+    color: '#ED4956',
+    fontWeight: '700',
+  },
+  optionCancel: {
+    color: '#262626',
+    fontWeight: '600',
   },
 });
