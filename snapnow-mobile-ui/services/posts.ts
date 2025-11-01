@@ -124,7 +124,12 @@ export function extractHashtags(caption: string): string[] {
   return matches ? matches.map((tag) => tag.toLowerCase()) : []
 }
 
-export async function updatePost(postId: string, updates: { caption?: string; hashtags?: string[] }) {
+export async function updatePost(postId: string, updates: { 
+  caption?: string; 
+  hashtags?: string[];
+  imageUrls?: string[];
+  imageUrl?: string;
+}) {
   try {
     const postRef = doc(db, "posts", postId)
     await updateDoc(postRef, updates)
