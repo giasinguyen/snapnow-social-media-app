@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Animated, Image, Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { AuthService } from '../services/authService';
 import { hasUserLikedPost } from '../services/likes';
+import { savePost, unsavePost } from '../services/posts';
 import { UserService } from '../services/user';
 import { COLORS, RADIUS, SIZES, SPACING, TIMINGS, TYPOGRAPHY } from '../src/constants/theme';
 import { Post } from '../types';
@@ -24,6 +25,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment,
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(post.likes || 0);
   const [bookmarked, setBookmarked] = useState(false);
+  const [savesCount, setSavesCount] = useState(post.savesCount || 0);
   const [commentsModalVisible, setCommentsModalVisible] = useState(false);
   const [optionsVisible, setOptionsVisible] = useState(false);
   const [displayUsername, setDisplayUsername] = useState(post.username || '');
@@ -174,9 +176,28 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment,
     }
   }, [liked, post.id, onLike]);
 
-  const toggleBookmark = useCallback(() => {
-    setBookmarked((s) => !s);
-  }, []);
+  const toggleBookmark = useCallback(async () => {
+    try {
+      const currentUser = AuthService.getCurrentUser();
+      if (!currentUser) return;
+
+      const newSavedState = !bookmarked;
+      setBookmarked(newSavedState);
+      setSavesCount(prev => newSavedState ? prev + 1 : prev - 1);
+
+      if (newSavedState) {
+        await savePost(post.id, currentUser.uid);
+      } else {
+        await unsavePost(post.id, currentUser.uid);
+      }
+    } catch (error) {
+      console.error('Error toggling bookmark:', error);
+      // Revert on error
+      setBookmarked(bookmarked);
+      setSavesCount(prev => bookmarked ? prev - 1 : prev + 1);
+      Alert.alert('Error', 'Failed to save post. Please try again.');
+    }
+  }, [bookmarked, post.id]);
 
   const handleComment = useCallback(() => {
     setCommentsModalVisible(true);
@@ -339,12 +360,19 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment,
         </TouchableOpacity>
       </View>
 
-      {/* Likes Count */}
-      {likesCount > 0 && (
-        <Text style={styles.likesCount}>
-          {likesCount} {likesCount === 1 ? 'like' : 'likes'}
-        </Text>
-      )}
+      {/* Stats */}
+      <View style={styles.statsContainer}>
+        {likesCount > 0 && (
+          <Text style={styles.statText}>
+            {likesCount} {likesCount === 1 ? 'like' : 'likes'}
+          </Text>
+        )}
+        {savesCount > 0 && (
+          <Text style={styles.statText}>
+            {savesCount} {savesCount === 1 ? 'save' : 'saves'}
+          </Text>
+        )}
+      </View>
 
       {/* Caption */}
       {post.caption && removeHashtagsFromText(post.caption).length > 0 && (
@@ -533,12 +561,17 @@ const styles = StyleSheet.create({
   actionButton: {
     marginRight: SPACING.lg,
   },
-  likesCount: {
+  statsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.xs,
+    gap: SPACING.md,
+  },
+  statText: {
     fontWeight: TYPOGRAPHY.fontWeight.semibold,
     fontSize: TYPOGRAPHY.fontSize.md,
     color: COLORS.textPrimary,
-    paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.xs,
   },
   captionContainer: {
     paddingHorizontal: SPACING.md,

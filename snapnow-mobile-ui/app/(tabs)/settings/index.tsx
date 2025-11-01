@@ -273,7 +273,7 @@ export default function SettingsScreen() {
             icon="bookmark-outline"
             title="Saved"
             subtitle="View your saved posts"
-            onPress={() => console.log('Saved')}
+            onPress={() => router.push('/(tabs)/settings/saved')}
           />
           <SettingItem
             icon="archive-outline"

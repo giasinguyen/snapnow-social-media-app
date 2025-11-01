@@ -22,7 +22,9 @@ export interface Post {
   hashtags?: string[];
   likes?: number;
   commentsCount?: number;
+  savesCount?: number; // Number of saves/bookmarks
   isLiked?: boolean;
+  isSaved?: boolean; // Whether current user has saved this post
   createdAt?: any;
 }
 

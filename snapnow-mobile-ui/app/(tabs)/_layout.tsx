@@ -58,9 +58,10 @@ export default function TabsLayout() {
           backgroundColor: '#fff',
           borderTopWidth: 0.5,
           borderTopColor: '#DBDBDB',
-          height: 50,
-          paddingBottom: 6,
+          height: 60,
           paddingTop: 4,
+          paddingBottom: 4,
+          elevation: 0,
         },
         tabBarActiveTintColor: '#262626',
         tabBarInactiveTintColor: '#8E8E8E',
@@ -69,6 +70,7 @@ export default function TabsLayout() {
           fontWeight: '600',
         },
         tabBarShowLabel: false, // Hide labels for cleaner look (Instagram style)
+        tabBarHideOnKeyboard: true, // Hide when keyboard is shown
       }}
     >
       <Tabs.Screen

@@ -30,6 +30,82 @@ export async function fetchPosts(): Promise<Post[]> {
   return posts
 }
 
+export async function getSavedPosts(userId: string): Promise<Post[]> {
+  try {
+    // First get the saved post IDs from the user's saves collection
+    const savesQuery = query(
+      collection(db, "saves"),
+      where("userId", "==", userId),
+      orderBy("savedAt", "desc")
+    );
+    const savesSnap = await getDocs(savesQuery);
+    const savedPostIds = savesSnap.docs.map(doc => doc.data().postId);
+
+    if (savedPostIds.length === 0) {
+      return [];
+    }
+
+    // Then fetch the actual posts
+    const postsQuery = query(
+      collection(db, "posts"),
+      where("id", "in", savedPostIds)
+    );
+    const postsSnap = await getDocs(postsQuery);
+    
+    return postsSnap.docs.map(doc => ({
+      id: doc.id,
+      ...(doc.data() as any),
+      createdAt: doc.data().createdAt?.toDate?.() || new Date(),
+    }));
+  } catch (error) {
+    console.error("Error getting saved posts:", error);
+    return [];
+  }
+}
+
+export async function savePost(postId: string, userId: string): Promise<void> {
+  try {
+    // Add to saves collection
+    await addDoc(collection(db, "saves"), {
+      postId,
+      userId,
+      savedAt: serverTimestamp(),
+    });
+
+    // Update post saved count
+    await updateDoc(doc(db, "posts", postId), {
+      savesCount: increment(1),
+    });
+  } catch (error) {
+    console.error("Error saving post:", error);
+    throw error;
+  }
+}
+
+export async function unsavePost(postId: string, userId: string): Promise<void> {
+  try {
+    // Find and delete the save document
+    const saveQuery = query(
+      collection(db, "saves"),
+      where("postId", "==", postId),
+      where("userId", "==", userId)
+    );
+    const saveSnap = await getDocs(saveQuery);
+    
+    if (!saveSnap.empty) {
+      await deleteDoc(saveSnap.docs[0].ref);
+      
+      // Update post saved count
+      await updateDoc(doc(db, "posts", postId), {
+        savesCount: increment(-1),
+      });
+    }
+  } catch (error) {
+    console.error("Error unsaving post:", error);
+    throw error;
+  }
+}
+
 export async function fetchFeedPosts(userId: string): Promise<Post[]> {
   try {
     const followingQuery = query(collection(db, "follows"), where("followerId", "==", userId))
