@@ -297,7 +297,7 @@ export default function EditPostScreen() {
               <View style={styles.hashtagsList}>
                 {extractHashtags(caption).map((hashtag, index) => (
                   <View key={index} style={styles.hashtag}>
-                    <Text style={styles.hashtagText}>#{hashtag}</Text>
+                    <Text style={styles.hashtagText}>{hashtag}</Text>
                   </View>
                 ))}
               </View>
