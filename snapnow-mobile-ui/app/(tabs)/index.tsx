@@ -1,29 +1,29 @@
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-    ActivityIndicator,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    View,
+  ActivityIndicator,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import PostCard from '../../components/PostCard';
 import {
-    FeedEmpty,
-    FeedFooter,
-    FeedHeader,
-    FeedTabs,
-    Stories,
-    SuggestionsCard,
-    type FeedTab,
-    type Story,
-    type SuggestedUser
+  FeedEmpty,
+  FeedFooter,
+  FeedHeader,
+  FeedTabs,
+  Stories,
+  SuggestionsCard,
+  type FeedTab,
+  type Story,
+  type SuggestedUser
 } from '../../components/feed';
 
 import {
-    MOCK_STORIES,
+  MOCK_STORIES,
 } from '../../services/mockData';
 import { fetchFeedPosts, fetchPosts } from '../../services/posts';
 import { Post } from '../../types';
@@ -174,8 +174,12 @@ export default function HomeScreen() {
     console.log('Share post:', postId);
   }, []);
 
-  const handlePostPress = useCallback((postId: string) => {
-    router.push(`/post/${postId}` as any);
+  const handlePostPress = useCallback((postId: string, imageIndex?: number) => {
+    if (imageIndex !== undefined) {
+      router.push(`/post/${postId}?imageIndex=${imageIndex}` as any);
+    } else {
+      router.push(`/post/${postId}` as any);
+    }
   }, []);
 
   const handleDelete = useCallback((postId: string) => {

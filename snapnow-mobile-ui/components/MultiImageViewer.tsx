@@ -5,7 +5,7 @@ import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableWithoutFeedba
 interface MultiImageViewerProps {
   imageUrls: string[];
   onDoublePress?: () => void;
-  onSinglePress?: () => void; // Add single press handler
+  onSinglePress?: (currentIndex?: number) => void; // Pass current index to parent
 }
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -34,7 +34,7 @@ const MultiImageViewer: React.FC<MultiImageViewerProps> = ({ imageUrls, onDouble
       // Single tap - wait to see if another tap comes
       setTimeout(() => {
         if (Date.now() - lastTap.current >= DOUBLE_TAP_DELAY) {
-          onSinglePress?.();
+          onSinglePress?.(currentIndex);
         }
       }, DOUBLE_TAP_DELAY);
     }

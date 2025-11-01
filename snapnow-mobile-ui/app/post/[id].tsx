@@ -31,7 +31,7 @@ import { UserService } from '../../services/user';
 import { Comment, Post } from '../../types';
 
 export default function PostDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, imageIndex } = useLocalSearchParams<{ id: string; imageIndex?: string }>();
   const router = useRouter();
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -43,6 +43,7 @@ export default function PostDetailScreen() {
   const [displayUsername, setDisplayUsername] = useState('');
   const [displayUserImage, setDisplayUserImage] = useState('');
   const [showFullscreen, setShowFullscreen] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentZoom, setCurrentZoom] = useState(1);
   const [optionsVisible, setOptionsVisible] = useState(false);
   const [isOwnPost, setIsOwnPost] = useState(false);
@@ -56,6 +57,16 @@ export default function PostDetailScreen() {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // Set initial image index from URL parameter
+  useEffect(() => {
+    if (imageIndex) {
+      const index = parseInt(imageIndex, 10);
+      if (!isNaN(index) && index >= 0) {
+        setCurrentImageIndex(index);
+      }
+    }
+  }, [imageIndex]);
 
   // Fetch fresh user data when post loads
   useEffect(() => {
@@ -219,7 +230,8 @@ export default function PostDetailScreen() {
     lastTap.current = now;
   };
 
-  const handleImagePress = () => {
+  const handleImagePress = (imageIndex: number = 0) => {
+    setCurrentImageIndex(imageIndex);
     setCurrentZoom(1); // Reset zoom when opening fullscreen
     setShowFullscreen(true);
   };
@@ -549,26 +561,58 @@ export default function PostDetailScreen() {
             </View>
           )}
           
-          {post?.imageUrl && (
-            <ScrollView
-              style={styles.scrollViewContainer}
-              contentContainerStyle={styles.scrollViewContent}
-              minimumZoomScale={1}
-              maximumZoomScale={3}
-              bouncesZoom={true}
-              showsHorizontalScrollIndicator={false}
-              showsVerticalScrollIndicator={false}
-              centerContent={true}
-            >
-              <TouchableWithoutFeedback onPress={handleFullscreenDoubleTap}>
-                <Image
-                  source={{ uri: post.imageUrl }}
-                  style={styles.fullscreenImage}
-                  resizeMode="contain"
-                />
-              </TouchableWithoutFeedback>
-            </ScrollView>
-          )}
+          {(() => {
+            const images = post?.imageUrls && post.imageUrls.length > 0 ? post.imageUrls : (post?.imageUrl ? [post.imageUrl] : []);
+            const currentImage = images[currentImageIndex] || images[0];
+            
+            return (
+              <>
+                {/* Image counter for multiple images */}
+                {images.length > 1 && (
+                  <View style={styles.fullscreenImageCounter}>
+                    <Text style={styles.fullscreenCounterText}>
+                      {currentImageIndex + 1} of {images.length}
+                    </Text>
+                  </View>
+                )}
+                
+                <ScrollView
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.fullscreenImageScroll}
+                  contentOffset={{ x: currentImageIndex * Dimensions.get('window').width, y: 0 }}
+                  onScroll={(event) => {
+                    const newIndex = Math.round(event.nativeEvent.contentOffset.x / Dimensions.get('window').width);
+                    setCurrentImageIndex(newIndex);
+                  }}
+                  scrollEventThrottle={16}
+                >
+                  {images.map((imageUrl, index) => (
+                    <ScrollView
+                      key={index}
+                      style={styles.scrollViewContainer}
+                      contentContainerStyle={styles.scrollViewContent}
+                      minimumZoomScale={1}
+                      maximumZoomScale={3}
+                      bouncesZoom={true}
+                      showsHorizontalScrollIndicator={false}
+                      showsVerticalScrollIndicator={false}
+                      centerContent={true}
+                    >
+                      <TouchableWithoutFeedback onPress={handleFullscreenDoubleTap}>
+                        <Image
+                          source={{ uri: imageUrl }}
+                          style={styles.fullscreenImage}
+                          resizeMode="contain"
+                        />
+                      </TouchableWithoutFeedback>
+                    </ScrollView>
+                  ))}
+                </ScrollView>
+              </>
+            );
+          })()}
         </View>
       </Modal>
 
@@ -587,7 +631,7 @@ export default function PostDetailScreen() {
                 <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); handleDeletePost(); }}>
                   <Text style={[styles.optionText, styles.optionDanger]}>Delete Post</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); }}>
+                <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); router.push(`/post/edit/${post.id}` as any); }}>
                   <Text style={styles.optionText}>Edit Post</Text>
                 </TouchableOpacity>
               </>
@@ -862,6 +906,27 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  fullscreenImageCounter: {
+    position: 'absolute',
+    top: 50,
+    left: '50%',
+    transform: [{ translateX: -50 }],
+    zIndex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 15,
+  },
+  fullscreenCounterText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  fullscreenImageScroll: {
+    flex: 1,
+    width: '100%',
   },
   fullscreenImage: {
     width: Dimensions.get('window').width,

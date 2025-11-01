@@ -16,7 +16,7 @@ interface PostCardProps {
   onLike?: (id: string, liked: boolean) => void;
   onComment?: (id: string) => void;
   onShare?: (id: string) => void;
-  onPress?: (id: string) => void;
+  onPress?: (id: string, imageIndex?: number) => void; // Add imageIndex parameter
   onDelete?: (id: string) => void; // Add delete callback
 }
 
@@ -287,7 +287,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment,
               onLike?.(post.id, true);
             }
           }}
-          onSinglePress={() => onPress?.(post.id)}
+          onSinglePress={(imageIndex) => onPress?.(post.id, imageIndex)}
         />
 
         {showHeart && (
@@ -381,6 +381,9 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment,
               <>
                 <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); handleDeletePost(); }}>
                   <Text style={[styles.optionText, styles.optionDanger]}>Delete Post</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); router.push(`/post/edit/${post.id}` as any); }}>
+                  <Text style={styles.optionText}>Edit Post</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); router.push(`/post/${post.id}` as any); }}>
                   <Text style={styles.optionText}>Go to Post</Text>
