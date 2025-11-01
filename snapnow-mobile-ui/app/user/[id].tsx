@@ -4,18 +4,18 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    Image,
-    Modal,
-    RefreshControl,
-    ScrollView,
-    Share,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  Image,
+  Modal,
+  RefreshControl,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { formatFollowers } from '../../services/mockData';
@@ -341,7 +341,7 @@ export default function UserProfileScreen() {
             <View style={styles.statDivider} />
             <TouchableOpacity 
               style={styles.statItem}
-              onPress={() => router.push(`/user/followers?userId=${user.id}`)}
+              onPress={() => router.push(`/user/follow/followers?userId=${user.id}`)}
             >
               <Text style={styles.statNumber}>{formatFollowers(user.followersCount ?? 1234)}</Text>
               <Text style={styles.statLabel}>Followers</Text>
@@ -349,7 +349,7 @@ export default function UserProfileScreen() {
             <View style={styles.statDivider} />
             <TouchableOpacity 
               style={styles.statItem}
-              onPress={() => router.push(`/user/following?userId=${user.id}`)}
+              onPress={() => router.push(`/user/follow/following?userId=${user.id}`)}
             >
               <Text style={styles.statNumber}>{user.followingCount ?? 567}</Text>
               <Text style={styles.statLabel}>Following</Text>

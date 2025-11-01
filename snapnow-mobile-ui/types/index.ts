@@ -16,7 +16,8 @@ export interface Post {
   userId?: string;
   username?: string;
   userImage?: string;
-  imageUrl?: string;
+  imageUrl?: string; // Keep for backward compatibility
+  imageUrls?: string[]; // New field for multiple images
   caption?: string;
   hashtags?: string[];
   likes?: number;

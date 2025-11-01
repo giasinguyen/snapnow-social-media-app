@@ -99,7 +99,8 @@ export async function createPost(postData: {
   userId: string
   username: string
   userImage?: string
-  imageUrl: string
+  imageUrl?: string // Keep for backward compatibility
+  imageUrls?: string[] // Add support for multiple images
   caption: string
   hashtags?: string[]
 }) {

@@ -53,7 +53,7 @@ export default function SearchScreen() {
   }, []);
 
   const clearRecent = async () => {
-    setRecent([]);
+    setQuery('');
     await AsyncStorage.removeItem('recentSearches');
   };
 
