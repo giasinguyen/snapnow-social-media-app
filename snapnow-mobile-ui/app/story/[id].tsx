@@ -114,16 +114,6 @@ export default function StoryScreen() {
             />
           </View>
         </View>
-
-        {/* Story content */}
-        <View style={styles.content}>
-          <Image 
-            source={{ uri: currentStory.avatar }} 
-            style={styles.image}
-            onLoadStart={() => setIsPaused(true)}
-            onLoad={() => setIsPaused(false)}
-          />
-        </View>
       </SafeAreaView>
     </Modal>
   )
