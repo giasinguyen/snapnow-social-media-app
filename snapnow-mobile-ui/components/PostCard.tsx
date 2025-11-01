@@ -35,6 +35,11 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment,
   const router = useRouter();
   let lastTap = useRef<number>(0);
 
+  // Function to remove hashtags from caption text
+  const removeHashtagsFromText = (text: string) => {
+    return text.replace(/#\w+/g, '').replace(/\s+/g, ' ').trim();
+  };
+
   // Check if user has liked this post on mount and get real likes count
   useEffect(() => {
     const checkLikeStatus = async () => {
@@ -342,12 +347,23 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment,
       )}
 
       {/* Caption */}
-      {post.caption && (
+      {post.caption && removeHashtagsFromText(post.caption).length > 0 && (
         <View style={styles.captionContainer}>
           <Text style={styles.caption}>
             <Text style={styles.captionUsername}>{displayUsername}</Text>{' '}
-            {post.caption}
+            {removeHashtagsFromText(post.caption)}
           </Text>
+        </View>
+      )}
+
+      {/* Hashtags */}
+      {post.hashtags && post.hashtags.length > 0 && (
+        <View style={styles.hashtagsContainer}>
+          {post.hashtags.map((tag, index) => (
+            <Text key={index} style={styles.hashtag}>
+              {tag}{' '}
+            </Text>
+          ))}
         </View>
       )}
 
@@ -535,6 +551,16 @@ const styles = StyleSheet.create({
   },
   captionUsername: {
     fontWeight: TYPOGRAPHY.fontWeight.semibold,
+  },
+  hashtagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.xs,
+  },
+  hashtag: {
+    fontSize: TYPOGRAPHY.fontSize.md,
+    color: COLORS.blue,
   },
   viewComments: {
     fontSize: TYPOGRAPHY.fontSize.md,

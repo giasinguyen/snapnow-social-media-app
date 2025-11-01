@@ -307,6 +307,11 @@ export default function PostDetailScreen() {
     return formatDistanceToNow(d, { addSuffix: true });
   };
 
+  // Function to remove hashtags from caption text
+  const removeHashtagsFromText = (text: string) => {
+    return text.replace(/#\w+/g, '').replace(/\s+/g, ' ').trim();
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -442,10 +447,10 @@ export default function PostDetailScreen() {
           ) : null}
 
           {/* Caption */}
-          {post.caption && (
+          {post.caption && removeHashtagsFromText(post.caption).length > 0 && (
             <View style={styles.captionContainer}>
               <Text style={styles.captionUsername}>{displayUsername} </Text>
-              <Text style={styles.captionText}>{post.caption}</Text>
+              <Text style={styles.captionText}>{removeHashtagsFromText(post.caption)}</Text>
             </View>
           )}
 
@@ -454,7 +459,7 @@ export default function PostDetailScreen() {
             <View style={styles.hashtagsContainer}>
               {post.hashtags.map((tag, index) => (
                 <Text key={index} style={styles.hashtag}>
-                  #{tag}{' '}
+                  {tag}{' '}
                 </Text>
               ))}
             </View>
