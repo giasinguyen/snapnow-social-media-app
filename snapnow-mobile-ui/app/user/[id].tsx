@@ -43,6 +43,7 @@ export default function UserProfileScreen() {
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const router = useRouter();
 
@@ -69,6 +70,9 @@ export default function UserProfileScreen() {
         const currentUser = await AuthService.getCurrentUserProfile();
         
         if (currentUser && userData?.id) {
+          // Check if this is the current user's own profile
+          setIsOwnProfile(currentUser.id === userData.id);
+          
           const following = await checkFollowing(currentUser.id, userData.id);
           setIsFollowing(following);
           console.log('👥 Follow status:', following ? 'Following' : 'Not following');
@@ -157,6 +161,10 @@ export default function UserProfileScreen() {
   const handleMessage = () => {
     // TODO: Implement messaging functionality
     console.log('Open message screen');
+  };
+
+  const handleEditProfile = () => {
+    router.push('/(tabs)/edit-profile');
   };
 
   const handleOptionsMenu = () => {
@@ -283,7 +291,7 @@ export default function UserProfileScreen() {
           {(user as any)?.isPrivate ? (
             <Ionicons name="lock-closed-outline" size={16} color="#8E8E8E" style={{ marginRight: 6 }} />
           ) : null}
-          <Text style={styles.headerTitle}>{user.username}</Text>
+          <Text style={[styles.headerTitle, { flex: 0, textAlign: 'left' }]}>{user.username}</Text>
         </View>
         <TouchableOpacity style={styles.moreButton} onPress={handleOptionsMenu}>
           <Ionicons name="ellipsis-horizontal" size={24} color="#262626" />
@@ -372,25 +380,46 @@ export default function UserProfileScreen() {
             </View>
           </View>
 
-          {/* Action Buttons - Follow and Message */}
+          {/* Action Buttons - Follow and Message OR Edit Profile and Share Profile */}
           <View style={styles.actionButtons}>
-            <TouchableOpacity
-              style={[styles.primaryButton, isFollowing && styles.followingButton]}
-              onPress={() => {
-                console.log('🔘 Follow button pressed on user profile');
-                handleFollow();
-              }}
-            >
-              <Text style={[styles.primaryButtonText, isFollowing && styles.followingButtonText]}>
-                {isFollowing ? 'Following' : 'Follow'}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.secondaryButton} onPress={handleMessage}>
-              <Text style={styles.secondaryButtonText}>Message</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton} onPress={handleShare}>
-              <Ionicons name="share-outline" size={20} color="#262626" />
-            </TouchableOpacity>
+            {isOwnProfile ? (
+              <>
+                {/* Own Profile - Show Edit Profile and Share Profile */}
+                <TouchableOpacity
+                  style={styles.editProfileButton}
+                  onPress={handleEditProfile}
+                >
+                  <Text style={styles.editProfileButtonText}>Edit Profile</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.shareProfileButton} onPress={handleShare}>
+                  <Text style={styles.shareProfileButtonText}>Share Profile</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.iconButton} onPress={handleOptionsMenu}>
+                  <Ionicons name="camera-outline" size={20} color="#262626" />
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                {/* Other User's Profile - Show Follow and Message */}
+                <TouchableOpacity
+                  style={[styles.primaryButton, isFollowing && styles.followingButton]}
+                  onPress={() => {
+                    console.log('🔘 Follow button pressed on user profile');
+                    handleFollow();
+                  }}
+                >
+                  <Text style={[styles.primaryButtonText, isFollowing && styles.followingButtonText]}>
+                    {isFollowing ? 'Following' : 'Follow'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.secondaryButton} onPress={handleMessage}>
+                  <Text style={styles.secondaryButtonText}>Message</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.iconButton} onPress={handleShare}>
+                  <Ionicons name="share-outline" size={20} color="#262626" />
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
 
@@ -771,6 +800,30 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  editProfileButton: {
+    flex: 1,
+    paddingVertical: 10,
+    backgroundColor: '#262626',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  editProfileButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  shareProfileButton: {
+    flex: 1,
+    paddingVertical: 10,
+    backgroundColor: '#EFEFEF',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  shareProfileButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#262626',
   },
 
   // Tabs

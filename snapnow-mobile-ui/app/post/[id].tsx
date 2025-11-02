@@ -19,12 +19,13 @@ import {
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import CommentItem from '../../components/CommentItem';
 import MultiImageViewer from '../../components/MultiImageViewer';
 import { AuthService } from '../../services/authService';
-import { addComment, getPostComments } from '../../services/comments';
+import { addComment, deleteComment, getPostComments } from '../../services/comments';
 import { likePost, unlikePost } from '../../services/likes';
 import { getPost } from '../../services/posts';
 import { UserService } from '../../services/user';
@@ -47,6 +48,7 @@ export default function PostDetailScreen() {
   const [currentZoom, setCurrentZoom] = useState(1);
   const [optionsVisible, setOptionsVisible] = useState(false);
   const [isOwnPost, setIsOwnPost] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<{ id: string; username: string } | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const heartScale = useState(new Animated.Value(0))[0];
   const [showHeart, setShowHeart] = useState(false);
@@ -166,13 +168,16 @@ export default function PostDetailScreen() {
         currentUserId,
         profile?.username || 'Anonymous',
         profile?.profileImage,
-        commentText.trim()
+        commentText.trim(),
+        replyingTo?.id, // Pass the parent comment ID if replying
+        undefined // imageUrl
       );
 
       // Reload comments
       const updatedComments = await getPostComments(post.id);
       setComments(updatedComments);
       setCommentText('');
+      setReplyingTo(null); // Clear reply state
       
       // Dismiss keyboard
       Keyboard.dismiss();
@@ -238,8 +243,47 @@ export default function PostDetailScreen() {
 
   const handleUserPress = () => {
     if (post?.userId) {
+      // Always navigate to user profile page (even for own profile) to show back button
       router.push(`/user/${post.userId}` as any);
     }
+  };
+
+  const handleReply = (commentId: string, username: string) => {
+    // Find the comment being replied to
+    const findComment = (comments: Comment[], id: string): Comment | null => {
+      for (const comment of comments) {
+        if (comment.id === id) return comment
+        if (comment.replies) {
+          const found = findComment(comment.replies, id)
+          if (found) return found
+        }
+      }
+      return null
+    }
+
+    const targetComment = findComment(comments, commentId)
+    
+    // If replying to a reply, use the parent comment ID to keep replies flat
+    const parentId = targetComment?.parentCommentId || commentId
+
+    setReplyingTo({ id: parentId, username })
+    setCommentText(`@${username} `)
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    try {
+      await deleteComment(commentId, post?.id || '')
+      // Reload comments to get updated structure
+      const commentsData = await getPostComments(post?.id || '')
+      setComments(commentsData)
+    } catch (error) {
+      console.error("Error deleting comment:", error)
+    }
+  };
+
+  const handleCancelReply = () => {
+    setReplyingTo(null)
+    setCommentText("")
   };
 
   const handleDeletePost = async () => {
@@ -478,31 +522,35 @@ export default function PostDetailScreen() {
               </View>
             ) : (
               comments.map((comment) => (
-                <View key={comment.id} style={styles.commentItem}>
-                  {comment.userProfileImage ? (
-                    <Image
-                      source={{ uri: comment.userProfileImage }}
-                      style={styles.commentAvatar}
-                    />
-                  ) : (
-                    <View style={[styles.commentAvatar, { backgroundColor: '#E1E8ED' }]}>
-                      <Text style={{ fontSize: 20, color: '#657786' }}>
-                        {comment.username?.charAt(0).toUpperCase() || '?'}
-                      </Text>
-                    </View>
-                  )}
-                  <View style={styles.commentContent}>
-                    <View style={styles.commentHeader}>
-                      <Text style={styles.commentUsername}>{comment.username}</Text>
-                      <Text style={styles.commentTime}>{formatDate(comment.createdAt)}</Text>
-                    </View>
-                    <Text style={styles.commentText}>{comment.text}</Text>
-                  </View>
-                </View>
+                <CommentItem
+                  key={comment.id}
+                  comment={comment}
+                  onDelete={handleDeleteComment}
+                  onReply={handleReply}
+                  onUserPress={(userId: string) => {
+                    // Always navigate to user profile page (even for own profile) to show back button
+                    router.push(`/user/${userId}` as any);
+                  }}
+                />
               ))
             )}
           </View>
         </ScrollView>
+
+        {/* Reply indicator */}
+        {replyingTo && (
+          <View style={styles.replyIndicator}>
+            <View style={styles.replyIndicatorContent}>
+              <Ionicons name="arrow-undo-outline" size={14} color="#8e8e8e" style={styles.replyIcon} />
+              <Text style={styles.replyingText}>
+                Replying to @{replyingTo.username}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={handleCancelReply} style={styles.cancelReplyBtn}>
+              <Ionicons name="close" size={16} color="#8e8e8e" />
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Comment Input */}
         <View style={styles.commentInputContainer}>
@@ -513,12 +561,12 @@ export default function PostDetailScreen() {
             />
           ) : (
             <View style={[styles.commentInputAvatar, { backgroundColor: '#E1E8ED', justifyContent: 'center', alignItems: 'center' }]}>
-              <Text style={{ fontSize: 20, color: '#657786' }}>?</Text>
+              <Text style={{ fontSize: 14, color: '#657786' }}>?</Text>
             </View>
           )}
           <TextInput
             style={styles.commentInput}
-            placeholder="Add a comment..."
+            placeholder={replyingTo ? `Reply to @${replyingTo.username}...` : "Add a comment..."}
             value={commentText}
             onChangeText={setCommentText}
             multiline
@@ -780,8 +828,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#0095F6',
   },
-  commentsSection: {
+  viewCommentsButton: {
     paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  viewCommentsText: {
+    color: '#8e8e8e',
+    fontSize: 14,
+  },
+  commentsSection: {
+    paddingHorizontal: 4,
     paddingVertical: 12,
     borderTopWidth: 1,
     borderTopColor: '#EFEFEF',
@@ -812,9 +868,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   commentAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 35,
+    height: 35,
+    borderRadius: 17.5,
   },
   commentContent: {
     flex: 1,
@@ -826,18 +882,24 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   commentUsername: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: '#262626',
   },
   commentTime: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#8E8E8E',
   },
   commentText: {
     fontSize: 14,
     color: '#262626',
-    lineHeight: 18,
+    lineHeight: 20,
+  },
+  commentImage: {
+    width: 132,
+    height: 132,
+    borderRadius: 9,
+    marginTop: 8,
   },
   commentInputContainer: {
     flexDirection: 'row',
@@ -849,9 +911,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   commentInputAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 35,
+    height: 35,
+    borderRadius: 17.5,
   },
   commentInput: {
     flex: 1,
@@ -871,6 +933,31 @@ const styles = StyleSheet.create({
   },
   sendButtonTextDisabled: {
     color: '#B0D4F1',
+  },
+  replyIndicator: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: "#f8f9fa",
+    borderTopWidth: 1,
+    borderTopColor: "#efefef",
+  },
+  replyIndicatorContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  replyIcon: {
+    marginRight: 6,
+  },
+  replyingText: {
+    fontSize: 13,
+    color: "#262626",
+    fontWeight: "500",
+  },
+  cancelReplyBtn: {
+    padding: 4,
   },
   heartOverlay: {
     position: 'absolute',

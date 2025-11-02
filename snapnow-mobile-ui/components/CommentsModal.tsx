@@ -1,19 +1,24 @@
 import { Ionicons } from "@expo/vector-icons"
-import { useEffect, useState } from "react"
+import * as ImagePicker from 'expo-image-picker'
+import { useRouter } from 'expo-router'
+import { useEffect, useRef, useState } from "react"
 import {
-    ActivityIndicator,
-    FlatList,
-    Image,
-    KeyboardAvoidingView,
-    Modal,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { auth } from "../config/firebase"
+import { uploadToCloudinary } from "../services/cloudinary"
 import { addComment, deleteComment, getPostComments } from "../services/comments"
 import type { Comment } from "../types"
 import CommentItem from './CommentItem'
@@ -25,10 +30,14 @@ interface CommentsModalProps {
 }
 
 export default function CommentsModal({ visible, postId, onClose }: CommentsModalProps) {
+  const router = useRouter()
   const [comments, setComments] = useState<Comment[]>([])
   const [commentText, setCommentText] = useState("")
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [replyingTo, setReplyingTo] = useState<{ id: string; username: string } | null>(null)
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const inputRef = useRef<TextInput>(null)
 
   useEffect(() => {
     if (visible) {
@@ -49,35 +58,44 @@ export default function CommentsModal({ visible, postId, onClose }: CommentsModa
   }
 
   const handleAddComment = async () => {
-    if (!commentText.trim() || !auth.currentUser) return
+    if ((!commentText.trim() && !selectedImage) || !auth.currentUser) return
+
+    console.log('Adding comment:', { 
+      text: commentText, 
+      isReply: !!replyingTo, 
+      parentId: replyingTo?.id,
+      hasImage: !!selectedImage
+    })
 
     setSubmitting(true)
     try {
+      let imageUrl: string | undefined = undefined
+
+      // Upload image if selected
+      if (selectedImage) {
+        const uploadResult = await uploadToCloudinary(selectedImage)
+        imageUrl = uploadResult.secure_url
+      }
+
       const commentId = await addComment(
         postId,
         auth.currentUser.uid,
         auth.currentUser.displayName || auth.currentUser.email || "user",
         auth.currentUser.photoURL || undefined,
         commentText,
+        replyingTo?.id, // Pass the parent comment ID if replying
+        imageUrl
       )
 
-      // Add comment to local state
-      const newComment: Comment = {
-        id: commentId,
-        postId,
-        userId: auth.currentUser.uid,
-        username: auth.currentUser.displayName || auth.currentUser.email || "user",
-        userProfileImage: auth.currentUser.photoURL || undefined,
-        text: commentText.trim(),
-        likesCount: 0,
-        isLiked: false,
-        createdAt: new Date(),
-      }
-
-      setComments([newComment, ...comments])
+      // For now, reload comments to get the updated structure with nested replies
+      await loadComments()
+      
       setCommentText("")
+      setSelectedImage(null) // Clear selected image
+      setReplyingTo(null) // Clear reply state
     } catch (error) {
       console.error("Error adding comment:", error)
+      Alert.alert('Error', 'Failed to add comment. Please try again.')
     } finally {
       setSubmitting(false)
     }
@@ -86,19 +104,83 @@ export default function CommentsModal({ visible, postId, onClose }: CommentsModa
   const handleDeleteComment = async (commentId: string) => {
     try {
       await deleteComment(commentId, postId)
-      setComments(comments.filter((c) => c.id !== commentId))
+      // Reload comments to get updated structure
+      await loadComments()
     } catch (error) {
       console.error("Error deleting comment:", error)
     }
   }
 
   const handleReply = (commentId: string, username: string) => {
+    // Find the comment being replied to
+    const findComment = (comments: Comment[], id: string): Comment | null => {
+      for (const comment of comments) {
+        if (comment.id === id) return comment
+        if (comment.replies) {
+          const found = findComment(comment.replies, id)
+          if (found) return found
+        }
+      }
+      return null
+    }
+
+    const targetComment = findComment(comments, commentId)
+    
+    // If replying to a reply, use the parent comment ID to keep replies flat
+    const parentId = targetComment?.parentCommentId || commentId
+
+    setReplyingTo({ id: parentId, username })
     setCommentText(`@${username} `)
+    // Focus the input to show keyboard
+    setTimeout(() => {
+      inputRef.current?.focus()
+    }, 100)
+  }
+
+  const handleCancelReply = () => {
+    setReplyingTo(null)
+    setCommentText("")
+  }
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null)
+  }
+
+  const handleCameraPress = async () => {
+    try {
+      // Request permissions
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
+      
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please grant camera roll permissions to add images to comments.')
+        return
+      }
+
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      })
+
+      if (!result.canceled && result.assets[0]) {
+        setSelectedImage(result.assets[0].uri)
+      }
+    } catch (error) {
+      console.error('Error picking image:', error)
+      Alert.alert('Error', 'Failed to pick image. Please try again.')
+    }
   }
 
   const renderComment = ({ item }: { item: Comment }) => {
+    const handleUserPress = (userId: string) => {
+      // Always navigate to user profile page (even for own profile) to show back button
+      router.push(`/user/${userId}` as any)
+    }
+    
     return (
-      <CommentItem comment={item} onDelete={handleDeleteComment} onReply={handleReply} />
+      <CommentItem comment={item} onDelete={handleDeleteComment} onReply={handleReply} onUserPress={handleUserPress} />
     )
   }
 
@@ -131,7 +213,32 @@ export default function CommentsModal({ visible, postId, onClose }: CommentsModa
           />
         )}
 
-        <KeyboardAvoidingView behavior="padding" style={styles.inputContainer}>
+        {/* Selected image preview */}
+        {selectedImage && (
+          <View style={styles.imagePreview}>
+            <Image source={{ uri: selectedImage }} style={styles.previewImage} />
+            <TouchableOpacity onPress={handleRemoveImage} style={styles.removeImageBtn}>
+              <Ionicons name="close-circle" size={24} color="#ed4956" />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Reply indicator */}
+        {replyingTo && (
+          <View style={styles.replyIndicator}>
+            <View style={styles.replyIndicatorContent}>
+              <Ionicons name="arrow-undo-outline" size={14} color="#8e8e8e" style={styles.replyIcon} />
+              <Text style={styles.replyingText}>
+                Replying to @{replyingTo.username}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={handleCancelReply} style={styles.cancelReplyBtn}>
+              <Ionicons name="close" size={16} color="#8e8e8e" />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.inputContainer}>
           {auth.currentUser?.photoURL && auth.currentUser.photoURL.trim() !== '' ? (
             <Image
               source={{ uri: auth.currentUser.photoURL }}
@@ -145,9 +252,13 @@ export default function CommentsModal({ visible, postId, onClose }: CommentsModa
               </Text>
             </View>
           )}
+          <TouchableOpacity style={styles.cameraButton} onPress={handleCameraPress}>
+            <Ionicons name="camera-outline" size={20} color="#8e8e8e" />
+          </TouchableOpacity>
           <TextInput
+            ref={inputRef}
             style={styles.input}
-            placeholder="Add a comment..."
+            placeholder={replyingTo ? `Reply to @${replyingTo.username}...` : "Add a comment..."}
             value={commentText}
             onChangeText={setCommentText}
             multiline
@@ -155,13 +266,13 @@ export default function CommentsModal({ visible, postId, onClose }: CommentsModa
           />
           <TouchableOpacity
             onPress={handleAddComment}
-            disabled={!commentText.trim() || submitting}
+            disabled={(!commentText.trim() && !selectedImage) || submitting}
             style={styles.sendButton}
           >
             {submitting ? (
               <ActivityIndicator size="small" color="#0095f6" />
             ) : (
-              <Text style={[styles.sendButtonText, !commentText.trim() && styles.sendButtonTextDisabled]}>Post</Text>
+              <Text style={[styles.sendButtonText, (!commentText.trim() && !selectedImage) && styles.sendButtonTextDisabled]}>Post</Text>
             )}
           </TouchableOpacity>
         </KeyboardAvoidingView>
@@ -194,13 +305,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 13,
     borderBottomWidth: 1,
     borderBottomColor: "#efefef",
   },
   headerTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "600",
   },
   loadingContainer: {
@@ -218,28 +329,28 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "600",
     color: "#262626",
-    marginTop: 16,
-    marginBottom: 8,
+    marginTop: 18,
+    marginBottom: 9,
   },
   emptySubtitle: {
-    fontSize: 14,
+    fontSize: 15,
     color: "#8e8e8e",
     textAlign: "center",
   },
   commentsList: {
-    paddingVertical: 8,
+    paddingVertical: 9,
   },
   commentItem: {
     flexDirection: "row",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 13,
     alignItems: "flex-start",
   },
   commentAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    marginRight: 12,
+    width: 35,
+    height: 35,
+    borderRadius: 17.5,
+    marginRight: 13,
     backgroundColor: "#f0f0f0",
   },
   avatarPlaceholder: {
@@ -248,7 +359,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   avatarText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "600",
     color: "#FFFFFF",
   },
@@ -258,26 +369,26 @@ const styles = StyleSheet.create({
   commentHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 4,
+    marginBottom: 5,
   },
   commentUsername: {
     fontWeight: "600",
-    fontSize: 14,
-    marginRight: 8,
+    fontSize: 15,
+    marginRight: 9,
   },
   commentTime: {
-    fontSize: 12,
+    fontSize: 13,
     color: "#8e8e8e",
   },
   commentText: {
-    fontSize: 14,
-    lineHeight: 18,
+    fontSize: 15,
+    lineHeight: 20,
     color: "#262626",
   },
   commentLikes: {
-    fontSize: 12,
+    fontSize: 13,
     color: "#8e8e8e",
-    marginTop: 4,
+    marginTop: 5,
   },
   deleteButton: {
     padding: 4,
@@ -285,38 +396,85 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 13,
     borderTopWidth: 1,
     borderTopColor: "#efefef",
     backgroundColor: "#fff",
   },
+  cameraButton: {
+    padding: 9,
+    marginRight: 9,
+  },
   inputAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    marginRight: 12,
+    width: 35,
+    height: 35,
+    borderRadius: 17.5,
+    marginRight: 13,
     backgroundColor: "#f0f0f0",
   },
   input: {
     flex: 1,
-    maxHeight: 100,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    maxHeight: 110,
+    paddingVertical: 9,
+    paddingHorizontal: 13,
     backgroundColor: "#fafafa",
-    borderRadius: 20,
-    fontSize: 14,
+    borderRadius: 22,
+    fontSize: 15,
   },
   sendButton: {
-    marginLeft: 12,
-    paddingHorizontal: 8,
+    marginLeft: 13,
+    paddingHorizontal: 9,
   },
   sendButtonText: {
     color: "#0095f6",
     fontWeight: "600",
-    fontSize: 14,
+    fontSize: 15,
   },
   sendButtonTextDisabled: {
     opacity: 0.3,
+  },
+  replyIndicator: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+    backgroundColor: "#f8f9fa",
+    borderTopWidth: 1,
+    borderTopColor: "#efefef",
+  },
+  replyIndicatorContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  replyIcon: {
+    marginRight: 7,
+  },
+  replyingText: {
+    fontSize: 14,
+    color: "#262626",
+    fontWeight: "500",
+  },
+  cancelReplyBtn: {
+    padding: 5,
+  },
+  imagePreview: {
+    paddingHorizontal: 18,
+    paddingVertical: 13,
+    backgroundColor: "#f8f9fa",
+    borderTopWidth: 1,
+    borderTopColor: "#efefef",
+  },
+  previewImage: {
+    width: 110,
+    height: 110,
+    borderRadius: 9,
+    alignSelf: "flex-start",
+  },
+  removeImageBtn: {
+    position: "absolute",
+    top: 9,
+    right: 18,
   },
 })

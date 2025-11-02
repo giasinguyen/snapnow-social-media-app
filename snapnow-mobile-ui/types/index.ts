@@ -35,9 +35,13 @@ export interface Comment {
   username: string;
   userProfileImage?: string;
   text: string;
+  imageUrl?: string; // Optional image in comment
   likesCount: number;
   isLiked: boolean;
   createdAt: Date;
+  parentCommentId?: string; // For replies
+  replies?: Comment[]; // Nested replies
+  repliesCount?: number; // Number of replies
 }
 
 export interface Follow {
