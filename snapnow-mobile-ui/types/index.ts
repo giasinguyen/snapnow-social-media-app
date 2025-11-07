@@ -16,12 +16,15 @@ export interface Post {
   userId?: string;
   username?: string;
   userImage?: string;
-  imageUrl?: string;
+  imageUrl?: string; // Keep for backward compatibility
+  imageUrls?: string[]; // New field for multiple images
   caption?: string;
   hashtags?: string[];
   likes?: number;
   commentsCount?: number;
+  savesCount?: number; // Number of saves/bookmarks
   isLiked?: boolean;
+  isSaved?: boolean; // Whether current user has saved this post
   createdAt?: any;
 }
 
@@ -32,9 +35,13 @@ export interface Comment {
   username: string;
   userProfileImage?: string;
   text: string;
+  imageUrl?: string; // Optional image in comment
   likesCount: number;
   isLiked: boolean;
   createdAt: Date;
+  parentCommentId?: string; // For replies
+  replies?: Comment[]; // Nested replies
+  repliesCount?: number; // Number of replies
 }
 
 export interface Follow {

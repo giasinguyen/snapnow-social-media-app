@@ -88,4 +88,39 @@ export class UserService {
       throw error
     }
   }
+
+  // Get suggested users (users not followed by current user)
+  static async getSuggestedUsers(currentUserId: string, limit: number = 5): Promise<User[]> {
+    try {
+      // Get list of users current user is already following
+      const { getFollowing } = await import('./follow');
+      const followingIds = await getFollowing(currentUserId);
+
+      // Get all users
+      const usersRef = collection(db, "users");
+      const snapshot = await getDocs(usersRef);
+
+      const suggestions: User[] = [];
+      snapshot.forEach((doc) => {
+        const userId = doc.id;
+        // Exclude current user and already followed users
+        if (userId !== currentUserId && !followingIds.includes(userId)) {
+          const data = doc.data();
+          suggestions.push({
+            id: userId,
+            ...data,
+            createdAt: data.createdAt?.toDate?.() || new Date(),
+          } as User);
+        }
+      });
+
+      // Sort by followers count (most popular first) and limit
+      return suggestions
+        .sort((a, b) => (b.followersCount || 0) - (a.followersCount || 0))
+        .slice(0, limit);
+    } catch (error) {
+      console.error("Error getting suggested users:", error);
+      return [];
+    }
+  }
 }

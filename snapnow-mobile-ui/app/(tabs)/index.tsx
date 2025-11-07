@@ -1,34 +1,33 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { 
-  ScrollView, 
-  StyleSheet, 
-  View,
-  RefreshControl,
+import { router } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
   ActivityIndicator,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 
 import PostCard from '../../components/PostCard';
-import { 
-  FeedHeader, 
-  FeedTabs, 
-  Stories, 
-  SuggestionsCard, 
-  FeedEmpty, 
+import {
+  FeedEmpty,
   FeedFooter,
+  FeedHeader,
+  FeedTabs,
+  Stories,
+  SuggestionsCard,
   type FeedTab,
   type Story,
-  type SuggestedUser 
+  type SuggestedUser
 } from '../../components/feed';
 
-import { Post } from '../../types';
-import { 
-  MOCK_STORIES, 
-  SUGGESTED_USERS,
+import {
+  MOCK_STORIES,
 } from '../../services/mockData';
-import { fetchPosts, fetchFeedPosts } from '../../services/posts';
-import { getRecommendedPosts } from '../../services/recommendation';
+import { fetchFeedPosts, fetchPosts } from '../../services/posts';
+import { Post } from '../../types';
+// import { getRecommendedPosts } from '../../services/recommendation';
 import { AuthService } from '../../services/authService';
 import { COLORS, SPACING } from '../../src/constants/theme';
 
@@ -38,20 +37,21 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<FeedTab>('for-you');
   const [showStories, setShowStories] = useState(true);
+  const [suggestedUsers, setSuggestedUsers] = useState<SuggestedUser[]>([]);
 
   const loadForYou = useCallback(async () => {
     try {
       setLoading(true);
-      // Try backend recommendations first, fallback to global posts
-      try {
-        const recommended = await getRecommendedPosts();
-        if (recommended && recommended.length > 0) {
-          setPosts(recommended);
-          return;
-        }
-      } catch (recErr) {
-        console.warn('Recommendation fetch failed, falling back to global posts', recErr);
-      }
+      // Skip backend recommendations (not available), use global posts
+      // try {
+      //   const recommended = await getRecommendedPosts();
+      //   if (recommended && recommended.length > 0) {
+      //     setPosts(recommended);
+      //     return;
+      //   }
+      // } catch (recErr) {
+      //   console.warn('Recommendation fetch failed, falling back to global posts', recErr);
+      // }
 
       const realPosts = await fetchPosts();
       setPosts(realPosts);
@@ -98,9 +98,69 @@ export default function HomeScreen() {
     setRefreshing(false);
   }, [activeTab, loadForYou, loadFollowing]);
 
-  const handleFollow = useCallback((userId: string) => {
-    console.log('Following user:', userId);
+  // Load suggested users
+  const loadSuggestedUsers = useCallback(async () => {
+    try {
+      console.log('🔄 Loading suggested users...');
+      const currentUser = await AuthService.getCurrentUserProfile();
+      if (!currentUser) {
+        console.log('❌ No current user for suggestions');
+        return;
+      }
+
+      console.log('👤 Getting suggestions for:', currentUser.id);
+      const { UserService } = await import('../../services/user');
+      const users = await UserService.getSuggestedUsers(currentUser.id, 3);
+      
+      console.log('📋 Found suggested users:', users.length);
+      
+      setSuggestedUsers(
+        users.map(user => ({
+          id: user.id,
+          displayName: user.displayName || user.username,
+          username: user.username,
+          avatar: user.profileImage || '',
+          reason: 'Suggested for you'
+        }))
+      );
+      
+      console.log('✅ Suggested users loaded successfully');
+    } catch (error) {
+      console.error('❌ Error loading suggested users:', error);
+    }
   }, []);
+
+  const handleFollow = useCallback(async (userId: string) => {
+    try {
+      console.log('🔄 Starting follow for user:', userId);
+      
+      const currentUser = await AuthService.getCurrentUserProfile();
+      if (!currentUser) {
+        console.log('❌ No current user found');
+        return;
+      }
+      
+      console.log('👤 Current user:', currentUser.id, currentUser.username);
+
+      const { followUser } = await import('../../services/follow');
+      console.log('📡 Calling followUser service...');
+      
+      await followUser(
+        currentUser.id,
+        userId,
+        currentUser.username || '',
+        currentUser.profileImage
+      );
+
+      console.log('✅ Follow successful! Reloading suggestions...');
+      
+      // Reload suggested users to remove the followed user
+      await loadSuggestedUsers();
+      console.log('✅ Followed user:', userId);
+    } catch (error) {
+      console.error('❌ Error following user:', error);
+    }
+  }, [loadSuggestedUsers]);
 
   const handleLike = useCallback((postId: string, liked: boolean) => {
     console.log('Like toggled:', postId, liked);
@@ -114,8 +174,17 @@ export default function HomeScreen() {
     console.log('Share post:', postId);
   }, []);
 
-  const handlePostPress = useCallback((postId: string) => {
-    router.push(`/post/${postId}` as any);
+  const handlePostPress = useCallback((postId: string, imageIndex?: number) => {
+    if (imageIndex !== undefined) {
+      router.push(`/post/${postId}?imageIndex=${imageIndex}` as any);
+    } else {
+      router.push(`/post/${postId}` as any);
+    }
+  }, []);
+
+  const handleDelete = useCallback((postId: string) => {
+    // Remove the deleted post from the local state to update UI immediately
+    setPosts(currentPosts => currentPosts.filter(post => post.id !== postId));
   }, []);
 
   const handleNotifications = useCallback(() => {
@@ -138,18 +207,12 @@ export default function HomeScreen() {
     setActiveTab(tab);
   }, []);
 
-  // Memoize stories and suggestions data
+  useEffect(() => {
+    loadSuggestedUsers();
+  }, [loadSuggestedUsers]);
+
+  // Memoize stories data
   const stories: Story[] = useMemo(() => MOCK_STORIES, []);
-  const suggestedUsers: SuggestedUser[] = useMemo(() => 
-    SUGGESTED_USERS.slice(0, 3).map(user => ({
-      id: user.id,
-      displayName: user.displayName,
-      username: user.username,
-      avatar: user.avatar,
-      reason: 'Suggested for you'
-    })),
-    []
-  );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -198,6 +261,7 @@ export default function HomeScreen() {
                   onComment={handleComment}
                   onShare={handleShare}
                   onPress={handlePostPress}
+                  onDelete={handleDelete}
                 />
                 
                 {/* Suggestions Card after 2nd post */}

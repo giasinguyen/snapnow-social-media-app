@@ -4,18 +4,18 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    Image,
-    Modal,
-    RefreshControl,
-    ScrollView,
-    Share,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  Image,
+  Modal,
+  RefreshControl,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { formatFollowers } from '../../services/mockData';
@@ -43,6 +43,7 @@ export default function UserProfileScreen() {
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const router = useRouter();
 
@@ -62,8 +63,24 @@ export default function UserProfileScreen() {
         setLoadingPosts(false);
       }
       
-      // TODO: Check if current user is following this user
-      setIsFollowing(false);
+      // Check if current user is following this user
+      try {
+        const { AuthService } = await import('../../services/authService');
+        const { isFollowing: checkFollowing } = await import('../../services/follow');
+        const currentUser = await AuthService.getCurrentUserProfile();
+        
+        if (currentUser && userData?.id) {
+          // Check if this is the current user's own profile
+          setIsOwnProfile(currentUser.id === userData.id);
+          
+          const following = await checkFollowing(currentUser.id, userData.id);
+          setIsFollowing(following);
+          console.log('👥 Follow status:', following ? 'Following' : 'Not following');
+        }
+      } catch (err) {
+        console.error('Failed to check follow status', err);
+        setIsFollowing(false);
+      }
     } catch (err) {
       console.error('Failed to load user profile', err);
     } finally {
@@ -81,14 +98,73 @@ export default function UserProfileScreen() {
     setRefreshing(false);
   };
 
-  const handleFollow = () => {
-    // TODO: Implement follow/unfollow functionality
-    setIsFollowing(!isFollowing);
+  const handleFollow = async () => {
+    if (!id || !user) return;
+    
+    try {
+      console.log('🔄 Toggle follow for user:', id, user.username);
+      
+      const { AuthService } = await import('../../services/authService');
+      const currentUser = await AuthService.getCurrentUserProfile();
+      
+      if (!currentUser) {
+        console.log('❌ No current user');
+        Alert.alert('Error', 'You must be logged in to follow users');
+        return;
+      }
+
+      const newFollowingState = !isFollowing;
+      setIsFollowing(newFollowingState);
+
+      if (newFollowingState) {
+        // Follow
+        console.log('📡 Following user...');
+        const { followUser } = await import('../../services/follow');
+        await followUser(
+          currentUser.id,
+          id,
+          currentUser.username || '',
+          currentUser.profileImage
+        );
+        console.log('✅ Followed successfully');
+        
+        // Update local follower count
+        if (user) {
+          setUser({
+            ...user,
+            followersCount: (user.followersCount || 0) + 1
+          });
+        }
+      } else {
+        // Unfollow
+        console.log('📡 Unfollowing user...');
+        const { unfollowUser } = await import('../../services/follow');
+        await unfollowUser(currentUser.id, id);
+        console.log('✅ Unfollowed successfully');
+        
+        // Update local follower count
+        if (user) {
+          setUser({
+            ...user,
+            followersCount: Math.max(0, (user.followersCount || 0) - 1)
+          });
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error toggling follow:', error);
+      // Revert state on error
+      setIsFollowing(isFollowing);
+      Alert.alert('Error', 'Failed to update follow status. Please try again.');
+    }
   };
 
   const handleMessage = () => {
     // TODO: Implement messaging functionality
     console.log('Open message screen');
+  };
+
+  const handleEditProfile = () => {
+    router.push('/(tabs)/edit-profile');
   };
 
   const handleOptionsMenu = () => {
@@ -215,7 +291,7 @@ export default function UserProfileScreen() {
           {(user as any)?.isPrivate ? (
             <Ionicons name="lock-closed-outline" size={16} color="#8E8E8E" style={{ marginRight: 6 }} />
           ) : null}
-          <Text style={styles.headerTitle}>{user.username}</Text>
+          <Text style={[styles.headerTitle, { flex: 0, textAlign: 'left' }]}>{user.username}</Text>
         </View>
         <TouchableOpacity style={styles.moreButton} onPress={handleOptionsMenu}>
           <Ionicons name="ellipsis-horizontal" size={24} color="#262626" />
@@ -271,12 +347,18 @@ export default function UserProfileScreen() {
               <Text style={styles.statLabel}>Snaps</Text>
             </TouchableOpacity>
             <View style={styles.statDivider} />
-            <TouchableOpacity style={styles.statItem}>
+            <TouchableOpacity 
+              style={styles.statItem}
+              onPress={() => router.push(`/user/follow/followers?userId=${user.id}`)}
+            >
               <Text style={styles.statNumber}>{formatFollowers(user.followersCount ?? 1234)}</Text>
               <Text style={styles.statLabel}>Followers</Text>
             </TouchableOpacity>
             <View style={styles.statDivider} />
-            <TouchableOpacity style={styles.statItem}>
+            <TouchableOpacity 
+              style={styles.statItem}
+              onPress={() => router.push(`/user/follow/following?userId=${user.id}`)}
+            >
               <Text style={styles.statNumber}>{user.followingCount ?? 567}</Text>
               <Text style={styles.statLabel}>Following</Text>
             </TouchableOpacity>
@@ -298,22 +380,46 @@ export default function UserProfileScreen() {
             </View>
           </View>
 
-          {/* Action Buttons - Follow and Message */}
+          {/* Action Buttons - Follow and Message OR Edit Profile and Share Profile */}
           <View style={styles.actionButtons}>
-            <TouchableOpacity
-              style={[styles.primaryButton, isFollowing && styles.followingButton]}
-              onPress={handleFollow}
-            >
-              <Text style={[styles.primaryButtonText, isFollowing && styles.followingButtonText]}>
-                {isFollowing ? 'Following' : 'Follow'}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.secondaryButton} onPress={handleMessage}>
-              <Text style={styles.secondaryButtonText}>Message</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton} onPress={handleShare}>
-              <Ionicons name="share-outline" size={20} color="#262626" />
-            </TouchableOpacity>
+            {isOwnProfile ? (
+              <>
+                {/* Own Profile - Show Edit Profile and Share Profile */}
+                <TouchableOpacity
+                  style={styles.editProfileButton}
+                  onPress={handleEditProfile}
+                >
+                  <Text style={styles.editProfileButtonText}>Edit Profile</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.shareProfileButton} onPress={handleShare}>
+                  <Text style={styles.shareProfileButtonText}>Share Profile</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.iconButton} onPress={handleOptionsMenu}>
+                  <Ionicons name="camera-outline" size={20} color="#262626" />
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                {/* Other User's Profile - Show Follow and Message */}
+                <TouchableOpacity
+                  style={[styles.primaryButton, isFollowing && styles.followingButton]}
+                  onPress={() => {
+                    console.log('🔘 Follow button pressed on user profile');
+                    handleFollow();
+                  }}
+                >
+                  <Text style={[styles.primaryButtonText, isFollowing && styles.followingButtonText]}>
+                    {isFollowing ? 'Following' : 'Follow'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.secondaryButton} onPress={handleMessage}>
+                  <Text style={styles.secondaryButtonText}>Message</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.iconButton} onPress={handleShare}>
+                  <Ionicons name="share-outline" size={20} color="#262626" />
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
 
@@ -694,6 +800,30 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  editProfileButton: {
+    flex: 1,
+    paddingVertical: 10,
+    backgroundColor: '#262626',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  editProfileButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  shareProfileButton: {
+    flex: 1,
+    paddingVertical: 10,
+    backgroundColor: '#EFEFEF',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  shareProfileButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#262626',
   },
 
   // Tabs

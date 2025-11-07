@@ -181,7 +181,10 @@ export default function ProfileScreen() {
             <View style={styles.statDivider} />
             <TouchableOpacity 
               style={styles.statItem}
-              onPress={() => router.push('/followers/followers' as any)}
+              onPress={() => {
+                console.log('🔘 Followers button pressed on own profile, userId:', profile.id);
+                router.push(`/user/follow/followers?userId=${profile.id}`);
+              }}
             >
               <Text style={styles.statNumber}>{formatFollowers(profile.followersCount ?? 1234)}</Text>
               <Text style={styles.statLabel}>Followers</Text>
@@ -189,7 +192,10 @@ export default function ProfileScreen() {
             <View style={styles.statDivider} />
             <TouchableOpacity 
               style={styles.statItem}
-              onPress={() => router.push('/followers/following' as any)}
+              onPress={() => {
+                console.log('🔘 Following button pressed on own profile, userId:', profile.id);
+                router.push(`/user/follow/following?userId=${profile.id}`);
+              }}
             >
               <Text style={styles.statNumber}>{profile.followingCount ?? 567}</Text>
               <Text style={styles.statLabel}>Following</Text>

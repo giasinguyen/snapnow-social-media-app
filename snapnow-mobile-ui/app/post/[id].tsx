@@ -4,28 +4,35 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Animated,
+  Dimensions,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import CommentItem from '../../components/CommentItem';
+import MultiImageViewer from '../../components/MultiImageViewer';
 import { AuthService } from '../../services/authService';
-import { addComment, getPostComments } from '../../services/comments';
+import { addComment, deleteComment, getPostComments } from '../../services/comments';
 import { likePost, unlikePost } from '../../services/likes';
 import { getPost } from '../../services/posts';
 import { UserService } from '../../services/user';
 import { Comment, Post } from '../../types';
 
 export default function PostDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, imageIndex } = useLocalSearchParams<{ id: string; imageIndex?: string }>();
   const router = useRouter();
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -33,16 +40,35 @@ export default function PostDetailScreen() {
   const [commentText, setCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [currentUserAvatar, setCurrentUserAvatar] = useState<string>('');
   const [displayUsername, setDisplayUsername] = useState('');
   const [displayUserImage, setDisplayUserImage] = useState('');
+  const [showFullscreen, setShowFullscreen] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [currentZoom, setCurrentZoom] = useState(1);
+  const [optionsVisible, setOptionsVisible] = useState(false);
+  const [isOwnPost, setIsOwnPost] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<{ id: string; username: string } | null>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
   const heartScale = useState(new Animated.Value(0))[0];
   const [showHeart, setShowHeart] = useState(false);
   let lastTap = useRef<number>(0);
+  let lastFullscreenTap = useRef<number>(0);
 
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // Set initial image index from URL parameter
+  useEffect(() => {
+    if (imageIndex) {
+      const index = parseInt(imageIndex, 10);
+      if (!isNaN(index) && index >= 0) {
+        setCurrentImageIndex(index);
+      }
+    }
+  }, [imageIndex]);
 
   // Fetch fresh user data when post loads
   useEffect(() => {
@@ -73,10 +99,23 @@ export default function PostDetailScreen() {
       ]);
       
       if (postData) {
-        setPost(postData);
+        // Get real-time likes count from the likes collection
+        const { getPostLikesCount, hasUserLikedPost } = await import('../../services/likes');
+        const realLikesCount = await getPostLikesCount(postData.id);
+        const isLiked = profile?.id ? await hasUserLikedPost(profile.id, postData.id) : false;
+        
+        setPost({
+          ...postData,
+          likes: realLikesCount,
+          isLiked: isLiked
+        });
+        
+        // Check if this is user's own post
+        setIsOwnPost(profile?.id === postData.userId);
       }
       setComments(commentsData);
       setCurrentUserId(profile?.id || '');
+      setCurrentUserAvatar(profile?.profileImage || '');
     } catch (error) {
       console.error('Failed to load post:', error);
     } finally {
@@ -91,11 +130,6 @@ export default function PostDetailScreen() {
       const profile = await AuthService.getCurrentUserProfile();
       if (post.isLiked) {
         await unlikePost(currentUserId, post.id);
-        setPost({
-          ...post,
-          isLiked: false,
-          likes: (post.likes || 0) - 1,
-        });
       } else {
         await likePost(
           currentUserId,
@@ -103,12 +137,20 @@ export default function PostDetailScreen() {
           profile?.username || 'Anonymous',
           profile?.profileImage
         );
-        setPost({
-          ...post,
-          isLiked: true,
-          likes: (post.likes || 0) + 1,
-        });
       }
+      
+      // Get updated likes count and like status from the database
+      const { getPostLikesCount, hasUserLikedPost } = await import('../../services/likes');
+      const [updatedLikesCount, isLiked] = await Promise.all([
+        getPostLikesCount(post.id),
+        hasUserLikedPost(currentUserId, post.id)
+      ]);
+      
+      setPost({
+        ...post,
+        isLiked: isLiked,
+        likes: updatedLikesCount,
+      });
     } catch (error) {
       console.error('Failed to like/unlike post:', error);
     }
@@ -126,13 +168,19 @@ export default function PostDetailScreen() {
         currentUserId,
         profile?.username || 'Anonymous',
         profile?.profileImage,
-        commentText.trim()
+        commentText.trim(),
+        replyingTo?.id, // Pass the parent comment ID if replying
+        undefined // imageUrl
       );
 
       // Reload comments
       const updatedComments = await getPostComments(post.id);
       setComments(updatedComments);
       setCommentText('');
+      setReplyingTo(null); // Clear reply state
+      
+      // Dismiss keyboard
+      Keyboard.dismiss();
       
       // Update comments count
       setPost({
@@ -175,20 +223,137 @@ export default function PostDetailScreen() {
       if (!post?.isLiked) {
         handleLike();
       }
+    } else {
+      // Single tap - show fullscreen after delay
+      setTimeout(() => {
+        if (Date.now() - lastTap.current >= DOUBLE_TAP_DELAY) {
+          setCurrentZoom(1); // Reset zoom when opening fullscreen
+          setShowFullscreen(true);
+        }
+      }, DOUBLE_TAP_DELAY);
     }
     lastTap.current = now;
   };
 
+  const handleImagePress = (imageIndex: number = 0) => {
+    setCurrentImageIndex(imageIndex);
+    setCurrentZoom(1); // Reset zoom when opening fullscreen
+    setShowFullscreen(true);
+  };
+
   const handleUserPress = () => {
     if (post?.userId) {
+      // Always navigate to user profile page (even for own profile) to show back button
       router.push(`/user/${post.userId}` as any);
     }
+  };
+
+  const handleReply = (commentId: string, username: string) => {
+    // Find the comment being replied to
+    const findComment = (comments: Comment[], id: string): Comment | null => {
+      for (const comment of comments) {
+        if (comment.id === id) return comment
+        if (comment.replies) {
+          const found = findComment(comment.replies, id)
+          if (found) return found
+        }
+      }
+      return null
+    }
+
+    const targetComment = findComment(comments, commentId)
+    
+    // If replying to a reply, use the parent comment ID to keep replies flat
+    const parentId = targetComment?.parentCommentId || commentId
+
+    setReplyingTo({ id: parentId, username })
+    setCommentText(`@${username} `)
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    try {
+      await deleteComment(commentId, post?.id || '')
+      // Reload comments to get updated structure
+      const commentsData = await getPostComments(post?.id || '')
+      setComments(commentsData)
+    } catch (error) {
+      console.error("Error deleting comment:", error)
+    }
+  };
+
+  const handleCancelReply = () => {
+    setReplyingTo(null)
+    setCommentText("")
+  };
+
+  const handleDeletePost = async () => {
+    if (!post || !currentUserId) return;
+    
+    try {
+      Alert.alert(
+        'Delete Post',
+        'Are you sure you want to delete this post? This action cannot be undone.',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                const { deletePost } = await import('../../services/posts');
+                await deletePost(post.id, currentUserId);
+                
+                Alert.alert('Success', 'Post deleted successfully', [
+                  {
+                    text: 'OK',
+                    onPress: () => router.back() // Navigate back after successful deletion
+                  }
+                ]);
+              } catch (error: any) {
+                console.error('Error deleting post:', error);
+                Alert.alert('Error', error.message || 'Failed to delete post');
+              }
+            },
+          },
+        ]
+      );
+    } catch (error: any) {
+      console.error('Error deleting post:', error);
+      Alert.alert('Error', error.message || 'Failed to delete post');
+    }
+  };
+
+  const handleFullscreenDoubleTap = () => {
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300;
+
+    if (now - lastFullscreenTap.current < DOUBLE_TAP_DELAY) {
+      // Double tap - toggle zoom
+      const newZoom = currentZoom === 1 ? 2 : 1;
+      setCurrentZoom(newZoom);
+    } else {
+      // Single tap - close if not zoomed
+      setTimeout(() => {
+        if (Date.now() - lastFullscreenTap.current >= DOUBLE_TAP_DELAY && currentZoom <= 1.1) {
+          setShowFullscreen(false);
+        }
+      }, DOUBLE_TAP_DELAY);
+    }
+    lastFullscreenTap.current = now;
   };
 
   const formatDate = (date: any) => {
     if (!date) return '';
     const d = date instanceof Date ? date : new Date(date);
     return formatDistanceToNow(d, { addSuffix: true });
+  };
+
+  // Function to remove hashtags from caption text
+  const removeHashtagsFromText = (text: string) => {
+    return text.replace(/#\w+/g, '').replace(/\s+/g, ' ').trim();
   };
 
   if (loading) {
@@ -227,11 +392,11 @@ export default function PostDetailScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
       >
         {/* Header */}
         <View style={styles.header}>
@@ -239,7 +404,7 @@ export default function PostDetailScreen() {
             <Ionicons name="arrow-back" size={24} color="#262626" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Post</Text>
-          <TouchableOpacity style={styles.moreButton}>
+          <TouchableOpacity style={styles.moreButton} onPress={() => setOptionsVisible(true)}>
             <Ionicons name="ellipsis-horizontal" size={24} color="#262626" />
           </TouchableOpacity>
         </View>
@@ -261,36 +426,39 @@ export default function PostDetailScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Post Image */}
-          {post.imageUrl && (
-            <TouchableWithoutFeedback onPress={handleDoubleTap}>
-              <View style={{ position: 'relative' }}>
-                <Image
-                  source={{ uri: post.imageUrl }}
-                  style={styles.postImage}
-                  resizeMode="cover"
-                />
-                {showHeart && (
-                  <Animated.View
-                    pointerEvents="none"
-                    style={[
-                      styles.heartOverlay,
-                      { transform: [{ scale: heartScale }] },
-                    ]}
-                  >
-                    <Ionicons
-                      name="heart"
-                      size={60}
-                      color="#FFFFFF"
-                      style={{
-                        textShadowColor: 'rgba(0,0,0,0.35)',
-                        textShadowRadius: 8,
-                      }}
-                    />
-                  </Animated.View>
-                )}
-              </View>
-            </TouchableWithoutFeedback>
+          {/* Post Image(s) */}
+          {((post.imageUrls && post.imageUrls.length > 0) || post.imageUrl) && (
+            <View style={{ position: 'relative' }}>
+              <MultiImageViewer
+                imageUrls={post.imageUrls && post.imageUrls.length > 0 ? post.imageUrls : (post.imageUrl ? [post.imageUrl] : [])}
+                onDoublePress={() => {
+                  triggerLikeAnimation();
+                  if (!post.isLiked) {
+                    handleLike();
+                  }
+                }}
+                onSinglePress={handleImagePress}
+              />
+              {showHeart && (
+                <Animated.View
+                  pointerEvents="none"
+                  style={[
+                    styles.heartOverlay,
+                    { transform: [{ scale: heartScale }] },
+                  ]}
+                >
+                  <Ionicons
+                    name="heart"
+                    size={60}
+                    color="#FFFFFF"
+                    style={{
+                      textShadowColor: 'rgba(0,0,0,0.35)',
+                      textShadowRadius: 8,
+                    }}
+                  />
+                </Animated.View>
+              )}
+            </View>
           )}
 
           {/* Actions */}
@@ -323,10 +491,10 @@ export default function PostDetailScreen() {
           ) : null}
 
           {/* Caption */}
-          {post.caption && (
+          {post.caption && removeHashtagsFromText(post.caption).length > 0 && (
             <View style={styles.captionContainer}>
               <Text style={styles.captionUsername}>{displayUsername} </Text>
-              <Text style={styles.captionText}>{post.caption}</Text>
+              <Text style={styles.captionText}>{removeHashtagsFromText(post.caption)}</Text>
             </View>
           )}
 
@@ -335,7 +503,7 @@ export default function PostDetailScreen() {
             <View style={styles.hashtagsContainer}>
               {post.hashtags.map((tag, index) => (
                 <Text key={index} style={styles.hashtag}>
-                  #{tag}{' '}
+                  {tag}{' '}
                 </Text>
               ))}
             </View>
@@ -354,37 +522,51 @@ export default function PostDetailScreen() {
               </View>
             ) : (
               comments.map((comment) => (
-                <View key={comment.id} style={styles.commentItem}>
-                  <Image
-                    source={{
-                      uri: comment.userProfileImage || 'https://i.pravatar.cc/150?img=2',
-                    }}
-                    style={styles.commentAvatar}
-                  />
-                  <View style={styles.commentContent}>
-                    <View style={styles.commentHeader}>
-                      <Text style={styles.commentUsername}>{comment.username}</Text>
-                      <Text style={styles.commentTime}>{formatDate(comment.createdAt)}</Text>
-                    </View>
-                    <Text style={styles.commentText}>{comment.text}</Text>
-                  </View>
-                </View>
+                <CommentItem
+                  key={comment.id}
+                  comment={comment}
+                  onDelete={handleDeleteComment}
+                  onReply={handleReply}
+                  onUserPress={(userId: string) => {
+                    // Always navigate to user profile page (even for own profile) to show back button
+                    router.push(`/user/${userId}` as any);
+                  }}
+                />
               ))
             )}
           </View>
         </ScrollView>
 
+        {/* Reply indicator */}
+        {replyingTo && (
+          <View style={styles.replyIndicator}>
+            <View style={styles.replyIndicatorContent}>
+              <Ionicons name="arrow-undo-outline" size={14} color="#8e8e8e" style={styles.replyIcon} />
+              <Text style={styles.replyingText}>
+                Replying to @{replyingTo.username}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={handleCancelReply} style={styles.cancelReplyBtn}>
+              <Ionicons name="close" size={16} color="#8e8e8e" />
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Comment Input */}
         <View style={styles.commentInputContainer}>
-          <Image
-            source={{
-              uri: displayUserImage || 'https://i.pravatar.cc/150?img=1',
-            }}
-            style={styles.commentInputAvatar}
-          />
+          {currentUserAvatar ? (
+            <Image
+              source={{ uri: currentUserAvatar }}
+              style={styles.commentInputAvatar}
+            />
+          ) : (
+            <View style={[styles.commentInputAvatar, { backgroundColor: '#E1E8ED', justifyContent: 'center', alignItems: 'center' }]}>
+              <Text style={{ fontSize: 14, color: '#657786' }}>?</Text>
+            </View>
+          )}
           <TextInput
             style={styles.commentInput}
-            placeholder="Add a comment..."
+            placeholder={replyingTo ? `Reply to @${replyingTo.username}...` : "Add a comment..."}
             value={commentText}
             onChangeText={setCommentText}
             multiline
@@ -410,6 +592,119 @@ export default function PostDetailScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Fullscreen Image Modal */}
+      <Modal
+        visible={showFullscreen}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowFullscreen(false)}
+      >
+        <View style={styles.fullscreenContainer}>
+          <TouchableOpacity 
+            style={styles.fullscreenCloseButton}
+            onPress={() => setShowFullscreen(false)}
+          >
+            <Ionicons name="close" size={30} color="#fff" />
+          </TouchableOpacity>
+          
+          {currentZoom > 1 && (
+            <View style={styles.zoomIndicator}>
+              <Text style={styles.zoomText}>{currentZoom.toFixed(1)}x</Text>
+            </View>
+          )}
+          
+          {(() => {
+            const images = post?.imageUrls && post.imageUrls.length > 0 ? post.imageUrls : (post?.imageUrl ? [post.imageUrl] : []);
+            const currentImage = images[currentImageIndex] || images[0];
+            
+            return (
+              <>
+                {/* Image counter for multiple images */}
+                {images.length > 1 && (
+                  <View style={styles.fullscreenImageCounter}>
+                    <Text style={styles.fullscreenCounterText}>
+                      {currentImageIndex + 1} of {images.length}
+                    </Text>
+                  </View>
+                )}
+                
+                <ScrollView
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.fullscreenImageScroll}
+                  contentOffset={{ x: currentImageIndex * Dimensions.get('window').width, y: 0 }}
+                  onScroll={(event) => {
+                    const newIndex = Math.round(event.nativeEvent.contentOffset.x / Dimensions.get('window').width);
+                    setCurrentImageIndex(newIndex);
+                  }}
+                  scrollEventThrottle={16}
+                >
+                  {images.map((imageUrl, index) => (
+                    <ScrollView
+                      key={index}
+                      style={styles.scrollViewContainer}
+                      contentContainerStyle={styles.scrollViewContent}
+                      minimumZoomScale={1}
+                      maximumZoomScale={3}
+                      bouncesZoom={true}
+                      showsHorizontalScrollIndicator={false}
+                      showsVerticalScrollIndicator={false}
+                      centerContent={true}
+                    >
+                      <TouchableWithoutFeedback onPress={handleFullscreenDoubleTap}>
+                        <Image
+                          source={{ uri: imageUrl }}
+                          style={styles.fullscreenImage}
+                          resizeMode="contain"
+                        />
+                      </TouchableWithoutFeedback>
+                    </ScrollView>
+                  ))}
+                </ScrollView>
+              </>
+            );
+          })()}
+        </View>
+      </Modal>
+
+      {/* Post options modal */}
+      <Modal
+        animationType="fade"
+        transparent
+        visible={optionsVisible}
+        onRequestClose={() => setOptionsVisible(false)}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={() => setOptionsVisible(false)}>
+          <View style={styles.optionsCard}>
+            {isOwnPost ? (
+              // Options for user's own posts
+              <>
+                <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); handleDeletePost(); }}>
+                  <Text style={[styles.optionText, styles.optionDanger]}>Delete Post</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); router.push(`/post/edit/${post.id}` as any); }}>
+                  <Text style={styles.optionText}>Edit Post</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              // Options for other users' posts
+              <>
+                <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); Alert.alert('Report', 'Report flow not implemented yet'); }}>
+                  <Text style={[styles.optionText, styles.optionDanger]}>Report</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); Alert.alert('Unfollow', `Unfollow ${displayUsername} (not implemented)`); }}>
+                  <Text style={styles.optionText}>Unfollow</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            <TouchableOpacity style={styles.optionItem} onPress={() => setOptionsVisible(false)}>
+              <Text style={[styles.optionText, styles.optionCancel]}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -533,8 +828,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#0095F6',
   },
-  commentsSection: {
+  viewCommentsButton: {
     paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  viewCommentsText: {
+    color: '#8e8e8e',
+    fontSize: 14,
+  },
+  commentsSection: {
+    paddingHorizontal: 4,
     paddingVertical: 12,
     borderTopWidth: 1,
     borderTopColor: '#EFEFEF',
@@ -565,9 +868,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   commentAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 35,
+    height: 35,
+    borderRadius: 17.5,
   },
   commentContent: {
     flex: 1,
@@ -579,18 +882,24 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   commentUsername: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: '#262626',
   },
   commentTime: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#8E8E8E',
   },
   commentText: {
     fontSize: 14,
     color: '#262626',
-    lineHeight: 18,
+    lineHeight: 20,
+  },
+  commentImage: {
+    width: 132,
+    height: 132,
+    borderRadius: 9,
+    marginTop: 8,
   },
   commentInputContainer: {
     flexDirection: 'row',
@@ -602,9 +911,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   commentInputAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 35,
+    height: 35,
+    borderRadius: 17.5,
   },
   commentInput: {
     flex: 1,
@@ -625,6 +934,31 @@ const styles = StyleSheet.create({
   sendButtonTextDisabled: {
     color: '#B0D4F1',
   },
+  replyIndicator: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: "#f8f9fa",
+    borderTopWidth: 1,
+    borderTopColor: "#efefef",
+  },
+  replyIndicatorContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  replyIcon: {
+    marginRight: 6,
+  },
+  replyingText: {
+    fontSize: 13,
+    color: "#262626",
+    fontWeight: "500",
+  },
+  cancelReplyBtn: {
+    padding: 4,
+  },
   heartOverlay: {
     position: 'absolute',
     top: 0,
@@ -634,5 +968,104 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     opacity: 0.9,
+  },
+  fullscreenContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullscreenCloseButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 1,
+    padding: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 25,
+  },
+  zoomIndicator: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    zIndex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 15,
+  },
+  zoomText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  fullscreenImageCounter: {
+    position: 'absolute',
+    top: 50,
+    left: '50%',
+    transform: [{ translateX: -50 }],
+    zIndex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 15,
+  },
+  fullscreenCounterText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  fullscreenImageScroll: {
+    flex: 1,
+    width: '100%',
+  },
+  fullscreenImage: {
+    width: Dimensions.get('window').width,
+    height: Dimensions.get('window').height,
+  },
+  imageContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scrollViewContainer: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  scrollViewContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  optionsCard: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    margin: 8,
+  },
+  optionItem: {
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  optionText: {
+    fontSize: 16,
+    color: '#262626',
+  },
+  optionDanger: {
+    color: '#ED4956',
+    fontWeight: '700',
+  },
+  optionCancel: {
+    color: '#262626',
+    fontWeight: '600',
   },
 });
