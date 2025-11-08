@@ -25,7 +25,7 @@ import {
 import {
   MOCK_STORIES,
 } from '../../services/mockData';
-import { fetchFeedPosts, fetchPosts } from '../../services/posts';
+import { fetchFeedPosts, fetchPosts, hasUserBookmarkedPost } from '../../services/posts';
 import { Post } from '../../types';
 // import { getRecommendedPosts } from '../../services/recommendation';
 import { AuthService } from '../../services/authService';
@@ -38,6 +38,7 @@ export default function HomeScreen() {
   const [activeTab, setActiveTab] = useState<FeedTab>('for-you');
   const [showStories, setShowStories] = useState(true);
   const [suggestedUsers, setSuggestedUsers] = useState<SuggestedUser[]>([]);
+  const [bookmarkedMap, setBookmarkedMap] = useState<{[postId: string]: boolean}>({});
 
   const loadForYou = useCallback(async () => {
     try {
@@ -211,6 +212,19 @@ export default function HomeScreen() {
     loadSuggestedUsers();
   }, [loadSuggestedUsers]);
 
+  useEffect(() => {
+    async function fetchBookmarks() {
+      const currentUser = await AuthService.getCurrentUserProfile();
+      if (!currentUser) return;
+      const map: {[postId: string]: boolean} = {};
+      for (const post of posts) {
+        map[post.id] = await hasUserBookmarkedPost(currentUser.id, post.id);
+      }
+      setBookmarkedMap(map);
+    }
+    if (posts.length > 0) fetchBookmarks();
+  }, [posts]);
+
   // Memoize stories data
   const stories: Story[] = useMemo(() => MOCK_STORIES, []);
 
@@ -257,6 +271,7 @@ export default function HomeScreen() {
               <React.Fragment key={post.id}>
                 <PostCard 
                   post={post}
+                  bookmarked={bookmarkedMap[post.id]}
                   onLike={handleLike}
                   onComment={handleComment}
                   onShare={handleShare}
