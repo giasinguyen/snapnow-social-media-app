@@ -14,6 +14,7 @@ import MultiImageViewer from './MultiImageViewer';
 
 interface PostCardProps {
   post: Post;
+  bookmarked?: boolean;
   onLike?: (id: string, liked: boolean) => void;
   onComment?: (id: string) => void;
   onShare?: (id: string) => void;
@@ -21,10 +22,10 @@ interface PostCardProps {
   onDelete?: (id: string) => void; // Add delete callback
 }
 
-const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment, onShare, onPress, onDelete }) => {
+const PostCard: React.FC<PostCardProps> = React.memo(({ post, bookmarked: bookmarkedProp, onLike, onComment, onShare, onPress, onDelete }) => {
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(post.likes || 0);
-  const [bookmarked, setBookmarked] = useState(false);
+  const [bookmarked, setBookmarked] = useState(!!bookmarkedProp);
   const [savesCount, setSavesCount] = useState(post.savesCount || 0);
   const [commentsModalVisible, setCommentsModalVisible] = useState(false);
   const [optionsVisible, setOptionsVisible] = useState(false);
@@ -93,6 +94,10 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment,
       })();
     }
   }, [post.userId]);
+
+  useEffect(() => {
+    setBookmarked(!!bookmarkedProp);
+  }, [bookmarkedProp]);
 
   const triggerLikeAnimation = useCallback(() => {
     setShowHeart(true);
@@ -185,16 +190,22 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, onLike, onComment,
       setBookmarked(newSavedState);
       setSavesCount(prev => newSavedState ? prev + 1 : prev - 1);
 
+      // Thực hiện lưu/huỷ lưu xuống database
       if (newSavedState) {
         await savePost(post.id, currentUser.uid);
       } else {
         await unsavePost(post.id, currentUser.uid);
       }
+
+      // Lấy lại số lượng saves thực tế từ database
+      const { getPostSavesCount } = await import('../services/posts');
+      const realCount = await getPostSavesCount(post.id);
+      setSavesCount(realCount);
     } catch (error) {
       console.error('Error toggling bookmark:', error);
       // Revert on error
       setBookmarked(bookmarked);
-      setSavesCount(prev => bookmarked ? prev - 1 : prev + 1);
+      setSavesCount(prev => bookmarked ? prev : prev);
       Alert.alert('Error', 'Failed to save post. Please try again.');
     }
   }, [bookmarked, post.id]);

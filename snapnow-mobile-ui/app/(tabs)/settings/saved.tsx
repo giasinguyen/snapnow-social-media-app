@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { PostCard } from '../../../components/PostCard';
+import PostCard from '../../../components/PostCard';
 import { auth } from '../../../config/firebase';
-import { getSavedPosts } from '../../../services/posts';
+import { getSavedPosts, hasUserBookmarkedPost } from '../../../services/posts';
 import { Post } from '../../../types';
 import { COLORS, SPACING, TYPOGRAPHY } from '../../../src/constants/theme';
 
@@ -11,6 +11,7 @@ export default function SavedScreen() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [bookmarkedMap, setBookmarkedMap] = useState<{[postId: string]: boolean}>({});
 
   const loadSavedPosts = async () => {
     if (!auth.currentUser) return;
@@ -35,8 +36,20 @@ export default function SavedScreen() {
     loadSavedPosts();
   }, []);
 
+  useEffect(() => {
+    async function fetchBookmarks() {
+      if (!auth.currentUser) return;
+      const map: {[postId: string]: boolean} = {};
+      for (const post of posts) {
+        map[post.id] = true; // Ở trang Saved, tất cả đều đã bookmark
+      }
+      setBookmarkedMap(map);
+    }
+    fetchBookmarks();
+  }, [posts]);
+
   const renderPost = ({ item }: { item: Post }) => (
-    <PostCard post={item} onPostDeleted={() => loadSavedPosts()} />
+    <PostCard post={item} bookmarked={bookmarkedMap[item.id]} onDelete={() => loadSavedPosts()} />
   );
 
   return (
@@ -58,7 +71,7 @@ export default function SavedScreen() {
         <FlatList
           data={posts}
           renderItem={renderPost}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) => item.id + '_' + index}
           onRefresh={handleRefresh}
           refreshing={refreshing}
           contentContainerStyle={styles.content}

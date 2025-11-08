@@ -45,18 +45,20 @@ export async function getSavedPosts(userId: string): Promise<Post[]> {
       return [];
     }
 
-    // Then fetch the actual posts
-    const postsQuery = query(
-      collection(db, "posts"),
-      where("id", "in", savedPostIds)
-    );
-    const postsSnap = await getDocs(postsQuery);
-    
-    return postsSnap.docs.map(doc => ({
-      id: doc.id,
-      ...(doc.data() as any),
-      createdAt: doc.data().createdAt?.toDate?.() || new Date(),
-    }));
+    // Fetch each post by id
+    const posts: Post[] = [];
+    for (const postId of savedPostIds) {
+      const postDoc = await getDoc(doc(db, "posts", postId));
+      if (postDoc.exists()) {
+        const data = postDoc.data() as any;
+        posts.push({
+          id: postDoc.id,
+          ...data,
+          createdAt: data.createdAt?.toDate?.() || new Date(),
+        });
+      }
+    }
+    return posts;
   } catch (error) {
     console.error("Error getting saved posts:", error);
     return [];
@@ -262,6 +264,20 @@ export async function getPostsByHashtag(hashtag: string): Promise<Post[]> {
   }
 }
 
+export async function hasUserBookmarkedPost(userId: string, postId: string): Promise<boolean> {
+  try {
+    const q = query(
+      collection(db, "saves"),
+      where("userId", "==", userId),
+      where("postId", "==", postId)
+    );
+    const snap = await getDocs(q);
+    return !snap.empty;
+  } catch (error) {
+    console.error("Error checking bookmark status:", error);
+    return false;
+  }
+}
 
 export async function fetchFeedPostsPaginated(userId: string, page: number = 1): Promise<Post[]> {
   try {
@@ -364,6 +380,20 @@ export async function fetchUserPosts(userId: string): Promise<Post[]> {
   }
 }
 
+export async function getPostSavesCount(postId: string): Promise<number> {
+  try {
+    const savesQuery = query(
+      collection(db, "saves"),
+      where("postId", "==", postId)
+    );
+    const savesSnap = await getDocs(savesQuery);
+    return savesSnap.size;
+  } catch (error) {
+    console.error("Error getting saves count:", error);
+    return 0;
+  }
+}
+
 export default {
   fetchPosts,
   fetchFeedPosts,
@@ -378,4 +408,5 @@ export default {
   getPostsByHashtag,
   searchPosts,
   extractHashtags,
+  hasUserBookmarkedPost,
 }
