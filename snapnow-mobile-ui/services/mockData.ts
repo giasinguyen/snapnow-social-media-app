@@ -32,6 +32,7 @@ export interface MockStory {
   userId: string;
   username: string;
   avatar: string;
+  image: string;
   hasStory: boolean;
   isYourStory?: boolean;
 }
@@ -243,6 +244,8 @@ export const MOCK_STORIES: MockStory[] = [
     avatar: 'https://i.pravatar.cc/150?img=1',
     hasStory: false,
     isYourStory: true,
+    image:  'https://picsum.photos/seed/haphu/1080/1920',
+  
   },
   {
     id: 'story1',
@@ -250,6 +253,7 @@ export const MOCK_STORIES: MockStory[] = [
     username: 'jane_smith',
     avatar: 'https://i.pravatar.cc/150?img=5',
     hasStory: true,
+     image:  'https://picsum.photos/1080/1920?random=2',
   },
   {
     id: 'story2',
@@ -257,6 +261,7 @@ export const MOCK_STORIES: MockStory[] = [
     username: 'john_doe',
     avatar: 'https://i.pravatar.cc/150?img=12',
     hasStory: true,
+     image:  'https://picsum.photos/seed/haphu/1080/1920',
   },
   {
     id: 'story3',
@@ -264,6 +269,7 @@ export const MOCK_STORIES: MockStory[] = [
     username: 'mike_wilson',
     avatar: 'https://i.pravatar.cc/150?img=13',
     hasStory: true,
+     image:  'https://picsum.photos/1080/1920?random=2',
   },
   {
     id: 'story4',
@@ -271,6 +277,7 @@ export const MOCK_STORIES: MockStory[] = [
     username: 'sarah_jones',
     avatar: 'https://i.pravatar.cc/150?img=9',
     hasStory: true,
+     image:  'https://picsum.photos/seed/haphu/1080/1920',
   },
   {
     id: 'story5',
@@ -278,6 +285,7 @@ export const MOCK_STORIES: MockStory[] = [
     username: 'chris_martin',
     avatar: 'https://i.pravatar.cc/150?img=52',
     hasStory: true,
+     image:  'https://picsum.photos/1080/1920?random=2',
   },
   {
     id: 'story6',
@@ -285,6 +293,7 @@ export const MOCK_STORIES: MockStory[] = [
     username: 'lisa_taylor',
     avatar: 'https://i.pravatar.cc/150?img=20',
     hasStory: true,
+     image:  'https://picsum.photos/1080/1920?grayscale',
   },
 ];
 
