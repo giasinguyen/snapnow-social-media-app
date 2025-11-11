@@ -53,6 +53,10 @@ export default function SettingsLayout() {
         name="email-notifications"
         options={{ title: 'Email Notifications' }}
       />
+      <Stack.Screen
+        name="activity-history"
+        options={{ title: 'Activity History' }}
+      />
     </Stack>
   );
 }

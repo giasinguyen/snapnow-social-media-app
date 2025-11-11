@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
-import React, { useCallback, useState } from 'react'
-import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import React, { useCallback, useRef, useState } from 'react'
+import { Alert, Animated, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { auth } from '../config/firebase'
 import { likeComment, unlikeComment } from '../services/comments'
 import { Comment } from '../types'
@@ -11,29 +11,35 @@ interface CommentItemProps {
   onReply?: (id: string, username: string) => void
   onUserPress?: (userId: string) => void
   isReply?: boolean // To distinguish replies from main comments
-  level?: number // Nesting level for indentation
 }
 
-export default function CommentItem({ comment, onDelete, onReply, onUserPress, isReply = false, level = 0 }: CommentItemProps) {
+export default function CommentItem({ comment, onDelete, onReply, onUserPress, isReply = false }: CommentItemProps) {
   const [liked, setLiked] = useState(!!comment.isLiked)
   const [likesCount, setLikesCount] = useState(comment.likesCount || 0)
   const [showReplies, setShowReplies] = useState(false)
   const [showAllReplies, setShowAllReplies] = useState(false)
-
-  // Debug log to verify component is being rendered
-  console.log('CommentItem rendering:', {
-    username: comment.username, 
-    text: comment.text.slice(0, 20) + '...', 
-    isReply,
-    hasReplies: !!comment.replies?.length,
-    repliesCount: comment.replies?.length || 0
-  })
+  const scaleAnim = useRef(new Animated.Value(1)).current
 
   const repliesCount = comment.replies?.length || 0
   const INITIAL_REPLIES_COUNT = 5
   const visibleReplies = showAllReplies 
     ? comment.replies 
     : comment.replies?.slice(0, INITIAL_REPLIES_COUNT)
+
+  const animateHeart = () => {
+    Animated.sequence([
+      Animated.timing(scaleAnim, {
+        toValue: 1.3,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start()
+  }
 
   const toggleLike = useCallback(async () => {
     try {
@@ -44,6 +50,7 @@ export default function CommentItem({ comment, onDelete, onReply, onUserPress, i
       } else {
         await likeComment(comment.id)
         setLikesCount((c) => c + 1)
+        animateHeart()
       }
       setLiked((s) => !s)
     } catch (err) {
@@ -109,63 +116,80 @@ export default function CommentItem({ comment, onDelete, onReply, onUserPress, i
           )}
         </TouchableOpacity>
 
-        <View style={styles.content}>
-          <View style={[styles.commentHeader, isReply && styles.replyCommentHeader]}>
-            <TouchableOpacity onPress={handleUserPress}>
-              <Text style={[
-                styles.username, 
-                isReply && styles.replyUsername
-              ]}>
-                {comment.username}
-              </Text>
-            </TouchableOpacity>
-            <Text style={[styles.time, isReply && styles.replyTime]}>{formatTime(comment.createdAt)}</Text>
-          </View>
-          
-          <Text style={[
-            styles.text, 
-            isReply && styles.replyText
-          ]}>
-            {renderTextWithMentions(comment.text)}
-          </Text>
-          
-          {/* Display comment image if exists */}
-          {comment.imageUrl && (
-            <Image 
-              source={{ uri: comment.imageUrl }} 
-              style={[styles.commentImage, isReply && styles.replyCommentImage]} 
-            />
-          )}
-          <View style={styles.metaRow}>
-            <TouchableOpacity onPress={toggleLike} style={styles.actionBtn}>
-              <View style={styles.actionBtnContent}>
-                {liked && <Ionicons name="heart" size={12} color="#ed4956" style={styles.heartIcon} />}
-                <Text style={[styles.actionText, isReply && styles.replyActionText, liked && styles.likedText]}>
-                  {likesCount > 0 ? `${likesCount} ${likesCount === 1 ? 'like' : 'likes'}` : 'Like'}
-                </Text>
+        <View style={styles.contentRow}>
+          <View style={styles.commentContent}>
+            <View style={[styles.commentHeader, isReply && styles.replyCommentHeader]}>
+              <View style={styles.usernameTimeRow}>
+                <TouchableOpacity onPress={handleUserPress}>
+                  <Text style={[
+                    styles.username, 
+                    isReply && styles.replyUsername
+                  ]}>
+                    {comment.username}
+                  </Text>
+                </TouchableOpacity>
+                <Text style={[styles.time, isReply && styles.replyTime]}>{formatTime(comment.createdAt)}</Text>
               </View>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleReply} style={styles.actionBtn}>
-              <Text style={[styles.actionText, isReply && styles.replyActionText]}>Reply</Text>
-            </TouchableOpacity>
-            {isOwn && (
-              <TouchableOpacity onPress={handleDelete} style={styles.actionBtn}>
-                <Text style={[styles.actionText, styles.deleteText]}>Delete</Text>
+            </View>
+            
+            <Text style={[
+              styles.text, 
+              isReply && styles.replyText
+            ]}>
+              {renderTextWithMentions(comment.text)}
+            </Text>
+          
+            {/* Display comment image if exists */}
+            {comment.imageUrl && (
+              <Image 
+                source={{ uri: comment.imageUrl }} 
+                style={[styles.commentImage, isReply && styles.replyCommentImage]} 
+              />
+            )}
+            
+            {/* Reply button */}
+            <View style={styles.replyRow}>
+              <TouchableOpacity onPress={handleReply}>
+                <Text style={[styles.replyText2, isReply && styles.replyText2Small]}>Reply</Text>
+              </TouchableOpacity>
+              {isOwn && (
+                <TouchableOpacity onPress={handleDelete} style={styles.deleteBtn}>
+                  <Text style={styles.deleteText2}>Delete</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Show replies toggle - only show if there are replies and this is not a reply itself */}
+            {!isReply && repliesCount > 0 && (
+              <TouchableOpacity 
+                onPress={() => setShowReplies(!showReplies)} 
+                style={styles.showRepliesBtn}
+              >
+                <Text style={styles.showRepliesText}>
+                  {showReplies ? 'Hide replies' : `${repliesCount} ${repliesCount === 1 ? 'reply' : 'replies'}`}
+                </Text>
               </TouchableOpacity>
             )}
           </View>
-
-          {/* Show replies toggle - only show if there are replies and this is not a reply itself */}
-          {!isReply && repliesCount > 0 && (
-            <TouchableOpacity 
-              onPress={() => setShowReplies(!showReplies)} 
-              style={styles.showRepliesBtn}
-            >
-              <Text style={styles.showRepliesText}>
-                {showReplies ? 'Hide replies' : `${repliesCount} ${repliesCount === 1 ? 'reply' : 'replies'}`}
-              </Text>
+          
+          <View style={styles.likeSection}>
+            <TouchableOpacity onPress={toggleLike} style={styles.likeButtonVertical}>
+              <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+                <Ionicons 
+                  name={liked ? "heart" : "heart-outline"} 
+                  size={14} 
+                  color={liked ? "#ed4956" : "#8e8e8e"} 
+                />
+              </Animated.View>
             </TouchableOpacity>
-          )}
+            <View style={styles.likeCountContainer}>
+              {likesCount > 0 && (
+                <Text style={[styles.likeCountVertical, isReply && styles.replyLikeCount]}>
+                  {likesCount.toLocaleString()}
+                </Text>
+              )}
+            </View>
+          </View>
         </View>
       </View>
 
@@ -180,7 +204,6 @@ export default function CommentItem({ comment, onDelete, onReply, onUserPress, i
               onReply={onReply}
               onUserPress={onUserPress}
               isReply={true}
-              level={level + 1}
             />
           ))}
           
@@ -219,56 +242,57 @@ function formatTime(date: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { paddingHorizontal: 8, paddingVertical: 9, backgroundColor: '#ffffff' },
+  container: { paddingHorizontal: 8, paddingVertical: 6, marginBottom: 4, backgroundColor: '#ffffff' },
   commentWrapper: { flexDirection: 'row', alignItems: 'flex-start' },
   replyWrapper: { 
     paddingLeft: 22, 
     backgroundColor: '#ffffff',
     marginLeft: 44,
-    paddingVertical: 7,
-    marginTop: 4
+    paddingVertical: 5,
+    marginTop: 2
   },
   avatar: { width: 35, height: 35, borderRadius: 17.5, marginRight: 13, backgroundColor: '#f0f0f0' },
-  replyAvatar: { width: 32, height: 32, borderRadius: 16 }, // Increased from 29 to 32
+  replyAvatar: { width: 32, height: 32, borderRadius: 16 },
   placeholder: { justifyContent: 'center', alignItems: 'center' },
   initials: { color: '#fff', fontWeight: '600', fontSize: 13 },
-  replyInitials: { color: '#fff', fontWeight: '600', fontSize: 12 }, // Increased from 11 to 12
+  replyInitials: { color: '#fff', fontWeight: '600', fontSize: 12 },
   content: { flex: 1 },
-  commentHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4, minHeight: 20 },
-  replyCommentHeader: { marginBottom: 3, minHeight: 18 },
-  commentLine: { marginBottom: 4, fontSize: 14, lineHeight: 18 },
-  replyCommentLine: { fontSize: 13, lineHeight: 16 },
-  commentContentRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 4 },
-  metaRow: { flexDirection: 'row', alignItems: 'center' },
-  row: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
-  username: { fontWeight: '600', marginRight: 7, fontSize: 14, lineHeight: 18, color: '#000000' },
-  replyUsername: { fontWeight: '600', marginRight: 4, fontSize: 13.5, lineHeight: 17, color: '#000000' }, // Increased from 13 to 13.5
-  time: { color: '#8e8e8e', fontSize: 13, lineHeight: 18, marginRight: 13 },
-  replyTime: { color: '#8e8e8e', fontSize: 12.5, lineHeight: 16, marginRight: 13 }, // Increased from 12 to 12.5
+  contentRow: { flexDirection: 'row', alignItems: 'flex-start', flex: 1 },
+  commentContent: { flex: 1 },
+  commentHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 1 },
+  replyCommentHeader: { marginBottom: 1 },
+  usernameTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  likeSection: { flexDirection: 'column', alignItems: 'center', paddingLeft: 8, paddingTop: 0 },
+  likeButtonVertical: { marginBottom: 0 },
+  likeCountContainer: {position: 'fixed', minHeight: 14, justifyContent: 'center', alignItems: 'center' },
+  likeCountVertical: { color: '#a5a3a3ff', fontSize: 11, fontWeight: '600' },
+  commentContentRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 0, justifyContent: 'space-between' },
+  username: { fontWeight: '600', fontSize: 14, lineHeight: 18, color: '#000000' },
+  replyUsername: { fontWeight: '600', fontSize: 13.5, lineHeight: 17, color: '#000000' },
+  time: { color: '#8e8e8e', fontSize: 12, fontWeight: '400' },
+  replyTime: { color: '#8e8e8e', fontSize: 11, fontWeight: '400' },
+  replyLikeCount: { color: '#a5a3a3ff', fontSize: 12, fontWeight: '600' },
   text: { color: '#000000', fontSize: 14, lineHeight: 18, flexShrink: 1 },
-  replyText: { color: '#000000', fontSize: 13.5, lineHeight: 17.5, flexShrink: 1 }, // Increased from 13/16 to 13.5/17.5
+  replyText: { color: '#000000', fontSize: 13.5, lineHeight: 17.5, flexShrink: 1 },
+  replyRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
+  replyText2: { color: '#a5a3a3ff', fontSize: 12, fontWeight: '600' },
+  replyText2Small: { fontSize: 11 },
+  deleteBtn: { marginLeft: 16 },
+  deleteText2: { color: '#f05c69ff', fontSize: 12, fontWeight: '600' },
   mention: { fontWeight: '700', color: '#000000' },
   replyMention: { fontWeight: '700', color: '#000000' },
   commentImage: { 
     width: 132, 
     height: 132, 
     borderRadius: 9, 
-    marginTop: 9, 
-    marginBottom: 4 
+    marginTop: 2, 
+    marginBottom: 1
   },
   replyCommentImage: { 
     width: 120, 
     height: 120, 
     borderRadius: 8 
   },
-  actionsRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  actionBtn: { marginRight: 18 },
-  actionBtnContent: { flexDirection: 'row', alignItems: 'center' },
-  actionText: { color: '#8e8e8e', fontSize: 13, fontWeight: '600' },
-  replyActionText: { color: '#8e8e8e', fontSize: 12.5, fontWeight: '600' }, // Increased from 12 to 12.5
-  heartIcon: { marginRight: 4 },
-  likedText: { color: '#ed4956' },
-  deleteText: { color: '#ed4956' },
   showRepliesBtn: { marginTop: 4 },
   showRepliesText: { color: '#8e8e8e', fontSize: 13, fontWeight: '600' },
   showMoreRepliesBtn: { paddingLeft: 48, marginTop: 9 },
