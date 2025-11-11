@@ -122,6 +122,52 @@ exports.getReports = asyncHandler(async (req, res) => {
 });
 
 /**
+ * @desc    Get report by ID
+ * @route   GET /api/moderation/reports/:reportId
+ * @access  Private/Admin
+ */
+exports.getReportById = asyncHandler(async (req, res) => {
+  const { reportId } = req.params;
+
+  const reportDoc = await db.collection('reports').doc(reportId).get();
+
+  if (!reportDoc.exists) {
+    return res.status(404).json({
+      success: false,
+      message: 'Report not found',
+    });
+  }
+
+  const reportData = reportDoc.data();
+
+  // Get reporter info
+  const reporterDoc = await db.collection('users').doc(reportData.reporterId).get();
+
+  // Get content info
+  let content = null;
+  if (reportData.contentType === 'post') {
+    const postDoc = await db.collection('posts').doc(reportData.contentId).get();
+    if (postDoc.exists) {
+      content = { id: postDoc.id, ...postDoc.data() };
+    }
+  }
+
+  res.status(200).json({
+    success: true,
+    data: {
+      id: reportDoc.id,
+      ...reportData,
+      reporter: reporterDoc.exists ? {
+        id: reporterDoc.id,
+        username: reporterDoc.data().username,
+        photoURL: reporterDoc.data().photoURL,
+      } : null,
+      content,
+    },
+  });
+});
+
+/**
  * @desc    Resolve a report
  * @route   PUT /api/moderation/reports/:reportId/resolve
  * @access  Private/Admin
