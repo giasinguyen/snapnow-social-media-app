@@ -258,6 +258,280 @@ class AnalyticsService {
       throw error;
     }
   }
+
+  /**
+   * Get users list with pagination and filters
+   */
+  async getUsersList(options = {}) {
+    try {
+      const { page = 1, limit = 20, search = '', sortBy = 'createdAt', sortOrder = 'desc' } = options;
+      
+      let query = this.db.collection('users');
+
+      // Apply search filter (by username or email)
+      if (search) {
+        query = query.where('username', '>=', search).where('username', '<=', search + '\uf8ff');
+      }
+
+      // Apply sorting
+      query = query.orderBy(sortBy, sortOrder);
+
+      // Get total count
+      const totalSnapshot = await query.count().get();
+      const total = totalSnapshot.data().count;
+
+      // Apply pagination
+      const offset = (page - 1) * limit;
+      const snapshot = await query.limit(limit).offset(offset).get();
+
+      const users = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      return {
+        users,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
+    } catch (error) {
+      console.error('Error getting users list:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get posts list with pagination and filters
+   */
+  async getPostsList(options = {}) {
+    try {
+      const { page = 1, limit = 20, userId = null, sortBy = 'createdAt', sortOrder = 'desc' } = options;
+      
+      let query = this.db.collection('posts');
+
+      // Filter by user
+      if (userId) {
+        query = query.where('userId', '==', userId);
+      }
+
+      // Apply sorting
+      query = query.orderBy(sortBy, sortOrder);
+
+      // Get total count
+      const totalSnapshot = await query.count().get();
+      const total = totalSnapshot.data().count;
+
+      // Apply pagination
+      const offset = (page - 1) * limit;
+      const snapshot = await query.limit(limit).offset(offset).get();
+
+      const posts = [];
+      for (const doc of snapshot.docs) {
+        const postData = doc.data();
+        
+        // Get user info
+        const userDoc = await this.db.collection('users').doc(postData.userId).get();
+        const userData = userDoc.exists ? userDoc.data() : null;
+
+        posts.push({
+          id: doc.id,
+          ...postData,
+          user: userData ? {
+            id: postData.userId,
+            username: userData.username,
+            profileImage: userData.profileImage,
+          } : null,
+        });
+      }
+
+      return {
+        posts,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
+    } catch (error) {
+      console.error('Error getting posts list:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get user details by ID
+   */
+  async getUserDetails(userId) {
+    try {
+      const userDoc = await this.db.collection('users').doc(userId).get();
+      
+      if (!userDoc.exists) {
+        const error = new Error('User not found');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const userData = userDoc.data();
+
+      // Get user's posts count
+      const postsSnapshot = await this.db.collection('posts').where('userId', '==', userId).count().get();
+      const postsCount = postsSnapshot.data().count;
+
+      // Get user's recent posts
+      const recentPostsSnapshot = await this.db.collection('posts')
+        .where('userId', '==', userId)
+        .orderBy('createdAt', 'desc')
+        .limit(5)
+        .get();
+
+      const recentPosts = recentPostsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      return {
+        id: userId,
+        ...userData,
+        postsCount,
+        recentPosts,
+      };
+    } catch (error) {
+      console.error('Error getting user details:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get post details by ID
+   */
+  async getPostDetails(postId) {
+    try {
+      const postDoc = await this.db.collection('posts').doc(postId).get();
+      
+      if (!postDoc.exists) {
+        const error = new Error('Post not found');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const postData = postDoc.data();
+
+      // Get user info
+      const userDoc = await this.db.collection('users').doc(postData.userId).get();
+      const userData = userDoc.exists ? userDoc.data() : null;
+
+      // Get comments count
+      const commentsSnapshot = await this.db.collection('comments').where('postId', '==', postId).count().get();
+      const commentsCount = commentsSnapshot.data().count;
+
+      // Get likes count
+      const likesSnapshot = await this.db.collection('likes').where('postId', '==', postId).count().get();
+      const likesCount = likesSnapshot.data().count;
+
+      // Get recent comments
+      const recentCommentsSnapshot = await this.db.collection('comments')
+        .where('postId', '==', postId)
+        .orderBy('createdAt', 'desc')
+        .limit(5)
+        .get();
+
+      const comments = [];
+      for (const doc of recentCommentsSnapshot.docs) {
+        const commentData = doc.data();
+        const commentUserDoc = await this.db.collection('users').doc(commentData.userId).get();
+        const commentUserData = commentUserDoc.exists ? commentUserDoc.data() : null;
+
+        comments.push({
+          id: doc.id,
+          ...commentData,
+          user: commentUserData ? {
+            id: commentData.userId,
+            username: commentUserData.username,
+            profileImage: commentUserData.profileImage,
+          } : null,
+        });
+      }
+
+      return {
+        id: postId,
+        ...postData,
+        user: userData ? {
+          id: postData.userId,
+          username: userData.username,
+          profileImage: userData.profileImage,
+          followersCount: userData.followersCount || 0,
+        } : null,
+        commentsCount,
+        likesCount,
+        recentComments: comments,
+      };
+    } catch (error) {
+      console.error('Error getting post details:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get content moderation statistics
+   */
+  async getModerationStats() {
+    try {
+      const [reportsSnap, flaggedPostsSnap, flaggedUsersSnap] = await Promise.all([
+        this.db.collection('reports').count().get(),
+        this.db.collection('reports').where('status', '==', 'pending').count().get(),
+        this.db.collection('users').where('isBanned', '==', true).count().get(),
+      ]);
+
+      // Get reports by type
+      const reportsSnapshot = await this.db.collection('reports').get();
+      const reportsByType = {};
+      reportsSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const type = data.reason || 'other';
+        reportsByType[type] = (reportsByType[type] || 0) + 1;
+      });
+
+      return {
+        totalReports: reportsSnap.data().count,
+        pendingReports: flaggedPostsSnap.data().count,
+        bannedUsers: flaggedUsersSnap.data().count,
+        reportsByType,
+      };
+    } catch (error) {
+      console.error('Error getting moderation stats:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Search users by username or email
+   */
+  async searchUsers(searchTerm) {
+    try {
+      if (!searchTerm || searchTerm.length < 2) {
+        return [];
+      }
+
+      const snapshot = await this.db.collection('users')
+        .where('username', '>=', searchTerm)
+        .where('username', '<=', searchTerm + '\uf8ff')
+        .limit(10)
+        .get();
+
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+    } catch (error) {
+      console.error('Error searching users:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new AnalyticsService();

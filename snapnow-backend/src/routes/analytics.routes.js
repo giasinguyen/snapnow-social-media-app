@@ -56,4 +56,46 @@ router.get('/top-posts', analyticsController.getTopPosts);
  */
 router.get('/recent-activity', analyticsController.getRecentActivity);
 
+/**
+ * @route   GET /api/analytics/users
+ * @desc    Get users list with pagination
+ * @access  Private/Admin
+ */
+router.get('/users', analyticsController.getUsersList);
+
+/**
+ * @route   GET /api/analytics/users/search
+ * @desc    Search users by username
+ * @access  Private/Admin
+ */
+router.get('/users/search', analyticsController.searchUsers);
+
+/**
+ * @route   GET /api/analytics/users/:userId
+ * @desc    Get user details by ID
+ * @access  Private/Admin
+ */
+router.get('/users/:userId', analyticsController.getUserDetails);
+
+/**
+ * @route   GET /api/analytics/posts
+ * @desc    Get posts list with pagination
+ * @access  Private/Admin
+ */
+router.get('/posts', analyticsController.getPostsList);
+
+/**
+ * @route   GET /api/analytics/posts/:postId
+ * @desc    Get post details by ID
+ * @access  Private/Admin
+ */
+router.get('/posts/:postId', analyticsController.getPostDetails);
+
+/**
+ * @route   GET /api/analytics/moderation
+ * @desc    Get content moderation statistics
+ * @access  Private/Admin
+ */
+router.get('/moderation', analyticsController.getModerationStats);
+
 module.exports = router;

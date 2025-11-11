@@ -40,3 +40,50 @@ exports.getRecentActivity = asyncHandler(async (req, res) => {
   const activity = await analyticsService.getRecentActivity(parseInt(limit));
   res.status(200).json({ success: true, data: activity });
 });
+
+exports.getUsersList = asyncHandler(async (req, res) => {
+  const { page, limit, search, sortBy, sortOrder } = req.query;
+  const result = await analyticsService.getUsersList({
+    page: parseInt(page) || 1,
+    limit: parseInt(limit) || 20,
+    search,
+    sortBy,
+    sortOrder,
+  });
+  res.status(200).json({ success: true, data: result });
+});
+
+exports.getPostsList = asyncHandler(async (req, res) => {
+  const { page, limit, userId, sortBy, sortOrder } = req.query;
+  const result = await analyticsService.getPostsList({
+    page: parseInt(page) || 1,
+    limit: parseInt(limit) || 20,
+    userId,
+    sortBy,
+    sortOrder,
+  });
+  res.status(200).json({ success: true, data: result });
+});
+
+exports.getUserDetails = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const user = await analyticsService.getUserDetails(userId);
+  res.status(200).json({ success: true, data: user });
+});
+
+exports.getPostDetails = asyncHandler(async (req, res) => {
+  const { postId } = req.params;
+  const post = await analyticsService.getPostDetails(postId);
+  res.status(200).json({ success: true, data: post });
+});
+
+exports.getModerationStats = asyncHandler(async (req, res) => {
+  const stats = await analyticsService.getModerationStats();
+  res.status(200).json({ success: true, data: stats });
+});
+
+exports.searchUsers = asyncHandler(async (req, res) => {
+  const { q } = req.query;
+  const users = await analyticsService.searchUsers(q);
+  res.status(200).json({ success: true, data: users });
+});
