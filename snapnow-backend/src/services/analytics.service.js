@@ -1,4 +1,4 @@
-const admin = require('../config/firebase.admin');
+const { getFirestore } = require('../config/firebase.admin');
 
 /**
  * Analytics Service
@@ -7,7 +7,7 @@ const admin = require('../config/firebase.admin');
 
 class AnalyticsService {
   constructor() {
-    this.db = admin.firestore();
+    this.db = getFirestore();
   }
 
   /**

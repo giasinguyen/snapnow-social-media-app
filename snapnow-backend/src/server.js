@@ -21,8 +21,7 @@ const analyticsRoutes = require('./routes/analytics.routes');
 const moderationRoutes = require('./routes/moderation.routes');
 
 // Import middleware
-const errorHandler = require('./middleware/errorHandler');
-const { notFound } = require('./middleware/errorHandler');
+const { errorHandler, notFound } = require('./middleware/errorHandler');
 
 // Initialize Express app
 const app = express();
