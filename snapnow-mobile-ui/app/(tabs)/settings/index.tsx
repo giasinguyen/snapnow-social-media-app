@@ -1,19 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState, useEffect } from 'react';
+import { doc, updateDoc } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
 import {
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TouchableOpacity,
-  View,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Switch,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AuthService } from '../../../services/authService';
-import { doc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../../../config/firebase';
+import { AuthService } from '../../../services/authService';
 
 interface SettingItemProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -285,7 +285,7 @@ export default function SettingsScreen() {
             icon="heart-outline"
             title="Your Activity"
             subtitle="See your activity history"
-            onPress={() => console.log('Activity')}
+            onPress={() => router.push('/(tabs)/settings/activity-history')}
           />
           <SettingItem
             icon="time-outline"
