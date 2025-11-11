@@ -127,9 +127,9 @@ class AnalyticsService {
 
       return {
         totalEngagements: totalLikes + totalComments,
-        avgLikesPerPost: totalPosts > 0 ? (totalLikes / totalPosts).toFixed(2) : 0,
-        avgCommentsPerPost: totalPosts > 0 ? (totalComments / totalPosts).toFixed(2) : 0,
-        engagementRate: totalPosts > 0 ? (((totalLikes + totalComments) / totalPosts) * 100).toFixed(2) : 0,
+        avgLikesPerPost: totalPosts > 0 ? parseFloat((totalLikes / totalPosts).toFixed(2)) : 0,
+        avgCommentsPerPost: totalPosts > 0 ? parseFloat((totalComments / totalPosts).toFixed(2)) : 0,
+        engagementRate: totalPosts > 0 ? parseFloat((((totalLikes + totalComments) / totalPosts) * 100).toFixed(2)) : 0,
       };
     } catch (error) {
       console.error('Error getting engagement metrics:', error);
