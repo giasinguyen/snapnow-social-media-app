@@ -6,7 +6,6 @@ import {
     getDocs,
     limit,
     onSnapshot,
-    orderBy,
     query,
     serverTimestamp,
     updateDoc,
@@ -64,10 +63,10 @@ export async function createNotification(
 // Get notifications for a user
 export async function getUserNotifications(userId: string, limitCount = 50): Promise<Notification[]> {
   try {
+    // Remove orderBy to avoid composite index requirement
     const notificationsQuery = query(
       collection(db, "notifications"),
       where("userId", "==", userId),
-      orderBy("createdAt", "desc"),
       limit(limitCount),
     )
 
@@ -83,7 +82,8 @@ export async function getUserNotifications(userId: string, limitCount = 50): Pro
       } as Notification)
     })
 
-    return notifications
+    // Sort by createdAt in memory
+    return notifications.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
   } catch (error) {
     console.error("Error getting notifications:", error)
     return []
@@ -158,10 +158,10 @@ export function subscribeToNotifications(
   userId: string,
   callback: (notifications: Notification[]) => void,
 ): () => void {
+  // Remove orderBy to avoid composite index requirement
   const notificationsQuery = query(
     collection(db, "notifications"),
     where("userId", "==", userId),
-    orderBy("createdAt", "desc"),
     limit(50),
   )
 
@@ -175,7 +175,13 @@ export function subscribeToNotifications(
         createdAt: data.createdAt?.toDate?.() || new Date(),
       } as Notification)
     })
-    callback(notifications)
+    
+    // Sort by createdAt in memory (newest first)
+    const sortedNotifications = notifications.sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+    )
+    
+    callback(sortedNotifications)
   })
 
   return unsubscribe

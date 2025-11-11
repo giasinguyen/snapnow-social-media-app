@@ -9,7 +9,11 @@ const rateLimit = require('express-rate-limit');
 // Load environment variables
 dotenv.config();
 
-// Import routes
+// Import Firebase Admin and initialize FIRST
+const { initializeFirebaseAdmin } = require('./config/firebase.admin');
+initializeFirebaseAdmin();
+
+// Import routes AFTER Firebase initialization
 const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
 const postRoutes = require('./routes/post.routes');
@@ -17,18 +21,11 @@ const analyticsRoutes = require('./routes/analytics.routes');
 const moderationRoutes = require('./routes/moderation.routes');
 
 // Import middleware
-const errorHandler = require('./middleware/errorHandler');
-const { notFound } = require('./middleware/errorHandler');
-
-// Import Firebase Admin
-const { initializeFirebaseAdmin } = require('./config/firebase.admin');
+const { errorHandler, notFound } = require('./middleware/errorHandler');
 
 // Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 5000;
-
-// Initialize Firebase Admin SDK
-initializeFirebaseAdmin();
 
 // Security middleware
 app.use(helmet());

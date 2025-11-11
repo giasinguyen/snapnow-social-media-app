@@ -64,12 +64,26 @@ const verifyFirebaseToken = asyncHandler(async (req, res, next) => {
  * Check if user is admin
  */
 const requireAdmin = asyncHandler(async (req, res, next) => {
-  if (!req.user || !req.user.isAdmin) {
-    const error = new Error('Access denied. Admin privileges required.');
-    error.statusCode = 403;
-    throw error;
+  // Check for JWT-based admin (from verifyToken)
+  if (req.user && req.user.isAdmin) {
+    return next();
   }
-  next();
+  
+  // Check for Firebase custom claims admin (from verifyFirebaseToken)
+  if (req.user && req.user.admin === true) {
+    return next();
+  }
+  
+  // For development: Allow all authenticated users to access analytics
+  // TODO: Remove this in production and implement proper admin custom claims
+  if (process.env.NODE_ENV === 'development' && req.user) {
+    console.warn('⚠️  Development mode: Allowing non-admin user to access admin routes');
+    return next();
+  }
+  
+  const error = new Error('Access denied. Admin privileges required.');
+  error.statusCode = 403;
+  throw error;
 });
 
 module.exports = {
