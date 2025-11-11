@@ -11,6 +11,7 @@ import {
     where,
 } from "firebase/firestore"
 import { db } from "../config/firebase"
+import { deleteLikeActivity, logLikeActivity } from "./activityHistory"
 import { createNotification } from "./notifications"
 
 export interface Like {
@@ -60,6 +61,9 @@ export async function likePost(
       const postData = postDoc.data()
       const postOwnerId = postData.userId
 
+      // Log activity
+      await logLikeActivity(userId, postId, postOwnerId, postData.imageUrl)
+
       // Don't notify if user likes their own post
       if (postOwnerId !== userId) {
         await createNotification(postOwnerId, "like", userId, username, userProfileImage, postId, postData.imageUrl)
@@ -84,6 +88,9 @@ export async function unlikePost(userId: string, postId: string): Promise<void> 
     await updateDoc(postRef, {
       likes: increment(-1),
     })
+
+    // Delete activity log
+    await deleteLikeActivity(userId, postId)
   } catch (error) {
     console.error("Error unliking post:", error)
     throw error

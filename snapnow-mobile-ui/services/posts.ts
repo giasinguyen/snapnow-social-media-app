@@ -1,19 +1,20 @@
 import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  increment,
-  orderBy,
-  query,
-  serverTimestamp,
-  updateDoc,
-  where,
+    addDoc,
+    collection,
+    deleteDoc,
+    doc,
+    getDoc,
+    getDocs,
+    increment,
+    orderBy,
+    query,
+    serverTimestamp,
+    updateDoc,
+    where,
 } from "firebase/firestore"
 import { db } from "../config/firebase"
 import { Post } from "../types"
+import { deletePostActivities, logPostActivity } from "./activityHistory"
 
 export async function fetchPosts(): Promise<Post[]> {
   const q = query(collection(db, "posts"), orderBy("createdAt", "desc"))
@@ -189,6 +190,11 @@ export async function createPost(postData: {
       commentsCount: 0,
       createdAt: serverTimestamp(),
     })
+
+    // Log post activity
+    const thumbnailUrl = postData.imageUrls?.[0] || postData.imageUrl
+    await logPostActivity(postData.userId, docRef.id, postData.caption, thumbnailUrl)
+
     return docRef.id
   } catch (error) {
     console.error("Error creating post:", error)
@@ -229,6 +235,9 @@ export async function deletePost(postId: string, userId: string) {
     }
 
     await deleteDoc(doc(db, "posts", postId))
+
+    // Delete all activities related to this post
+    await deletePostActivities(postId)
 
   } catch (error) {
     console.error("Error deleting post:", error)

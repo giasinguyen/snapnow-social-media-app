@@ -1,20 +1,22 @@
 import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  increment,
-  query,
-  serverTimestamp,
-  setDoc,
-  updateDoc,
-  where,
+    addDoc,
+    collection,
+    deleteDoc,
+    doc,
+    getDoc,
+    getDocs,
+    increment,
+    query,
+    serverTimestamp,
+    setDoc,
+    updateDoc,
+    where,
 } from "firebase/firestore"
 import { db } from "../config/firebase"
 import type { Comment } from "../types"
-import { createNotification } from "./notifications"; // Add a comment to a post
+import { deleteCommentActivities, logCommentActivity } from "./activityHistory"
+import { createNotification } from "./notifications"
+// Add a comment to a post
 export async function addComment(
   postId: string,
   userId: string,
@@ -49,6 +51,9 @@ export async function addComment(
     if (postDoc.exists()) {
       const postData = postDoc.data()
       const postOwnerId = postData.userId
+
+      // Log comment activity
+      await logCommentActivity(userId, postId, docRef.id, text.trim(), postOwnerId, postData.imageUrl)
 
       // Don't notify if user comments on their own post
       if (postOwnerId !== userId) {
@@ -184,6 +189,9 @@ export async function deleteComment(commentId: string, postId: string): Promise<
     await updateDoc(postRef, {
       commentsCount: increment(-1),
     })
+
+    // Delete activity logs
+    await deleteCommentActivities(commentId)
   } catch (error) {
     console.error("Error deleting comment:", error)
     throw error
@@ -197,6 +205,14 @@ export async function likeComment(commentId: string): Promise<void> {
     if (!currentUserId) {
       throw new Error("User must be logged in to like comments")
     }
+
+    // Get comment details
+    const commentDoc = await getDoc(doc(db, "comments", commentId))
+    if (!commentDoc.exists()) {
+      throw new Error("Comment not found")
+    }
+    
+    const commentData = commentDoc.data()
 
     // Create a like record in commentLikes collection
     const likeId = `${currentUserId}_${commentId}`

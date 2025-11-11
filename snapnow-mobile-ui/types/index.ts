@@ -70,5 +70,5 @@ export interface Notification {
   postImageUrl?: string;
   message: string;
   isRead: boolean;
-  createdAt: Date;
+  createdAt: any; // Can be Timestamp or Date
 }
