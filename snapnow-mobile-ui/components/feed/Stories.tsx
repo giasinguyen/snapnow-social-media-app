@@ -1,16 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
-import { COLORS, SPACING, TYPOGRAPHY, RADIUS, SIZES } from '../../src/constants/theme';
-import { useRouter } from 'expo-router';
+import { COLORS, RADIUS, SIZES, SPACING, TYPOGRAPHY } from '../../src/constants/theme';
 
 export interface Story {
   id: string;
@@ -34,6 +34,19 @@ const Stories: React.FC<StoriesProps> = React.memo(({
   onDismiss,
 }) => {
   const router = useRouter();
+
+  // Group stories by userId to show only one circle per user
+  const groupedStories = React.useMemo(() => {
+    const seen = new Set<string>();
+    return stories.filter(story => {
+      if (story.isYourStory) return true; // Always show "Create" story
+      const key = `${story.username}-${story.avatar}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [stories]);
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -50,7 +63,7 @@ const Stories: React.FC<StoriesProps> = React.memo(({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {stories.map((story) => (
+        {groupedStories.map((story) => (
           <TouchableOpacity
             key={story.id}
             style={styles.storyItem}
