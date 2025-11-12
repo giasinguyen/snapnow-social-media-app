@@ -193,7 +193,8 @@ export default function HomeScreen() {
   }, []);
 
   const handleMessages = useCallback(() => {
-    console.log('Open messages');
+    // Navigate to messages inbox
+    router.push('/messages' as any);
   }, []);
 
   const handleDiscoverPeople = useCallback(() => {
