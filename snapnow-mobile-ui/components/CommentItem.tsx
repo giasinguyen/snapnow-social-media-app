@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons'
+import { useRouter } from 'expo-router'
 import React, { useCallback, useRef, useState } from 'react'
 import { Alert, Animated, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { auth } from '../config/firebase'
 import { likeComment, unlikeComment } from '../services/comments'
+import { UserService } from '../services/user'
 import { Comment } from '../types'
 
 interface CommentItemProps {
@@ -19,6 +21,7 @@ export default function CommentItem({ comment, onDelete, onReply, onUserPress, i
   const [showReplies, setShowReplies] = useState(false)
   const [showAllReplies, setShowAllReplies] = useState(false)
   const scaleAnim = useRef(new Animated.Value(1)).current
+  const router = useRouter()
 
   const repliesCount = comment.replies?.length || 0
   const INITIAL_REPLIES_COUNT = 5
@@ -88,17 +91,68 @@ export default function CommentItem({ comment, onDelete, onReply, onUserPress, i
 
   // Function to render text with bold @mentions
   const renderTextWithMentions = (text: string) => {
-    const parts = text.split(/(@\w+)/g)
+    // Simple regex: match @ followed by username (no spaces since usernames don't have spaces)
+    const parts: { text: string; isMention: boolean; username?: string }[] = []
+    const mentionRegex = /@([a-zA-Z0-9_]+)/g
+    
+    let lastIndex = 0
+    let match
+    
+    while ((match = mentionRegex.exec(text)) !== null) {
+      // Add text before mention
+      if (match.index > lastIndex) {
+        parts.push({ text: text.slice(lastIndex, match.index), isMention: false })
+      }
+      
+      // Add mention with username (without @)
+      parts.push({ 
+        text: match[0], // Full match including @
+        isMention: true,
+        username: match[1] // Captured username without @
+      })
+      lastIndex = match.index + match[0].length
+    }
+    
+    // Add remaining text
+    if (lastIndex < text.length) {
+      parts.push({ text: text.slice(lastIndex), isMention: false })
+    }
+    
     return parts.map((part, index) => {
-      if (part.startsWith('@')) {
+      if (part.isMention && part.username) {
+        // Make mention clickable
         return (
-          <Text key={index} style={[styles.mention, isReply && styles.replyMention]}>
-            {part}
+          <Text 
+            key={index} 
+            style={[styles.mention, isReply && styles.replyMention]}
+            onPress={() => handleMentionPress(part.username!)}
+          >
+            {part.text}
           </Text>
         )
       }
-      return part
+      return (
+        <Text key={index} style={styles.regularText}>
+          {part.text}
+        </Text>
+      )
     })
+  }
+
+  const handleMentionPress = async (username: string) => {
+    try {
+      // Search for user by username
+      const users = await UserService.searchUsers(username)
+      if (users.length > 0) {
+        const user = users[0]
+        // Navigate to user profile using router
+        router.push(`/user/${user.id}` as any)
+      } else {
+        console.log('User not found:', username)
+      }
+    } catch (error) {
+      console.error('Error navigating to user profile:', error)
+    }
   }
 
   return (
@@ -274,6 +328,7 @@ const styles = StyleSheet.create({
   replyLikeCount: { color: '#a5a3a3ff', fontSize: 12, fontWeight: '600' },
   text: { color: '#000000', fontSize: 14, lineHeight: 18, flexShrink: 1 },
   replyText: { color: '#000000', fontSize: 13.5, lineHeight: 17.5, flexShrink: 1 },
+  regularText: { fontWeight: '400' },
   replyRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
   replyText2: { color: '#a5a3a3ff', fontSize: 12, fontWeight: '600' },
   replyText2Small: { fontSize: 11 },

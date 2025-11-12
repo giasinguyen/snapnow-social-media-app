@@ -1,13 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback } from 'react';
 import {
-  ActivityIndicator,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EmptyNotifications, NotificationSection } from '../../components/notifications';
@@ -27,6 +28,15 @@ export default function ActivityScreen() {
   } = useNotifications();
 
   const [refreshing, setRefreshing] = React.useState(false);
+
+  // Mark all as read when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      if (unreadCount > 0) {
+        markAllAsRead();
+      }
+    }, [unreadCount, markAllAsRead])
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

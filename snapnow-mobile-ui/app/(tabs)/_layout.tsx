@@ -3,9 +3,11 @@ import { Tabs } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Image, View } from 'react-native';
 import { AuthService, UserProfile } from '../../services/authService';
+import { subscribeToNotifications } from '../../services/notifications';
 
 export default function TabsLayout() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     const loadUserProfile = async () => {
@@ -18,6 +20,19 @@ export default function TabsLayout() {
     };
 
     loadUserProfile();
+  }, []);
+
+  useEffect(() => {
+    const user = AuthService.getCurrentUser();
+    if (!user) return;
+
+    // Subscribe to notifications to get real-time unread count
+    const unsubscribe = subscribeToNotifications(user.uid, (notifications) => {
+      const unreadCount = notifications.filter(n => !n.isRead).length;
+      setUnreadCount(unreadCount);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const ProfileAvatar = ({ focused }: { focused: boolean }) => {
@@ -117,11 +132,26 @@ export default function TabsLayout() {
         options={{
           title: 'Activity',
           tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
-            <Ionicons 
-              name={focused ? "heart" : "heart-outline"} 
-              size={26} 
-              color={color} 
-            />
+            <View style={{ width: 26, height: 26 }}>
+              <Ionicons 
+                name={focused ? "heart" : "heart-outline"} 
+                size={26} 
+                color={color} 
+              />
+              {unreadCount > 0 && (
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    backgroundColor: '#FF3B30',
+                    borderRadius: 5,
+                    width: 10,
+                    height: 10,
+                  }}
+                />
+              )}
+            </View>
           ),
         }}
       />
