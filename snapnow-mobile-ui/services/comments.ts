@@ -97,6 +97,33 @@ export async function getPostComments(postId: string): Promise<Comment[]> {
       } as Comment)
     })
 
+    // Fetch real usernames from users collection
+    const userIds = [...new Set(allComments.map(c => c.userId))]
+    const userMap = new Map<string, string>()
+    
+    // Batch fetch all users
+    await Promise.all(
+      userIds.map(async (userId) => {
+        try {
+          const userDoc = await getDoc(doc(db, "users", userId))
+          if (userDoc.exists()) {
+            const userData = userDoc.data()
+            userMap.set(userId, userData.username || userData.displayName || 'Unknown')
+          }
+        } catch (error) {
+          console.error(`Error fetching user ${userId}:`, error)
+        }
+      })
+    )
+
+    // Update all comments with real usernames
+    allComments.forEach(comment => {
+      const realUsername = userMap.get(comment.userId)
+      if (realUsername) {
+        comment.username = realUsername
+      }
+    })
+
     // Check which comments the current user has liked
     const currentUserId = require("../config/firebase").auth.currentUser?.uid
     if (currentUserId) {

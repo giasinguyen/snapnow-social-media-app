@@ -5,10 +5,12 @@ import { useEffect, useRef, useState } from "react"
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   FlatList,
   Image,
   KeyboardAvoidingView,
   Modal,
+  PanResponder,
   Platform,
   StyleSheet,
   Text,
@@ -38,6 +40,42 @@ export default function CommentsModal({ visible, postId, onClose }: CommentsModa
   const [replyingTo, setReplyingTo] = useState<{ id: string; username: string } | null>(null)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const inputRef = useRef<TextInput>(null)
+  const translateY = useRef(new Animated.Value(0)).current
+
+  // Pan responder for swipe down to close
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        // Only respond to vertical swipes
+        return Math.abs(gestureState.dy) > Math.abs(gestureState.dx) && gestureState.dy > 0
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          translateY.setValue(gestureState.dy)
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 100) {
+          // Swipe down threshold reached, close modal
+          Animated.timing(translateY, {
+            toValue: 500,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(() => {
+            translateY.setValue(0)
+            onClose()
+          })
+        } else {
+          // Reset position
+          Animated.spring(translateY, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start()
+        }
+      },
+    })
+  ).current
 
   useEffect(() => {
     if (visible) {
@@ -186,13 +224,24 @@ export default function CommentsModal({ visible, postId, onClose }: CommentsModa
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Comments</Text>
-          <TouchableOpacity onPress={onClose}>
-            <Ionicons name="close" size={28} color="#262626" />
-          </TouchableOpacity>
-        </View>
+      <SafeAreaView style={styles.container} edges={['bottom']}>
+        <Animated.View 
+          style={[
+            styles.modalContent,
+            { transform: [{ translateY }] }
+          ]}
+        >
+          {/* Drag indicator */}
+          <View {...panResponder.panHandlers} style={styles.dragIndicatorContainer}>
+            <View style={styles.dragIndicator} />
+          </View>
+
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Comments</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Ionicons name="close" size={28} color="#262626" />
+            </TouchableOpacity>
+          </View>
 
         {loading ? (
           <View style={styles.loadingContainer}>
@@ -276,6 +325,7 @@ export default function CommentsModal({ visible, postId, onClose }: CommentsModa
             )}
           </TouchableOpacity>
         </KeyboardAvoidingView>
+        </Animated.View>
       </SafeAreaView>
     </Modal>
   )
@@ -476,5 +526,20 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 9,
     right: 18,
+  },
+  modalContent: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  dragIndicatorContainer: {
+    paddingVertical: 8,
+    alignItems: "center",
+    backgroundColor: "#fff",
+  },
+  dragIndicator: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#d1d5db",
   },
 })
