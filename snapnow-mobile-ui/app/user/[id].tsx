@@ -18,6 +18,7 @@ import {
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { auth } from '../../config/firebase';
 import { formatFollowers } from '../../services/mockData';
 import { fetchUserPosts } from '../../services/posts';
 import { UserService } from '../../services/user';
@@ -159,8 +160,27 @@ export default function UserProfileScreen() {
   };
 
   const handleMessage = () => {
-    // TODO: Implement messaging functionality
     console.log('Open message screen');
+    
+    const currentUser = auth.currentUser;
+    if (!user || !currentUser) {
+      Alert.alert('Error', 'Unable to start conversation');
+      return;
+    }
+
+    // Generate conversation ID
+    const conversationId = [currentUser.uid, user.id].sort().join('_');
+    
+    router.push({
+      pathname: '/messages/[conversationId]' as any,
+      params: {
+        conversationId,
+        otherUserId: user.id,
+        otherUserName: user.displayName || user.username,
+        otherUserPhoto: user.profileImage || 'https://via.placeholder.com/150',
+        otherUserUsername: user.username,
+      },
+    });
   };
 
   const handleEditProfile = () => {
@@ -496,7 +516,7 @@ export default function UserProfileScreen() {
                 </View>
                 <Text style={styles.emptyTitle}>No posts yet</Text>
                 <Text style={styles.emptySubtitle}>
-                  When {user.displayName || user.username} shares photos, they'll appear here.
+                  When {user.displayName || user.username} shares photos, they&apos;ll appear here.
                 </Text>
               </View>
             ) : (
