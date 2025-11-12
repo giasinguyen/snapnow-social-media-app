@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { COLORS, SPACING, TYPOGRAPHY, SIZES } from '../../src/constants/theme';
+import { subscribeToUnreadCount } from '../../services/conversations';
+import { auth } from '../../config/firebase';
 
 interface FeedHeaderProps {
   onNotificationsPress?: () => void;
@@ -12,6 +14,21 @@ const FeedHeader: React.FC<FeedHeaderProps> = React.memo(({
   onNotificationsPress,
   onMessagesPress,
 }) => {
+  const [unreadCount, setUnreadCount] = useState(0);
+  const currentUserId = auth.currentUser?.uid;
+
+  // Subscribe to unread count
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const unsubscribe = subscribeToUnreadCount(
+      currentUserId,
+      (count) => setUnreadCount(count)
+    );
+
+    return () => unsubscribe();
+  }, [currentUserId]);
+
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.logoContainer}>
@@ -26,12 +43,22 @@ const FeedHeader: React.FC<FeedHeaderProps> = React.memo(({
         >
           <Ionicons name="heart-outline" size={SIZES.icon.lg} color={COLORS.textPrimary} />
         </TouchableOpacity>
+        
         <TouchableOpacity
           style={styles.actionButton}
           onPress={onMessagesPress}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="chatbubble-outline" size={SIZES.icon.md} color={COLORS.textPrimary} />
+          <View>
+            <Ionicons name="chatbubble-outline" size={SIZES.icon.md} color={COLORS.textPrimary} />
+            {unreadCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </Text>
+              </View>
+            )}
+          </View>
         </TouchableOpacity>
       </View>
     </View>
@@ -70,5 +97,25 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     padding: SPACING.xs,
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -6,
+    backgroundColor: '#FF3B30',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 });

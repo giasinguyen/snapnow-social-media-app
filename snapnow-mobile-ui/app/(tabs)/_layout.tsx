@@ -167,6 +167,15 @@ export default function TabsLayout() {
       
       {/* Hidden screens - Not shown in tab bar */}
       <Tabs.Screen
+        name="messages"
+        options={{
+          href: null, // Hide from tab bar
+          title: 'Messages',
+        }}
+      />
+      
+      {/* Hidden screens - Not shown in tab bar */}
+      <Tabs.Screen
         name="edit-profile"
         options={{
           href: null,

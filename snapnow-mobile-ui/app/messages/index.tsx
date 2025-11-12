@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   StyleSheet,
+  TextInput,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,8 +21,26 @@ export default function MessagesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const currentUserId = auth.currentUser?.uid || '';
+
+  // Filter conversations based on search
+  const filteredConversations = useMemo(() => {
+    if (!searchQuery.trim()) return conversations;
+    
+    const query = searchQuery.toLowerCase();
+    return conversations.filter((conv) => {
+      const otherUser = getOtherParticipant(conv, currentUserId);
+      if (!otherUser) return false;
+      
+      return (
+        otherUser.displayName?.toLowerCase().includes(query) ||
+        otherUser.username?.toLowerCase().includes(query) ||
+        conv.lastMessage?.text?.toLowerCase().includes(query)
+      );
+    });
+  }, [conversations, searchQuery, currentUserId]);
 
   useEffect(() => {
     if (!currentUserId) {
@@ -33,10 +52,12 @@ export default function MessagesScreen() {
     console.log('📱 Messages: Setting up subscription for user:', currentUserId);
 
     // Subscribe to realtime conversations
+    // Note: Notification handling is done globally in app/_layout.tsx
     const unsubscribe = subscribeToConversations(
       currentUserId,
       (updatedConversations) => {
         console.log('✅ Messages: Received', updatedConversations.length, 'conversations');
+        
         setConversations(updatedConversations);
         setLoading(false);
         setRefreshing(false);
@@ -54,7 +75,7 @@ export default function MessagesScreen() {
       console.log('🔄 Messages: Cleaning up subscription');
       unsubscribe();
     };
-  }, [currentUserId]);
+  }, [currentUserId]); // Only depend on currentUserId!
 
   const handleRefresh = () => {
     console.log('🔄 Messages: Manual refresh triggered');
@@ -203,8 +224,28 @@ export default function MessagesScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Search Bar (no title - tab shows "Messages") */}
+      <View style={styles.header}>
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color="#9ca3af" style={styles.searchIcon} />
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search messages..."
+            placeholderTextColor="#9ca3af"
+            style={styles.searchInput}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')} style={{ padding: 4 }}>
+              <Ionicons name="close-circle" size={20} color="#9ca3af" />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
       <FlatList
-        data={conversations}
+        data={filteredConversations}
         keyExtractor={(item) => item.id}
         renderItem={renderConversationItem}
         ListEmptyComponent={renderEmptyState}
@@ -215,7 +256,7 @@ export default function MessagesScreen() {
             tintColor="#3b82f6"
           />
         }
-        contentContainerStyle={conversations.length === 0 ? styles.emptyListContent : undefined}
+        contentContainerStyle={filteredConversations.length === 0 ? styles.emptyListContent : undefined}
         showsVerticalScrollIndicator={false}
       />
     </View>
@@ -226,6 +267,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ffffff',
+  },
+  header: {
+    paddingTop: 12,
+    paddingBottom: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f3f4f6',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#1f2937',
+    paddingVertical: 4,
   },
   loadingContainer: {
     flex: 1,
