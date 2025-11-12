@@ -25,4 +25,5 @@ export const CLOUDINARY_FOLDERS = {
   avatars: 'snapnow/avatars',
   posts: 'snapnow/posts',
   stories: 'snapnow/stories',
+  messages: 'snapnow/messages',
 };

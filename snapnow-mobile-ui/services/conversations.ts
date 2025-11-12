@@ -313,10 +313,8 @@ export const getOtherParticipant = (
   const details = conversation.participantDetails[otherUserId];
   if (!details) return null;
 
-  return {
-    id: otherUserId,
-    ...details,
-  };
+  // details already has id field from type definition
+  return details;
 };
 
 /**
@@ -332,6 +330,49 @@ export const getTotalUnreadCount = async (userId: string): Promise<number> => {
   } catch (error) {
     console.error('Error getting total unread count:', error);
     return 0;
+  }
+};
+
+/**
+ * Subscribe to total unread count (real-time)
+ */
+export const subscribeToUnreadCount = (
+  userId: string,
+  onUpdate: (count: number) => void,
+  onError?: (error: Error) => void
+): (() => void) => {
+  try {
+    console.log('🔔 Setting up unread count subscription for user:', userId);
+    
+    const conversationsRef = collection(db, 'conversations');
+    const q = query(conversationsRef, where('participants', 'array-contains', userId));
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const totalUnread = snapshot.docs.reduce((total, doc) => {
+          const conv = doc.data() as Conversation;
+          return total + (conv.unreadCount?.[userId] || 0);
+        }, 0);
+        
+        console.log('📊 Total unread count:', totalUnread);
+        onUpdate(totalUnread);
+      },
+      (error) => {
+        console.error('❌ Error in unread count subscription:', error);
+        if (onError) {
+          onError(error as Error);
+        }
+      }
+    );
+
+    return unsubscribe;
+  } catch (error) {
+    console.error('❌ Error setting up unread count subscription:', error);
+    if (onError) {
+      onError(error as Error);
+    }
+    return () => {};
   }
 };
 
@@ -382,5 +423,6 @@ export default {
   deleteConversation,
   getOtherParticipant,
   getTotalUnreadCount,
+  subscribeToUnreadCount,
   updateParticipantDetails,
 };
