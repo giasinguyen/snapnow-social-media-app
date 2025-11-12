@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { auth } from '../../config/firebase';
 import {
   subscribeToMessages,
@@ -23,6 +24,8 @@ import {
 import {
   createConversation,
 } from '../../services/conversations';
+import { uploadToCloudinary } from '../../services/cloudinary';
+import { CLOUDINARY_FOLDERS } from '../../config/cloudinary';
 import { format, isToday, isYesterday } from 'date-fns';
 
 export default function ChatScreen() {
@@ -42,6 +45,8 @@ export default function ChatScreen() {
   const [loading, setLoading] = useState(true);
   const [messageText, setMessageText] = useState('');
   const [sending, setSending] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const flatListRef = useRef<FlatList>(null);
   const currentUser = auth.currentUser;
@@ -142,6 +147,101 @@ export default function ChatScreen() {
       Alert.alert('Error', 'Failed to send message');
       setMessageText(textToSend);
     } finally {
+      setSending(false);
+    }
+  };
+
+  const handlePickImage = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (!permissionResult.granted) {
+        Alert.alert('Permission Required', 'Please allow access to your photo library');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await handleSendImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      
+      if (!permissionResult.granted) {
+        Alert.alert('Permission Required', 'Please allow access to your camera');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await handleSendImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert('Error', 'Failed to take photo');
+    }
+  };
+
+  const handleSendImage = async (imageUri: string) => {
+    if (!imageUri || sending) return;
+
+    setSelectedImage(imageUri);
+    setUploadingImage(true);
+    setSending(true);
+
+    try {
+      const finalConversationId = conversationId || [currentUserId, otherUserId as string].sort().join('_');
+      
+      console.log('📤 Uploading image to Cloudinary...');
+      
+      // Upload image to Cloudinary
+      const uploadResult = await uploadToCloudinary(imageUri, {
+        folder: CLOUDINARY_FOLDERS.messages,
+        tags: ['message', finalConversationId],
+      });
+      
+      const imageUrl = uploadResult.secure_url;
+      
+      console.log('✅ Image uploaded to Cloudinary:', imageUrl);
+      console.log('📤 Sending image message...');
+
+      // Send image message
+      await sendMessage({
+        conversationId: finalConversationId,
+        senderId: currentUserId,
+        senderName: currentUserName,
+        senderPhoto: currentUserPhoto,
+        receiverId: otherUserId as string,
+        type: 'image',
+        text: '', // Empty text for image messages
+        imageUrl,
+      });
+
+      console.log('✅ Image message sent successfully');
+    } catch (error) {
+      console.error('❌ Error sending image:', error);
+      Alert.alert('Error', 'Failed to send image. Please try again.');
+    } finally {
+      setSelectedImage(null);
+      setUploadingImage(false);
       setSending(false);
     }
   };
@@ -332,64 +432,118 @@ export default function ChatScreen() {
         {/* Input Bar */}
         <View
           style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            paddingHorizontal: 16,
-            paddingVertical: 12,
             borderTopWidth: 1,
             borderTopColor: '#e5e7eb',
             backgroundColor: '#ffffff',
           }}
         >
-          {/* Image Button */}
-          <TouchableOpacity style={{ padding: 8, marginRight: 8 }}>
-            <Ionicons name="image-outline" size={24} color="#3b82f6" />
-          </TouchableOpacity>
+          {/* Image Preview when uploading */}
+          {uploadingImage && selectedImage && (
+            <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' }}>
+              <View style={{ position: 'relative' }}>
+                <Image 
+                  source={{ uri: selectedImage }}
+                  style={{ width: 100, height: 100, borderRadius: 12 }}
+                  resizeMode="cover"
+                />
+                <View style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'rgba(0,0,0,0.5)',
+                  borderRadius: 12,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}>
+                  <ActivityIndicator size="large" color="#fff" />
+                  <Text style={{ color: '#fff', marginTop: 8, fontSize: 12 }}>Uploading...</Text>
+                </View>
+              </View>
+            </View>
+          )}
 
-          {/* Text Input */}
           <View
             style={{
-              flex: 1,
-              backgroundColor: '#f3f4f6',
-              borderRadius: 20,
+              flexDirection: 'row',
+              alignItems: 'center',
               paddingHorizontal: 16,
-              paddingVertical: 8,
-              marginRight: 8,
+              paddingVertical: 12,
             }}
           >
-            <TextInput
-              value={messageText}
-              onChangeText={setMessageText}
-              placeholder="Message..."
-              placeholderTextColor="#9ca3af"
-              multiline
-              maxLength={500}
-              style={{
-                fontSize: 16,
-                maxHeight: 100,
-                color: '#000',
-              }}
-              returnKeyType="default"
-              blurOnSubmit={false}
-            />
-          </View>
+            {/* Camera Button */}
+            <TouchableOpacity 
+              onPress={handleTakePhoto}
+              disabled={sending}
+              style={{ padding: 8, marginRight: 4 }}
+            >
+              <Ionicons 
+                name="camera-outline" 
+                size={24} 
+                color={sending ? '#d1d5db' : '#3b82f6'} 
+              />
+            </TouchableOpacity>
 
-          {/* Send Button */}
-          <TouchableOpacity
-            onPress={handleSendMessage}
-            disabled={!messageText.trim() || sending}
-            style={{
-              padding: 12,
-              borderRadius: 24,
-              backgroundColor: messageText.trim() && !sending ? '#3b82f6' : '#d1d5db',
-            }}
-          >
-            {sending ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Ionicons name="send" size={20} color="#fff" />
-            )}
-          </TouchableOpacity>
+            {/* Image Button */}
+            <TouchableOpacity 
+              onPress={handlePickImage}
+              disabled={sending}
+              style={{ padding: 8, marginRight: 8 }}
+            >
+              <Ionicons 
+                name="image-outline" 
+                size={24} 
+                color={sending ? '#d1d5db' : '#3b82f6'} 
+              />
+            </TouchableOpacity>
+
+            {/* Text Input */}
+            <View
+              style={{
+                flex: 1,
+                backgroundColor: '#f3f4f6',
+                borderRadius: 20,
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                marginRight: 8,
+              }}
+            >
+              <TextInput
+                value={messageText}
+                onChangeText={setMessageText}
+                placeholder="Message..."
+                placeholderTextColor="#9ca3af"
+                multiline
+                maxLength={500}
+                editable={!sending}
+                style={{
+                  fontSize: 16,
+                  maxHeight: 100,
+                  color: '#000',
+                }}
+                returnKeyType="default"
+                blurOnSubmit={false}
+              />
+            </View>
+
+            {/* Send Button */}
+            <TouchableOpacity
+              onPress={handleSendMessage}
+              disabled={!messageText.trim() || sending}
+              style={{
+                padding: 12,
+                borderRadius: 24,
+                backgroundColor: messageText.trim() && !sending ? '#3b82f6' : '#d1d5db',
+              }}
+            >
+              {sending && !uploadingImage ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Ionicons name="send" size={20} color="#fff" />
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </>

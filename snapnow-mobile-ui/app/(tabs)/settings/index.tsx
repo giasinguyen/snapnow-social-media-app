@@ -14,6 +14,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth, db } from '../../../config/firebase';
 import { AuthService } from '../../../services/authService';
+import { showInAppNotification } from '../../../components/InAppNotification';
+import { showMessageNotification } from '../../../services/pushNotifications';
+import { checkNotificationPermissions } from '../../../services/notificationPermissions';
 
 interface SettingItemProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -252,6 +255,47 @@ export default function SettingsScreen() {
               isSwitch
               value={notificationsEnabled}
               onValueChange={setNotificationsEnabled}
+          />
+          <SettingItem
+            icon="information-circle-outline"
+            title="Check Notification Permissions"
+            subtitle="View current permission status"
+            onPress={async () => {
+              await checkNotificationPermissions();
+              Alert.alert(
+                'Permissions Check',
+                'Check console logs for detailed permission status'
+              );
+            }}
+          />
+          <SettingItem
+            icon="flask-outline"
+            title="Test In-App Notification"
+            subtitle="Test notification banner in app"
+            onPress={() => {
+              showInAppNotification({
+                title: 'Test User',
+                message: 'This is a test notification!',
+                conversationId: 'test-conversation',
+              });
+            }}
+          />
+          <SettingItem
+            icon="flash-outline"
+            title="Test System Notification"
+            subtitle="Test system notification (background)"
+            onPress={async () => {
+              try {
+                await showMessageNotification(
+                  'Test User',
+                  'This is a test system notification!',
+                  'test-conversation'
+                );
+                Alert.alert('Success', 'Notification sent! (Check if app is in background)');
+              } catch {
+                Alert.alert('Error', 'Failed to send notification');
+              }
+            }}
           />
           <SettingItem
             icon="mail-outline"
