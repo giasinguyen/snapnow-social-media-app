@@ -1,32 +1,33 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { format, isToday, isYesterday } from 'date-fns';
+import * as ImagePicker from 'expo-image-picker';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  FlatList,
-  TextInput,
-  TouchableOpacity,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
   ActivityIndicator,
   Alert,
+  FlatList,
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { useLocalSearchParams, router, Stack } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
+import { CLOUDINARY_FOLDERS } from '../../config/cloudinary';
 import { auth } from '../../config/firebase';
-import {
-  subscribeToMessages,
-  sendMessage,
-  markAllMessagesAsRead,
-  Message,
-} from '../../services/messages';
+import { uploadToCloudinary } from '../../services/cloudinary';
 import {
   createConversation,
 } from '../../services/conversations';
-import { uploadToCloudinary } from '../../services/cloudinary';
-import { CLOUDINARY_FOLDERS } from '../../config/cloudinary';
-import { format, isToday, isYesterday } from 'date-fns';
+import {
+  markAllMessagesAsRead,
+  Message,
+  sendMessage,
+  subscribeToMessages,
+} from '../../services/messages';
 
 export default function ChatScreen() {
   const params = useLocalSearchParams();
@@ -47,12 +48,28 @@ export default function ChatScreen() {
   const [sending, setSending] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   const flatListRef = useRef<FlatList>(null);
   const currentUser = auth.currentUser;
   const currentUserId = currentUser?.uid || '';
   const currentUserName = currentUser?.displayName || 'Unknown';
   const currentUserPhoto = currentUser?.photoURL || 'https://via.placeholder.com/150';
+
+  // Keyboard listeners
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+      setKeyboardVisible(true);
+    });
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardVisible(false);
+    });
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
 
   // Create conversation if needed
   useEffect(() => {
@@ -277,7 +294,7 @@ export default function ChatScreen() {
           flexDirection: 'row',
           alignItems: 'flex-end',
           marginBottom: 12,
-          paddingHorizontal: 16,
+          paddingHorizontal: 12,
           justifyContent: isMyMessage ? 'flex-end' : 'flex-start',
         }}
       >
@@ -296,7 +313,7 @@ export default function ChatScreen() {
         {/* Message Bubble */}
         <View
           style={{
-            maxWidth: '70%',
+            maxWidth: '75%',
             borderRadius: 20,
             paddingHorizontal: 16,
             paddingVertical: 12,
@@ -343,9 +360,6 @@ export default function ChatScreen() {
             )}
           </View>
         </View>
-
-        {/* Spacer for my messages */}
-        {isMyMessage && <View style={{ width: 32, height: 32, marginLeft: 8 }} />}
       </View>
     );
   };
@@ -413,9 +427,10 @@ export default function ChatScreen() {
       />
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'position'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
         style={{ flex: 1, backgroundColor: '#f9fafb' }}
+        contentContainerStyle={{ flex: 1 }}
       >
         {/* Messages List */}
         <FlatList
@@ -435,6 +450,7 @@ export default function ChatScreen() {
             borderTopWidth: 1,
             borderTopColor: '#e5e7eb',
             backgroundColor: '#ffffff',
+            paddingBottom: Platform.OS === 'android' && keyboardVisible ? 0 : 0,
           }}
         >
           {/* Image Preview when uploading */}
