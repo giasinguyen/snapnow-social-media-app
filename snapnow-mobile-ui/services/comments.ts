@@ -55,18 +55,43 @@ export async function addComment(
       // Log comment activity
       await logCommentActivity(userId, postId, docRef.id, text.trim(), postOwnerId, postData.imageUrl)
 
-      // Don't notify if user comments on their own post
-      if (postOwnerId !== userId) {
-        await createNotification(
-          postOwnerId,
-          "comment",
-          userId,
-          username,
-          userProfileImage,
-          postId,
-          postData.imageUrl,
-          text.trim(),
-        )
+      // If this is a reply to another comment, notify the parent comment author
+      if (parentCommentId) {
+        const parentCommentDoc = await getDoc(doc(db, "comments", parentCommentId))
+        if (parentCommentDoc.exists()) {
+          const parentCommentData = parentCommentDoc.data()
+          const parentCommentOwnerId = parentCommentData.userId
+          
+          // Don't notify if user replies to their own comment
+          if (parentCommentOwnerId !== userId) {
+            await createNotification(
+              parentCommentOwnerId,
+              "comment_reply",
+              userId,
+              username,
+              userProfileImage,
+              postId,
+              postData.imageUrl,
+              text.trim(),
+              parentCommentId,
+            )
+          }
+        }
+      } else {
+        // If this is a regular comment (not a reply), notify the post owner
+        // Don't notify if user comments on their own post
+        if (postOwnerId !== userId) {
+          await createNotification(
+            postOwnerId,
+            "comment",
+            userId,
+            username,
+            userProfileImage,
+            postId,
+            postData.imageUrl,
+            text.trim(),
+          )
+        }
       }
     }
 
@@ -229,6 +254,7 @@ export async function deleteComment(commentId: string, postId: string): Promise<
 export async function likeComment(commentId: string): Promise<void> {
   try {
     const currentUserId = require("../config/firebase").auth.currentUser?.uid
+    const currentUser = require("../config/firebase").auth.currentUser
     if (!currentUserId) {
       throw new Error("User must be logged in to like comments")
     }
@@ -240,6 +266,7 @@ export async function likeComment(commentId: string): Promise<void> {
     }
     
     const commentData = commentDoc.data()
+    const commentOwnerId = commentData.userId
 
     // Create a like record in commentLikes collection
     const likeId = `${currentUserId}_${commentId}`
@@ -254,6 +281,29 @@ export async function likeComment(commentId: string): Promise<void> {
     await updateDoc(commentRef, {
       likesCount: increment(1),
     })
+
+    // Send notification to comment owner (don't notify if user likes their own comment)
+    if (commentOwnerId !== currentUserId) {
+      // Get post details for the notification
+      const postDoc = await getDoc(doc(db, "posts", commentData.postId))
+      const postData = postDoc.exists() ? postDoc.data() : null
+
+      // Get current user details
+      const userDoc = await getDoc(doc(db, "users", currentUserId))
+      const userData = userDoc.exists() ? userDoc.data() : null
+
+      await createNotification(
+        commentOwnerId,
+        "comment_like",
+        currentUserId,
+        userData?.username || currentUser?.displayName || "Someone",
+        userData?.profileImage || currentUser?.photoURL,
+        commentData.postId,
+        postData?.imageUrl,
+        undefined,
+        commentId,
+      )
+    }
   } catch (error) {
     console.error("Error liking comment:", error)
     throw error
