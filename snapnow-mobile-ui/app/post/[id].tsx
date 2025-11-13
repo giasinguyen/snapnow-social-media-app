@@ -27,7 +27,7 @@ import MultiImageViewer from '../../components/MultiImageViewer';
 import { AuthService } from '../../services/authService';
 import { addComment, deleteComment, getPostComments } from '../../services/comments';
 import { likePost, unlikePost } from '../../services/likes';
-import { getPost } from '../../services/posts';
+import { getPost, savePost, unsavePost, getPostSavesCount, hasUserBookmarkedPost } from '../../services/posts';
 import { UserService } from '../../services/user';
 import { Comment, Post } from '../../types';
 
@@ -49,6 +49,8 @@ export default function PostDetailScreen() {
   const [optionsVisible, setOptionsVisible] = useState(false);
   const [isOwnPost, setIsOwnPost] = useState(false);
   const [replyingTo, setReplyingTo] = useState<{ id: string; username: string } | null>(null);
+  const [bookmarked, setBookmarked] = useState(false);
+  const [savesCount, setSavesCount] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
   const heartScale = useState(new Animated.Value(0))[0];
   const [showHeart, setShowHeart] = useState(false);
@@ -104,11 +106,18 @@ export default function PostDetailScreen() {
         const realLikesCount = await getPostLikesCount(postData.id);
         const isLiked = profile?.id ? await hasUserLikedPost(profile.id, postData.id) : false;
         
+        // Check bookmark status
+        const isBookmarked = profile?.id ? await hasUserBookmarkedPost(profile.id, postData.id) : false;
+        const realSavesCount = await getPostSavesCount(postData.id);
+        
         setPost({
           ...postData,
           likes: realLikesCount,
           isLiked: isLiked
         });
+        
+        setBookmarked(isBookmarked);
+        setSavesCount(realSavesCount);
         
         // Check if this is user's own post
         setIsOwnPost(profile?.id === postData.userId);
@@ -153,6 +162,32 @@ export default function PostDetailScreen() {
       });
     } catch (error) {
       console.error('Failed to like/unlike post:', error);
+    }
+  };
+
+  const handleBookmark = async () => {
+    if (!post || !currentUserId) return;
+    
+    try {
+      const newBookmarkedState = !bookmarked;
+      setBookmarked(newBookmarkedState);
+      setSavesCount(prev => newBookmarkedState ? prev + 1 : prev - 1);
+
+      // Save or unsave the post
+      if (newBookmarkedState) {
+        await savePost(post.id, currentUserId);
+      } else {
+        await unsavePost(post.id, currentUserId);
+      }
+
+      // Get the real saves count from database
+      const realSavesCount = await getPostSavesCount(post.id);
+      setSavesCount(realSavesCount);
+    } catch (error) {
+      console.error('Error toggling bookmark:', error);
+      // Revert on error
+      setBookmarked(bookmarked);
+      Alert.alert('Error', 'Failed to save post. Please try again.');
     }
   };
 
@@ -471,24 +506,54 @@ export default function PostDetailScreen() {
                   color={post.isLiked ? '#FF3B30' : '#262626'}
                 />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.actionButton}>
+              <TouchableOpacity 
+                onPress={() => scrollViewRef.current?.scrollToEnd({ animated: true })} 
+                style={styles.actionButton}
+              >
                 <Ionicons name="chatbubble-outline" size={26} color="#262626" />
               </TouchableOpacity>
               <TouchableOpacity style={styles.actionButton}>
                 <Ionicons name="paper-plane-outline" size={26} color="#262626" />
               </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.actionButton}>
-              <Ionicons name="bookmark-outline" size={26} color="#262626" />
+            <TouchableOpacity onPress={handleBookmark} style={styles.actionButton}>
+              <Ionicons 
+                name={bookmarked ? 'bookmark' : 'bookmark-outline'} 
+                size={26} 
+                color="#262626" 
+              />
             </TouchableOpacity>
           </View>
 
           {/* Likes Count */}
           {post.likes ? (
             <Text style={styles.likesCount}>
-              {post.likes.toLocaleString()} {post.likes === 1 ? 'like' : 'likes'}
+              {post.likes.toLocaleString()} {post.likes === 1 ? 'like' : 'likes'} 
             </Text>
           ) : null}
+
+          {/* Saves Count */}
+          {/* {savesCount > 0 && (
+            <Text style={styles.savesCount}>
+              {savesCount.toLocaleString()} {savesCount === 1 ? 'save' : 'saves'}
+            </Text>
+          )} */}
+
+{/* 
+          <View style={{ flexDirection: 'row', paddingHorizontal: 16, marginBottom: 8 }}>
+            {post.likes ? (
+              <Text style={styles.likesCount}>
+                {post.likes.toLocaleString()} {post.likes === 1 ? 'like' : 'likes'}
+              </Text>
+            ) : null}
+            {savesCount > 0 && (
+              <Text style={[styles.savesCount, { marginLeft: 10 }]}>
+                {savesCount.toLocaleString()} {savesCount === 1 ? 'save' : 'saves'}
+              </Text>
+            )}
+          </View> */}
+
+
 
           {/* Caption */}
           {post.caption && removeHashtagsFromText(post.caption).length > 0 && (
@@ -797,6 +862,13 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   likesCount: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#262626',
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  savesCount: {
     fontSize: 14,
     fontWeight: '600',
     color: '#262626',
