@@ -17,13 +17,16 @@ import type { Notification } from "../types"
 // Create a notification
 export async function createNotification(
   userId: string,
-  type: "like" | "comment" | "follow",
+  type: "like" | "comment" | "follow" | "comment_reply" | "comment_like" | "story_reaction",
   fromUserId: string,
   fromUsername: string,
   fromUserProfileImage: string | undefined,
   postId?: string,
   postImageUrl?: string,
   commentText?: string,
+  commentId?: string,
+  storyId?: string,
+  reactionEmoji?: string,
 ): Promise<string> {
   try {
     let message = ""
@@ -34,8 +37,17 @@ export async function createNotification(
       case "comment":
         message = commentText ? `${fromUsername} commented: ${commentText}` : `${fromUsername} commented on your post`
         break
+      case "comment_reply":
+        message = commentText ? `${fromUsername} replied: ${commentText}` : `${fromUsername} replied to your comment`
+        break
+      case "comment_like":
+        message = `${fromUsername} liked your comment`
+        break
       case "follow":
         message = `${fromUsername} started following you`
+        break
+      case "story_reaction":
+        message = `${fromUsername} reacted ${reactionEmoji || '❤️'} to your story`
         break
     }
 
@@ -47,6 +59,8 @@ export async function createNotification(
       fromUserProfileImage: fromUserProfileImage || null,
       postId: postId || null,
       postImageUrl: postImageUrl || null,
+      commentId: commentId || null,
+      storyId: storyId || null,
       message,
       isRead: false,
       createdAt: serverTimestamp(),
