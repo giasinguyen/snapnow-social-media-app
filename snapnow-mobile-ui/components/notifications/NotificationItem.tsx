@@ -16,11 +16,17 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
   const getIcon = () => {
     switch (notification.type) {
       case 'like':
-        return <Ionicons name="heart" size={20} color="#ed4956" />;
+        return <Ionicons name="heart" size={17} color="#ed4956" />;
       case 'comment':
-        return <Ionicons name="chatbubble" size={20} color="#0095f6" />;
+        return <Ionicons name="chatbubble" size={17} color="#0095f6" />;
+      case 'comment_reply':
+        return <Ionicons name="arrow-undo" size={17} color="#0095f6" />;
+      case 'comment_like':
+        return <Ionicons name="heart" size={17} color="#ed4956" />;
+      case 'story_reaction':
+        return <Ionicons name="happy-outline" size={18} color="#f8780fff" />;
       case 'follow':
-        return <Ionicons name="person-add" size={20} color="#0095f6" />;
+        return <Ionicons name="person-add" size={17} color="#0095f6" />;
       default:
         return null;
     }

@@ -62,12 +62,14 @@ export interface Like {
 export interface Notification {
   id: string;
   userId: string;
-  type: 'like' | 'comment' | 'follow';
+  type: 'like' | 'comment' | 'follow' | 'comment_reply' | 'comment_like' | 'story_reaction';
   fromUserId: string;
   fromUsername: string;
   fromUserProfileImage?: string;
   postId?: string;
   postImageUrl?: string;
+  commentId?: string;
+  storyId?: string;
   message: string;
   isRead: boolean;
   createdAt: any; // Can be Timestamp or Date

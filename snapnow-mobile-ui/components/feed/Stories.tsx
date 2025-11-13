@@ -1,15 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Image,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { auth, db } from '../../config/firebase';
+import { getFollowedUsersStories, hasViewedStory, type Story as StoryType } from '../../services/stories';
 import { COLORS, RADIUS, SIZES, SPACING, TYPOGRAPHY } from '../../src/constants/theme';
 
 export interface Story {
@@ -17,23 +21,149 @@ export interface Story {
   username: string;
   avatar: string;
   isYourStory?: boolean;
-  hasNewStory?: boolean;
+  isViewed?: boolean;
 }
 
 interface StoriesProps {
-  stories: Story[];
-  onStoryPress?: (storyId: string) => void;
-  onCreateStory?: () => void;
+  stories?: Story[];
   onDismiss?: () => void;
 }
 
 const Stories: React.FC<StoriesProps> = React.memo(({
-  stories,
-  onStoryPress,
-  onCreateStory,
+  stories: propStories,
   onDismiss,
 }) => {
   const router = useRouter();
+  const [stories, setStories] = useState<Story[]>(propStories || []);
+  const [refreshing, setRefreshing] = useState(false);
+  const currentUserId = auth.currentUser?.uid;
+  const [userAvatar, setUserAvatar] = useState<string>('');
+
+  // Load user profile data
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      if (!currentUserId) return;
+      try {
+        const userDoc = await getDoc(doc(db, 'users', currentUserId));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setUserAvatar(userData?.profileImage || auth.currentUser?.photoURL || '');
+        }
+      } catch (error) {
+        console.error('Error loading user profile:', error);
+      }
+    };
+    loadUserProfile();
+  }, [currentUserId]);
+
+  // Load stories function
+  const loadStories = useCallback(async () => {
+    if (!currentUserId) return;
+
+    try {
+      const followedStories = await getFollowedUsersStories(currentUserId);
+
+      // Group by user and check if viewed
+      const userStoriesMap = new Map<string, { story: StoryType; isViewed: boolean; storyTime: number }>();
+      
+      followedStories.forEach((story) => {
+        const isViewed = hasViewedStory(story, currentUserId);
+        const existing = userStoriesMap.get(story.userId);
+        const storyTime = story.createdAt instanceof Date ? story.createdAt.getTime() : new Date(story.createdAt).getTime();
+        
+        if (!existing) {
+          userStoriesMap.set(story.userId, { story, isViewed, storyTime });
+        } else if (!existing.isViewed && !isViewed) {
+          // Both unviewed: keep the NEWER one (latest on left for unviewed)
+          if (storyTime > existing.storyTime) {
+            userStoriesMap.set(story.userId, { story, isViewed, storyTime });
+          }
+        } else if (!isViewed && existing.isViewed) {
+          // Prioritize unviewed stories
+          userStoriesMap.set(story.userId, { story, isViewed, storyTime });
+        } else if (isViewed && existing.isViewed) {
+          // Both viewed: keep the OLDER one (earliest on left for viewed)
+          if (storyTime < existing.storyTime) {
+            userStoriesMap.set(story.userId, { story, isViewed, storyTime });
+          }
+        }
+      });
+
+      // Convert to Story format
+      const formattedStories: Story[] = Array.from(userStoriesMap.values()).map(
+        ({ story, isViewed, storyTime }) => ({
+          id: story.id,
+          username: story.username,
+          avatar: story.userProfileImage,
+          isViewed,
+          isYourStory: story.userId === currentUserId,
+          createdAt: storyTime,
+        } as Story & { createdAt: number })
+      );
+
+      // Sort: own stories first, then unviewed stories (newest first), then viewed stories (oldest first)
+      formattedStories.sort((a: any, b: any) => {
+        // Your own stories: always oldest first (chronological order)
+        if (a.isYourStory && b.isYourStory) {
+          return a.createdAt - b.createdAt;
+        }
+        
+        if (a.isYourStory && !b.isYourStory) return -1;
+        if (!a.isYourStory && b.isYourStory) return 1;
+        
+        // Separate unviewed and viewed for others' stories
+        if (!a.isViewed && b.isViewed) return -1; // Unviewed comes first
+        if (a.isViewed && !b.isViewed) return 1;
+        
+        // Both unviewed: newest first (descending)
+        if (!a.isViewed && !b.isViewed) {
+          return b.createdAt - a.createdAt;
+        }
+        
+        // Both viewed: oldest first (ascending)
+        if (a.isViewed && b.isViewed) {
+          return a.createdAt - b.createdAt;
+        }
+        
+        return 0;
+      });
+
+      // Always show "Create Story" button
+      formattedStories.unshift({
+        id: 'create',
+        username: 'Create story',
+        avatar: userAvatar,
+        isYourStory: true,
+        isViewed: false,
+      });
+
+      console.log('📱 Stories loaded:', formattedStories.length, formattedStories);
+      setStories(formattedStories);
+    } catch (error) {
+      console.error('Error loading stories:', error);
+    }
+  }, [currentUserId, userAvatar]);
+
+  // Load stories on mount and when user changes
+  useEffect(() => {
+    loadStories();
+  }, [loadStories]);
+
+  // Refresh stories
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadStories();
+    setRefreshing(false);
+  }, [loadStories]);
+
+  // Poll for new stories every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadStories();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [loadStories]);
 
   // Group stories by userId to show only one circle per user
   const groupedStories = React.useMemo(() => {
@@ -62,43 +192,95 @@ const Stories: React.FC<StoriesProps> = React.memo(({
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
-        {groupedStories.map((story) => (
+        {groupedStories.length === 0 ? (
+          // Show "Create Story" button if no stories
           <TouchableOpacity
-            key={story.id}
             style={styles.storyItem}
-            onPress={() => story.isYourStory ? onCreateStory?.() : router.push(`/story/${story.id}` as any)}
+            onPress={() => router.push('/story/create' as any)}
             activeOpacity={0.7}
           >
-            {story.isYourStory ? (
-              <View style={styles.createStoryContainer}>
-                <View style={styles.createStoryBg}>
-                  <Ionicons name="add" size={28} color={COLORS.textWhite} />
-                </View>
-                <Text style={styles.storyUsername}>Create</Text>
+            <View style={styles.createStoryContainer}>
+              <View style={styles.createStoryBg}>
+                <Ionicons name="add" size={28} color={"#ee6e05ff"} />
               </View>
-            ) : (
-              <>
-                <LinearGradient
-                  colors={[COLORS.gradientPurple, COLORS.gradientPurpleAlt, COLORS.gradientBlue]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.storyGradient}
-                >
-                  <View style={styles.storyAvatarContainer}>
-                    <Image
-                      source={{ uri: story.avatar }}
-                      style={styles.storyAvatar}
-                    />
-                  </View>
-                </LinearGradient>
-                <Text style={styles.storyUsername} numberOfLines={1}>
-                  {story.username}
-                </Text>
-              </>
-            )}
+              <Text style={styles.storyUsername}>Create</Text>
+            </View>
           </TouchableOpacity>
-        ))}
+        ) : (
+          groupedStories.map((story) => {
+          // Show "Create" button only if it's the create placeholder
+          const isCreateButton = story.id === 'create';
+          const hasUserAvatar = isCreateButton && story.avatar;
+          
+          return (
+            <TouchableOpacity
+              key={story.id}
+              style={styles.storyItem}
+              onPress={() => isCreateButton ? router.push('/story/create' as any) : router.push(`/story/${story.id}` as any)}
+              activeOpacity={0.7}
+            >
+              {isCreateButton ? (
+                <View style={styles.createStoryContainer}>
+                  {hasUserAvatar ? (
+                    // Show user avatar with + icon overlay
+                    <View style={styles.yourStoryContainer}>
+                      <Image
+                        source={{ uri: story.avatar }}
+                        style={styles.yourStoryAvatar}
+                      />
+                      <View style={styles.plusIconOverlay}>
+                        <Ionicons name="add" size={20} color={COLORS.textWhite} />
+                      </View>
+                    </View>
+                  ) : (
+                    // Show blue circle with + icon
+                    <View style={styles.createStoryBg}>
+                      <Ionicons name="add" size={28} color={COLORS.textWhite} />
+                    </View>
+                  )}
+                  <Text style={styles.storyUsername}>{story.username}</Text>
+                </View>
+              ) : (
+                <>
+                  {story.isViewed ? (
+                    // Viewed story - gray border
+                    <View style={styles.viewedStoryBorder}>
+                      <View style={styles.storyAvatarContainer}>
+                        <Image
+                          source={{ uri: story.avatar }}
+                          style={styles.storyAvatar}
+                        />
+                      </View>
+                    </View>
+                  ) : (
+                    // Unviewed story - gradient border
+                    <LinearGradient
+                      colors={[COLORS.gradientPurple, COLORS.gradientPurpleAlt, COLORS.gradientBlue]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.storyGradient}
+                    >
+                      <View style={styles.storyAvatarContainer}>
+                        <Image
+                          source={{ uri: story.avatar }}
+                          style={styles.storyAvatar}
+                        />
+                      </View>
+                    </LinearGradient>
+                  )}
+                  <Text style={styles.storyUsername} numberOfLines={1}>
+                    {story.username}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          );
+        })
+        )}
       </ScrollView>
     </View>
   );
@@ -143,10 +325,35 @@ const styles = StyleSheet.create({
     width: SIZES.avatar.xl,
     height: SIZES.avatar.xl,
     borderRadius: RADIUS.circle,
-    backgroundColor: COLORS.blue,
+    backgroundColor: "#ee6e05ff",
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING.xs,
+  },
+  yourStoryContainer: {
+    width: SIZES.avatar.xl,
+    height: SIZES.avatar.xl,
+    borderRadius: RADIUS.circle,
+    marginBottom: SPACING.xs,
+    position: 'relative',
+  },
+  yourStoryAvatar: {
+    width: SIZES.avatar.xl,
+    height: SIZES.avatar.xl,
+    borderRadius: RADIUS.circle,
+  },
+  plusIconOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#f17006ff",
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.backgroundWhite,
   },
   storyGradient: {
     width: SIZES.avatar.xl,
@@ -154,6 +361,15 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.circle,
     padding: 2.5,
     marginBottom: SPACING.xs,
+  },
+  viewedStoryBorder: {
+    width: SIZES.avatar.xl,
+    height: SIZES.avatar.xl,
+    borderRadius: RADIUS.circle,
+    padding: 2.5,
+    marginBottom: SPACING.xs,
+    borderWidth: 2,
+    borderColor: '#DBDBDB',
   },
   storyAvatarContainer: {
     width: '100%',

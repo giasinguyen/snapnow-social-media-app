@@ -5,7 +5,9 @@ import { ActivityIndicator, Alert, Animated, Dimensions, Image, Keyboard, Modal,
 import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import StoryProgressBar from '../../components/StoryProgressBar'
-import { MOCK_STORIES } from '../../services/mockData'
+import StoryViewersModal from '../../components/StoryViewersModal'
+import { auth } from '../../config/firebase'
+import { addStoryReaction, deleteStory, getFollowedUsersStories, getStoryViewers, markStoryAsViewed, type Story as StoryType, type StoryView } from '../../services/stories'
 
 const STORY_DURATION = 5000; // 5 seconds per story
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -17,7 +19,7 @@ export default function StoryScreen() {
   const router = useRouter()
   const [currentUserIndex, setCurrentUserIndex] = useState(0)
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0)
-  const [userStories, setUserStories] = useState<any[][]>([])
+  const [userStories, setUserStories] = useState<StoryType[][]>([])
   const [loading, setLoading] = useState(true)
   const [isPaused, setIsPaused] = useState(false)
   const [fadeAnim] = useState(new Animated.Value(1))
@@ -31,34 +33,77 @@ export default function StoryScreen() {
   const reactionScale = useRef(new Animated.Value(0)).current
   const [showReactions, setShowReactions] = useState(false)
   const inputRef = useRef<TextInput>(null)
+  const currentUserId = auth.currentUser?.uid
+  const [showViewersModal, setShowViewersModal] = useState(false)
+  const [viewers, setViewers] = useState<StoryView[]>([])
+  const [loadingViewers, setLoadingViewers] = useState(false)
 
   useEffect(() => {
-    // Group stories by userId
-    const groupedStories: { [key: string]: any[] } = {}
-    MOCK_STORIES.forEach(story => {
-      if (!groupedStories[story.userId]) {
-        groupedStories[story.userId] = []
+    const loadStories = async () => {
+      if (!currentUserId) {
+        router.back()
+        return
       }
-      groupedStories[story.userId].push(story)
-    })
 
-    // Convert to array of arrays and find initial user
-    const storiesArray = Object.values(groupedStories)
-    const initialStory = MOCK_STORIES.find(s => s.id === id)
-    
-    if (initialStory) {
-      const userIndex = storiesArray.findIndex(
-        stories => stories[0].userId === initialStory.userId
-      )
-      setUserStories(storiesArray)
-      setCurrentUserIndex(userIndex !== -1 ? userIndex : 0)
-      
-      // Find which story within the user's stories
-      const storyIndex = storiesArray[userIndex]?.findIndex(s => s.id === id) || 0
-      setCurrentStoryIndex(storyIndex)
+      try {
+        // Load stories from Firebase
+        const stories = await getFollowedUsersStories(currentUserId)
+        
+        if (stories.length === 0) {
+          Alert.alert('No Stories', 'No stories available')
+          router.back()
+          return
+        }
+
+        // Group stories by userId
+        const groupedStories: { [key: string]: StoryType[] } = {}
+        stories.forEach(story => {
+          if (!groupedStories[story.userId]) {
+            groupedStories[story.userId] = []
+          }
+          groupedStories[story.userId].push(story)
+        })
+
+        // Convert to array of arrays and find initial user
+        const storiesArray = Object.values(groupedStories)
+        const initialStory = stories.find(s => s.id === id)
+        
+        if (initialStory) {
+          const userIndex = storiesArray.findIndex(
+            userStories => userStories[0].userId === initialStory.userId
+          )
+          setUserStories(storiesArray)
+          setCurrentUserIndex(userIndex !== -1 ? userIndex : 0)
+          
+          // Find which story within the user's stories
+          const storyIndex = storiesArray[userIndex]?.findIndex(s => s.id === id) || 0
+          setCurrentStoryIndex(storyIndex)
+
+          // Mark as viewed
+          if (currentUserId) {
+            await markStoryAsViewed(id, currentUserId)
+          }
+        } else {
+          // If story not found, just show the first one
+          setUserStories(storiesArray)
+          setCurrentUserIndex(0)
+          setCurrentStoryIndex(0)
+
+          if (currentUserId && storiesArray[0]?.[0]) {
+            await markStoryAsViewed(storiesArray[0][0].id, currentUserId)
+          }
+        }
+      } catch (error) {
+        console.error('Error loading stories:', error)
+        Alert.alert('Error', 'Failed to load stories')
+        router.back()
+      } finally {
+        setLoading(false)
+      }
     }
-    setLoading(false)
-  }, [id])
+
+    loadStories()
+  }, [id, currentUserId])
 
   useEffect(() => {
     fadeAnim.setValue(0)
@@ -155,6 +200,10 @@ export default function StoryScreen() {
       const absX = Math.abs(translationX)
       const absY = Math.abs(translationY)
       
+      const currentUserStoriesArray = userStories[currentUserIndex] || []
+      const currentStory = currentUserStoriesArray[currentStoryIndex]
+      const isOwnStory = currentStory?.userId === currentUserId
+      
       // Vertical swipe detection (must be significantly more vertical than horizontal)
       if (absY > 80 && absY > absX * 2) {
         // Swipe down
@@ -168,17 +217,32 @@ export default function StoryScreen() {
             isNavigating.current = false
             return
           }
+          // If viewers modal is showing, close it
+          if (showViewersModal) {
+            setShowViewersModal(false)
+            isNavigating.current = false
+            return
+          }
           // Otherwise close the story
           router.back()
           isNavigating.current = false
           return
         }
-        // Swipe up - focus on input (only if reactions not already showing)
-        if ((translationY < -100 || velocityY < -500) && !showReactions) {
-          setShowReactions(true)
-          inputRef.current?.focus()
-          isNavigating.current = false
-          return
+        // Swipe up
+        if (translationY < -100 || velocityY < -500) {
+          // For own story - show viewers modal
+          if (isOwnStory && !showViewersModal) {
+            handleShowViewers()
+            isNavigating.current = false
+            return
+          }
+          // For others' stories - show reactions (only if not already showing)
+          if (!isOwnStory && !showReactions) {
+            setShowReactions(true)
+            inputRef.current?.focus()
+            isNavigating.current = false
+            return
+          }
         }
       }
       
@@ -310,6 +374,87 @@ export default function StoryScreen() {
     setIsPaused(!showMenu)
   }
 
+  const handleShowViewers = async () => {
+    const currentUserStoriesArray = userStories[currentUserIndex] || []
+    const currentStory = currentUserStoriesArray[currentStoryIndex]
+    
+    if (!currentStory) return
+
+    setLoadingViewers(true)
+    setIsPaused(true)
+    
+    try {
+      const viewersList = await getStoryViewers(currentStory.id)
+      setViewers(viewersList)
+      setShowViewersModal(true)
+    } catch (error) {
+      console.error('Error loading viewers:', error)
+      Alert.alert('Error', 'Failed to load viewers')
+    } finally {
+      setLoadingViewers(false)
+    }
+  }
+
+  const handleDeleteStory = () => {
+    const currentUserStoriesArray = userStories[currentUserIndex] || []
+    const currentStory = currentUserStoriesArray[currentStoryIndex]
+    
+    if (!currentStory) return
+
+    Alert.alert(
+      'Delete Story',
+      'Are you sure you want to delete this story?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteStory(currentStory.id)
+              
+              // Remove from local state
+              const updatedStories = [...userStories]
+              const userStoriesCopy = [...updatedStories[currentUserIndex]]
+              userStoriesCopy.splice(currentStoryIndex, 1)
+              
+              if (userStoriesCopy.length === 0) {
+                // No more stories for this user, remove user
+                updatedStories.splice(currentUserIndex, 1)
+                
+                if (updatedStories.length === 0) {
+                  // No more stories at all, go back
+                  router.back()
+                  return
+                }
+                
+                // Move to previous or next user
+                if (currentUserIndex > 0) {
+                  setCurrentUserIndex(currentUserIndex - 1)
+                } else {
+                  setCurrentUserIndex(0)
+                }
+                setCurrentStoryIndex(0)
+              } else {
+                // More stories for this user
+                updatedStories[currentUserIndex] = userStoriesCopy
+                
+                if (currentStoryIndex >= userStoriesCopy.length) {
+                  setCurrentStoryIndex(userStoriesCopy.length - 1)
+                }
+              }
+              
+              setUserStories(updatedStories)
+            } catch (error) {
+              console.error('Error deleting story:', error)
+              Alert.alert('Error', 'Failed to delete story')
+            }
+          }
+        }
+      ]
+    )
+  }
+
   const handleReport = () => {
     setShowMenu(false)
     setIsPaused(false)
@@ -330,7 +475,7 @@ export default function StoryScreen() {
     ])
   }
 
-  const handleReaction = (emoji: string) => {
+  const handleReaction = async (emoji: string) => {
     setReaction(emoji)
     setIsPaused(true)
     
@@ -367,7 +512,15 @@ export default function StoryScreen() {
     // Send reaction to backend
     const currentUserStoriesArray = userStories[currentUserIndex] || []
     const currentStory = currentUserStoriesArray[currentStoryIndex]
-    console.log('Sent reaction:', emoji, 'to', currentStory?.username)
+    
+    if (currentStory && currentUserId) {
+      try {
+        await addStoryReaction(currentStory.id, currentUserId, emoji)
+        console.log('Sent reaction:', emoji, 'to', currentStory.username)
+      } catch (error) {
+        console.error('Error sending reaction:', error)
+      }
+    }
   }
 
   const handleSendReply = () => {
@@ -398,6 +551,7 @@ export default function StoryScreen() {
 
   const currentUserStoriesArray = userStories[currentUserIndex] || []
   const currentStory = currentUserStoriesArray[currentStoryIndex]
+  const isOwnStory = currentStory?.userId === currentUserId
 
   if (!currentStory) return null
 
@@ -427,18 +581,28 @@ export default function StoryScreen() {
           <View style={styles.topBar}>
             <View style={styles.userInfo}>
               <Image 
-                source={{ uri: currentStory.avatar }} 
+                source={{ uri: currentStory.userProfileImage }} 
                 style={styles.avatarSmall} 
               />
               <View>
                 <Text style={styles.username}>{currentStory.username}</Text>
-                <Text style={styles.time}>2h ago</Text>
+                <Text style={styles.time}>
+                  {currentStory.createdAt ? 
+                    new Date(currentStory.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) 
+                    : ''}
+                </Text>
               </View>
             </View>
             <View style={styles.topBarButtons}>
-              <TouchableOpacity style={styles.moreButton} onPress={handleMenuPress}>
-                <Ionicons name="ellipsis-vertical" size={20} color="#fff" />
-              </TouchableOpacity>
+              {isOwnStory ? (
+                <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteStory}>
+                  <Ionicons name="trash-outline" size={20} color="#fff" />
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={styles.moreButton} onPress={handleMenuPress}>
+                  <Ionicons name="ellipsis-vertical" size={20} color="#fff" />
+                </TouchableOpacity>
+              )}
               <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
                 <Ionicons name="close" size={24} color="#fff" />
               </TouchableOpacity>
@@ -465,11 +629,42 @@ export default function StoryScreen() {
             <Animated.View style={[styles.content]}>
               <Animated.View style={{flex:1, width:'100%', height:'100%', opacity: fadeAnim}}>
                 <Image 
-                  source={{ uri: currentStory.image }} 
+                  source={{ uri: currentStory.imageUrl }} 
                   style={styles.image}
+                  resizeMode="contain"
                   onLoadStart={() => setIsPaused(true)}
                   onLoad={() => setIsPaused(false)}
                 />
+                
+                {/* Text overlay if story has text */}
+                {currentStory.text && (
+                  <View
+                    style={[
+                      styles.storyTextOverlay,
+                      currentStory.textStyle?.position && {
+                        left: currentStory.textStyle.position.x,
+                        top: currentStory.textStyle.position.y,
+                      }
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.storyText,
+                        currentStory.textStyle && {
+                          color: currentStory.textStyle.color,
+                          fontSize: currentStory.textStyle.fontSize,
+                          fontWeight: currentStory.textStyle.fontWeight as any,
+                          backgroundColor: currentStory.textStyle.backgroundColor,
+                          paddingHorizontal: currentStory.textStyle.backgroundColor !== 'transparent' ? 12 : 0,
+                          paddingVertical: currentStory.textStyle.backgroundColor !== 'transparent' ? 8 : 0,
+                          borderRadius: currentStory.textStyle.backgroundColor !== 'transparent' ? 8 : 0,
+                        }
+                      ]}
+                    >
+                      {currentStory.text}
+                    </Text>
+                  </View>
+                )}
               </Animated.View>
 
               {/* Reaction Animation */}
@@ -526,51 +721,64 @@ export default function StoryScreen() {
             </Animated.View>
           </PanGestureHandler>
 
-          {/* Reply Input and Reactions */}
-          <View style={styles.bottomContainer}>
-            {showReactions && (
-              <View style={styles.reactionBar}>
-                {REACTIONS.map((emoji) => (
-                  <TouchableOpacity
-                    key={emoji}
-                    style={styles.reactionButton}
-                    onPress={() => handleReaction(emoji)}
-                  >
-                    <Text style={styles.reactionIcon}>{emoji}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-            
-            <View style={styles.replyContainer}>
-              <TextInput
-                ref={inputRef}
-                style={styles.replyInput}
-                placeholder="Send message"
-                placeholderTextColor="#999"
-                value={replyText}
-                onChangeText={setReplyText}
-                onFocus={handleInputFocus}
-                onBlur={handleInputBlur}
-              />
+          {/* Reply Input and Reactions - Only show for other users' stories */}
+          {!isOwnStory && (
+            <View style={styles.bottomContainer}>
               {showReactions && (
-                <TouchableOpacity 
-                  style={styles.sendButton}
-                  onPress={handleSendReply}
-                >
-                  <Ionicons name="send" size={20} color={replyText.trim() ? "#fff" : "#666"} />
-                </TouchableOpacity>
+                <View style={styles.reactionBar}>
+                  {REACTIONS.map((emoji) => (
+                    <TouchableOpacity
+                      key={emoji}
+                      style={styles.reactionButton}
+                      onPress={() => handleReaction(emoji)}
+                    >
+                      <Text style={styles.reactionIcon}>{emoji}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               )}
-              {!showReactions && (
-                <TouchableOpacity 
-                  style={styles.heartButton}
-                  onPress={() => handleReaction('❤️')}
-                >
-                  <Ionicons name="heart-outline" size={24} color="#fff"/>
-                </TouchableOpacity>
-              )}
+              
+              <View style={styles.replyContainer}>
+                <TextInput
+                  ref={inputRef}
+                  style={styles.replyInput}
+                  placeholder="Send message"
+                  placeholderTextColor="#999"
+                  value={replyText}
+                  onChangeText={setReplyText}
+                  onFocus={handleInputFocus}
+                  onBlur={handleInputBlur}
+                />
+                {showReactions && (
+                  <TouchableOpacity 
+                    style={styles.sendButton}
+                    onPress={handleSendReply}
+                  >
+                    <Ionicons name="send" size={20} color={replyText.trim() ? "#fff" : "#666"} />
+                  </TouchableOpacity>
+                )}
+                {!showReactions && (
+                  <TouchableOpacity 
+                    style={styles.heartButton}
+                    onPress={() => handleReaction('❤️')}
+                  >
+                    <Ionicons name="heart-outline" size={24} color="#fff"/>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
-          </View>
+          )}
+
+          {/* Viewers Modal */}
+          <StoryViewersModal
+            visible={showViewersModal}
+            onClose={() => {
+              setShowViewersModal(false)
+              setIsPaused(false)
+            }}
+            viewers={viewers}
+            reactions={currentStory.reactions || {}}
+          />
         </SafeAreaView>
       </GestureHandlerRootView>
     </Modal>
@@ -617,6 +825,9 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   moreButton: {
+    padding: 4,
+  },
+  deleteButton: {
     padding: 4,
   },
   userInfo: {
@@ -741,5 +952,16 @@ const styles = StyleSheet.create({
   },
   heartButton: {
     padding: 4,
+  },
+  storyTextOverlay: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  storyText: {
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
 })
