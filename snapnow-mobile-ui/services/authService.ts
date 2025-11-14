@@ -2,12 +2,17 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  // reauthenticateWithCredential,
+  // EmailAuthProvider,
+  // updatePassword as firebaseUpdatePassword,
+  // sendPasswordResetEmail
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
+
 
 // Interface cho User
 export interface UserProfile {
@@ -279,6 +284,49 @@ export class AuthService {
     return auth.currentUser;
   }
 }
+
+// Cập nhật mật khẩu
+export const updatePassword = async (currentPassword: string, newPassword: string) => {
+  try {
+    const user = auth.currentUser;
+    if (!user?.email) {
+      throw new Error('No user logged in');
+    }
+
+    // Xác minh mật khẩu hiện tại bằng reauthenticateWithCredential
+    try {
+      const { reauthenticateWithCredential: firebaseReauth, EmailAuthProvider: firebaseEmailProvider } = await import('firebase/auth');
+      const credential = firebaseEmailProvider.credential(user.email, currentPassword);
+      await firebaseReauth(user, credential);
+    } catch (error: any) {
+      console.error('Current password verification error:', error);
+      throw new Error('Current password is incorrect');
+    }
+
+    // Cập nhật mật khẩu mới
+    const { updatePassword: firebaseUpdatePwd } = await import('firebase/auth');
+    await firebaseUpdatePwd(user, newPassword);
+    
+    console.log('✅ Password updated successfully');
+    return true;
+  } catch (error: any) {
+    console.error('❌ Password update error:', error);
+    throw error;
+  }
+};
+
+// Gửi email reset password
+export const sendPasswordReset = async (email: string) => {
+  try {
+    const { sendPasswordResetEmail: firebaseSendReset } = await import('firebase/auth');
+    await firebaseSendReset(auth, email);
+    console.log('✅ Password reset email sent successfully');
+    return true;
+  } catch (error: any) {
+    console.error('❌ Password reset error:', error);
+    throw error;
+  }
+};
 
 // Lắng nghe thay đổi auth state
 export const onAuthStateChange = onAuthStateChanged;
