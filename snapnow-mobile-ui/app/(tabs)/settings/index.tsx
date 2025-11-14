@@ -12,11 +12,11 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { showInAppNotification } from '../../../components/InAppNotification';
 import { auth, db } from '../../../config/firebase';
 import { AuthService } from '../../../services/authService';
-import { showInAppNotification } from '../../../components/InAppNotification';
-import { showMessageNotification } from '../../../services/pushNotifications';
 import { checkNotificationPermissions } from '../../../services/notificationPermissions';
+import { showMessageNotification } from '../../../services/pushNotifications';
 
 interface SettingItemProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -242,7 +242,7 @@ export default function SettingsScreen() {
             icon="eye-off-outline"
             title="Blocked Accounts"
             subtitle="Manage blocked users"
-            onPress={() => console.log('Blocked Accounts')}
+            onPress={() => router.push('/(tabs)/settings/blocked-accounts')}
           />
         </SettingSection>
 

@@ -1,16 +1,16 @@
 import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc,
-    getDoc,
-    getDocs,
-    onSnapshot,
-    orderBy,
-    query,
-    serverTimestamp,
-    updateDoc,
-    where,
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  updateDoc,
+  where,
 } from "firebase/firestore"
 import { auth, db } from "../config/firebase"
 import { createNotification } from "./notifications"
@@ -158,6 +158,37 @@ export async function getFollowedUsersStories(currentUserId: string): Promise<St
     return allStories.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
   } catch (error) {
     console.error("Error getting followed users stories:", error)
+    return []
+  }
+}
+
+// Get stories by user ID
+export async function getUserStories(userId: string): Promise<Story[]> {
+  try {
+    const now = new Date()
+    const storiesQuery = query(
+      collection(db, "stories"),
+      where("userId", "==", userId),
+      where("expiresAt", ">", now)
+    )
+
+    const snapshot = await getDocs(storiesQuery)
+    const stories: Story[] = []
+
+    snapshot.forEach((doc) => {
+      const data = doc.data()
+      stories.push({
+        id: doc.id,
+        ...data,
+        createdAt: data.createdAt?.toDate?.() || new Date(),
+        expiresAt: data.expiresAt?.toDate?.() || new Date(),
+      } as Story)
+    })
+
+    // Sort by creation time in memory (newest first)
+    return stories.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+  } catch (error) {
+    console.error("Error getting user stories:", error)
     return []
   }
 }
