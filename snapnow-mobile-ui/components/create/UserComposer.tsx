@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Avatar from '../../components/ui/Avatar';
 import MentionInput from '../MentionInput';
 

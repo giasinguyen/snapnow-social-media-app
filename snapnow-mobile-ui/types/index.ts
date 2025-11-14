@@ -62,7 +62,7 @@ export interface Like {
 export interface Notification {
   id: string;
   userId: string;
-  type: 'like' | 'comment' | 'follow' | 'comment_reply' | 'comment_like' | 'story_reaction';
+  type: 'like' | 'comment' | 'follow' | 'comment_reply' | 'comment_like' | 'story_reaction' | 'mention';
   fromUserId: string;
   fromUsername: string;
   fromUserProfileImage?: string;

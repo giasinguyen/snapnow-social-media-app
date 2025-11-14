@@ -145,7 +145,7 @@ const CreateSnapScreen: React.FC = () => {
 
       const hashtags = extractHashtags(snapContent);
 
-      await createPost({
+      const postId = await createPost({
         userId: userProfile.id,
         username: userProfile.username,
         userImage: userProfile.profileImage,
@@ -154,6 +154,36 @@ const CreateSnapScreen: React.FC = () => {
         caption: snapContent.trim(),
         hashtags,
       });
+
+      // Extract mentions and send notifications
+      const mentionRegex = /@(\w+)/g;
+      const mentions = snapContent.match(mentionRegex);
+      
+      if (mentions && mentions.length > 0) {
+        const { UserService } = await import('../../services/user');
+        const { createNotification } = await import('../../services/notifications');
+        
+        for (const mention of mentions) {
+          const username = mention.substring(1); // Remove @
+          try {
+            const mentionedUser = await UserService.getUserByUsername(username);
+            if (mentionedUser && mentionedUser.id !== auth.currentUser!.uid) {
+              // Send notification to mentioned user
+              await createNotification(
+                mentionedUser.id,
+                'mention',
+                auth.currentUser!.uid,
+                userProfile.username,
+                userProfile.profileImage,
+                postId,
+                uploadedImageUrls[0] || ''
+              );
+            }
+          } catch (error) {
+            console.error(`Failed to notify @${username}:`, error);
+          }
+        }
+      }
 
       Alert.alert("Success", "Post created!", [
         {

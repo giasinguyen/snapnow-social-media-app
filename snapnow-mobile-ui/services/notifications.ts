@@ -17,7 +17,7 @@ import type { Notification } from "../types"
 // Create a notification
 export async function createNotification(
   userId: string,
-  type: "like" | "comment" | "follow" | "comment_reply" | "comment_like" | "story_reaction",
+  type: "like" | "comment" | "follow" | "comment_reply" | "comment_like" | "story_reaction" | "mention",
   fromUserId: string,
   fromUsername: string,
   fromUserProfileImage: string | undefined,
@@ -48,6 +48,11 @@ export async function createNotification(
         break
       case "story_reaction":
         message = `${fromUsername} reacted ${reactionEmoji || '❤️'} to your story`
+        break
+      case "mention":
+        message = commentText 
+          ? `${fromUsername} mentioned you in a comment` 
+          : `${fromUsername} mentioned you in a post`
         break
     }
 

@@ -142,9 +142,9 @@ export default function TabsLayout() {
                 <View
                   style={{
                     position: 'absolute',
-                    top: 0,
+                    top: -1,
                     right: 0,
-                    backgroundColor: '#FF3B30',
+                    backgroundColor: '#ee6e05ff',
                     borderRadius: 5,
                     width: 10,
                     height: 10,

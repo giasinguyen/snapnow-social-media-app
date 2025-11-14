@@ -43,6 +43,43 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, bookmarked: bookma
     return text.replace(/#\w+/g, '').replace(/\s+/g, ' ').trim();
   };
 
+  // Function to render text with clickable mentions
+  const renderTextWithMentions = (text: string) => {
+    const parts = text.split(/(@\w+)/g);
+    
+    return (
+      <Text style={styles.caption}>
+        {parts.map((part, index) => {
+          if (part.startsWith('@')) {
+            const username = part.substring(1);
+            return (
+              <Text
+                key={index}
+                style={{ fontWeight: '700', color: COLORS.textPrimary }}
+                onPress={async () => {
+                  try {
+                    const user = await UserService.getUserByUsername(username);
+                    if (user && user.id) {
+                      router.push(`/user/${user.id}` as any);
+                    } else {
+                      Alert.alert('User not found', `@${username} does not exist`);
+                    }
+                  } catch (error) {
+                    console.error('Error finding user:', error);
+                    Alert.alert('Error', 'Failed to load user profile');
+                  }
+                }}
+              >
+                {part}
+              </Text>
+            );
+          }
+          return <Text key={index}>{part}</Text>;
+        })}
+      </Text>
+    );
+  };
+
   // Check if user has liked this post on mount and get real likes count
   useEffect(() => {
     const checkLikeStatus = async () => {
@@ -390,7 +427,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, bookmarked: bookma
         <View style={styles.captionContainer}>
           <Text style={styles.caption}>
             <Text style={styles.captionUsername}>{displayUsername}</Text>{' '}
-            {removeHashtagsFromText(post.caption)}
+            {renderTextWithMentions(removeHashtagsFromText(post.caption))}
           </Text>
         </View>
       )}

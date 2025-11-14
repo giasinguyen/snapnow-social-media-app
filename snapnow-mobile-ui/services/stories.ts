@@ -219,19 +219,32 @@ export async function addStoryReaction(storyId: string, userId: string, emoji: s
       const userDoc = await getDoc(doc(db, "users", userId))
       const userData = userDoc.data()
 
-      await createNotification(
-        storyData.userId, // story owner
-        "story_reaction",
-        userId, // reactor
-        userData?.username || "Someone",
-        userData?.profileImage,
-        undefined, // postId
-        storyData.imageUrl, // postImageUrl (reuse for story image)
-        undefined, // commentText
-        undefined, // commentId
-        storyId, // storyId
-        emoji // reaction emoji
+      // Check if a notification already exists for this story from this user
+      const existingNotifQuery = query(
+        collection(db, "notifications"),
+        where("userId", "==", storyData.userId),
+        where("fromUserId", "==", userId),
+        where("storyId", "==", storyId),
+        where("type", "==", "story_reaction")
       )
+      const existingNotifs = await getDocs(existingNotifQuery)
+
+      // Only create notification if one doesn't exist already
+      if (existingNotifs.empty) {
+        await createNotification(
+          storyData.userId, // story owner
+          "story_reaction",
+          userId, // reactor
+          userData?.username || "Someone",
+          userData?.profileImage,
+          undefined, // postId
+          storyData.imageUrl, // postImageUrl (reuse for story image)
+          undefined, // commentText
+          undefined, // commentId
+          storyId, // storyId
+          emoji // reaction emoji
+        )
+      }
     }
   } catch (error) {
     console.error("Error adding story reaction:", error)

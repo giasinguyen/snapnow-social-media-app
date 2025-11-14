@@ -21,6 +21,29 @@ export class UserService {
     }
   }
 
+  // Get user profile by username
+  static async getUserByUsername(username: string): Promise<User | null> {
+    try {
+      const usersRef = collection(db, "users")
+      const q = query(usersRef, where("username", "==", username.toLowerCase()))
+      const snapshot = await getDocs(q)
+      
+      if (!snapshot.empty) {
+        const doc = snapshot.docs[0]
+        const data = doc.data()
+        return {
+          ...data,
+          id: doc.id,
+          createdAt: data.createdAt?.toDate?.() || new Date(),
+        } as User
+      }
+      return null
+    } catch (error) {
+      console.error("Error getting user by username:", error)
+      throw error
+    }
+  }
+
   // Update user profile
   static async updateUserProfile(userId: string, updates: Partial<User>) {
     try {
