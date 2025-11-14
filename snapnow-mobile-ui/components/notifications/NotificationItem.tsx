@@ -27,6 +27,8 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
         return <Ionicons name="happy-outline" size={18} color="#f8780fff" />;
       case 'follow':
         return <Ionicons name="person-add" size={17} color="#0095f6" />;
+      case 'mention':
+        return <Ionicons name="at" size={17} color="#8e44ad" />;
       default:
         return null;
     }
@@ -37,6 +39,8 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
     
     if (notification.type === 'follow') {
       router.push(`/user/${notification.fromUserId}`);
+    } else if (notification.type === 'mention' && notification.postId) {
+      router.push(`/post/${notification.postId}` as any);
     } else if (notification.postId) {
       router.push(`/post/${notification.postId}` as any);
     }

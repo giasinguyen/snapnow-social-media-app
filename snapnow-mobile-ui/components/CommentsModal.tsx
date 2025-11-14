@@ -3,20 +3,20 @@ import * as ImagePicker from 'expo-image-picker'
 import { useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from "react"
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  FlatList,
-  Image,
-  KeyboardAvoidingView,
-  Modal,
-  PanResponder,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    FlatList,
+    Image,
+    KeyboardAvoidingView,
+    Modal,
+    PanResponder,
+    Platform,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { auth } from "../config/firebase"
@@ -24,6 +24,7 @@ import { uploadToCloudinary } from "../services/cloudinary"
 import { addComment, deleteComment, getPostComments } from "../services/comments"
 import type { Comment } from "../types"
 import CommentItem from './CommentItem'
+import MentionInput from './MentionInput'
 
 interface CommentsModalProps {
   visible: boolean
@@ -124,6 +125,67 @@ export default function CommentsModal({ visible, postId, onClose }: CommentsModa
         replyingTo?.id, // Pass the parent comment ID if replying
         imageUrl
       )
+
+      // Extract mentions and send notifications
+      const mentionRegex = /@(\w+)/g;
+      const mentions = commentText.match(mentionRegex);
+      
+      if (mentions && mentions.length > 0) {
+        const { UserService } = await import('../services/user');
+        const { createNotification } = await import('../services/notifications');
+        const { getPost } = await import('../services/posts');
+        
+        console.log('Found mentions in comment:', mentions);
+        
+        // Get post data for image URL
+        const postData = await getPost(postId);
+        
+        // Get the parent comment owner ID to avoid duplicate notifications
+        let parentCommentOwnerId: string | null = null;
+        if (replyingTo?.id) {
+          try {
+            const { getDoc, doc } = await import('firebase/firestore');
+            const { db } = await import('../config/firebase');
+            const parentCommentDoc = await getDoc(doc(db, 'comments', replyingTo.id));
+            if (parentCommentDoc.exists()) {
+              parentCommentOwnerId = parentCommentDoc.data().userId;
+            }
+          } catch (error) {
+            console.error('Error getting parent comment owner:', error);
+          }
+        }
+        
+        for (const mention of mentions) {
+          const username = mention.substring(1); // Remove @
+          try {
+            const mentionedUser = await UserService.getUserByUsername(username);
+            console.log('Looking up user:', username, 'Found:', mentionedUser?.id);
+            
+            // Skip if mentioning yourself, or if this user is already getting a reply notification
+            if (mentionedUser && 
+                mentionedUser.id !== auth.currentUser.uid && 
+                mentionedUser.id !== parentCommentOwnerId) {
+              // Send notification to mentioned user
+              console.log('Sending mention notification to:', mentionedUser.id);
+              await createNotification(
+                mentionedUser.id,
+                'mention',
+                auth.currentUser.uid,
+                auth.currentUser.displayName || auth.currentUser.email || "user",
+                auth.currentUser.photoURL || undefined,
+                postId,
+                postData?.imageUrls?.[0] || postData?.imageUrl,
+                commentText.trim()
+              );
+              console.log('Mention notification sent successfully');
+            } else if (mentionedUser?.id === parentCommentOwnerId) {
+              console.log('Skipping mention notification - user already getting reply notification');
+            }
+          } catch (error) {
+            console.error(`Failed to notify @${username}:`, error);
+          }
+        }
+      }
 
       // For now, reload comments to get the updated structure with nested replies
       await loadComments()
@@ -304,15 +366,17 @@ export default function CommentsModal({ visible, postId, onClose }: CommentsModa
           <TouchableOpacity style={styles.cameraButton} onPress={handleCameraPress}>
             <Ionicons name="camera-outline" size={20} color="#8e8e8e" />
           </TouchableOpacity>
-          <TextInput
-            ref={inputRef}
-            style={styles.input}
-            placeholder={replyingTo ? `Reply to @${replyingTo.username}...` : "Add a comment..."}
-            value={commentText}
-            onChangeText={setCommentText}
-            multiline
-            maxLength={500}
-          />
+          <View style={styles.inputWrapper}>
+            <MentionInput
+              ref={inputRef}
+              style={styles.input}
+              placeholder={replyingTo ? `Reply to @${replyingTo.username}...` : "Add a comment..."}
+              value={commentText}
+              onChangeText={setCommentText}
+              multiline
+              maxLength={500}
+            />
+          </View>
           <TouchableOpacity
             onPress={handleAddComment}
             disabled={(!commentText.trim() && !selectedImage) || submitting}
@@ -463,8 +527,10 @@ const styles = StyleSheet.create({
     marginRight: 13,
     backgroundColor: "#f0f0f0",
   },
-  input: {
+  inputWrapper: {
     flex: 1,
+  },
+  input: {
     maxHeight: 110,
     paddingVertical: 9,
     paddingHorizontal: 13,
