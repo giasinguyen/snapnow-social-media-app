@@ -1,4 +1,10 @@
-<div align="center"> # 📸 SnapNow – Social Media Application </div>
+<div align="center">
+
+# ✨📸 SnapNow – Social Media Application ✨
+
+A modern social platform for sharing your moments with the world.
+
+</div>
 
 <div align="center">
 
