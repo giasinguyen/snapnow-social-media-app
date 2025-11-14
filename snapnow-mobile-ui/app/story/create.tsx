@@ -3,17 +3,17 @@ import * as ImagePicker from 'expo-image-picker'
 import { useRouter } from 'expo-router'
 import React, { useRef, useState } from 'react'
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    Dimensions,
-    Image,
-    PanResponder,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
+  Image,
+  PanResponder,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { CLOUDINARY_FOLDERS } from '../../config/cloudinary'
@@ -34,20 +34,26 @@ export default function CreateStoryScreen() {
   const [fontSize, setFontSize] = useState(32)
   const [fontWeight, setFontWeight] = useState<'normal' | 'bold'>('bold')
   const [textBgColor, setTextBgColor] = useState('transparent')
-  const [textPosition, setTextPosition] = useState({ x: SCREEN_WIDTH / 2, y: SCREEN_HEIGHT / 3 })
+  const [textPosition, setTextPosition] = useState({ x: SCREEN_WIDTH / 2 - 100, y: SCREEN_HEIGHT / 3 - 50 })
   const [uploading, setUploading] = useState(false)
   const [showTextOptions, setShowTextOptions] = useState(false)
 
   // Animation for text options panel
   const slideAnim = useRef(new Animated.Value(0)).current
-  const textPosX = useRef(new Animated.Value(SCREEN_WIDTH / 2 - 100)).current
-  const textPosY = useRef(new Animated.Value(SCREEN_HEIGHT / 3 - 50)).current
+  const textPosX = useRef(new Animated.Value(0)).current
+  const textPosY = useRef(new Animated.Value(0)).current
 
   // Pan responder for draggable text
   const textPanResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        textPosX.setOffset(textPosition.x)
+        textPosY.setOffset(textPosition.y)
+        textPosX.setValue(0)
+        textPosY.setValue(0)
+      },
       onPanResponderMove: Animated.event(
         [
           null,
@@ -58,10 +64,16 @@ export default function CreateStoryScreen() {
         ],
         { useNativeDriver: false }
       ),
-      onPanResponderRelease: (_, gestureState) => {
+      onPanResponderRelease: () => {
+        textPosX.flattenOffset()
+        textPosY.flattenOffset()
+        
+        const newX = (textPosX as any)._value
+        const newY = (textPosY as any)._value
+        
         setTextPosition({
-          x: gestureState.moveX,
-          y: gestureState.moveY,
+          x: newX,
+          y: newY,
         })
       },
     })
@@ -178,12 +190,16 @@ export default function CreateStoryScreen() {
       console.log('✅ Story image uploaded:', imageUrl)
 
       // Create story with text and style
+      // Get the actual current position from animated values
+      const currentX = (textPosX as any)._value
+      const currentY = (textPosY as any)._value
+      
       const textStyle = text ? {
         color: textColor,
         fontSize,
         fontWeight,
         backgroundColor: textBgColor,
-        position: textPosition,
+        position: { x: currentX, y: currentY },
       } : undefined
 
       const storyId = await createStory(imageUrl, text, textStyle)
@@ -263,10 +279,8 @@ export default function CreateStoryScreen() {
             style={[
               styles.textOverlay,
               {
-                transform: [
-                  { translateX: textPosX },
-                  { translateY: textPosY },
-                ],
+                left: Animated.add(textPosition.x, textPosX),
+                top: Animated.add(textPosition.y, textPosY),
               },
             ]}
           >

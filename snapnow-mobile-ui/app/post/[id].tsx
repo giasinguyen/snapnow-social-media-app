@@ -16,18 +16,18 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import CommentItem from '../../components/CommentItem';
+import MentionInput from '../../components/MentionInput';
 import MultiImageViewer from '../../components/MultiImageViewer';
 import { AuthService } from '../../services/authService';
 import { addComment, deleteComment, getPostComments } from '../../services/comments';
 import { likePost, unlikePost } from '../../services/likes';
-import { getPost, savePost, unsavePost, getPostSavesCount, hasUserBookmarkedPost } from '../../services/posts';
+import { getPost, getPostSavesCount, hasUserBookmarkedPost, savePost, unsavePost } from '../../services/posts';
 import { UserService } from '../../services/user';
 import { Comment, Post } from '../../types';
 
@@ -207,6 +207,63 @@ export default function PostDetailScreen() {
         replyingTo?.id, // Pass the parent comment ID if replying
         undefined // imageUrl
       );
+
+      // Extract mentions and send notifications
+      const mentionRegex = /@(\w+)/g;
+      const mentions = commentText.match(mentionRegex);
+      
+      if (mentions && mentions.length > 0) {
+        const { UserService } = await import('../../services/user');
+        const { createNotification } = await import('../../services/notifications');
+        
+        console.log('Found mentions in comment:', mentions);
+        
+        // Get the parent comment owner ID to avoid duplicate notifications
+        let parentCommentOwnerId: string | null = null;
+        if (replyingTo?.id) {
+          try {
+            const { getDoc, doc } = await import('firebase/firestore');
+            const { db } = await import('../../config/firebase');
+            const parentCommentDoc = await getDoc(doc(db, 'comments', replyingTo.id));
+            if (parentCommentDoc.exists()) {
+              parentCommentOwnerId = parentCommentDoc.data().userId;
+            }
+          } catch (error) {
+            console.error('Error getting parent comment owner:', error);
+          }
+        }
+        
+        for (const mention of mentions) {
+          const username = mention.substring(1); // Remove @
+          try {
+            const mentionedUser = await UserService.getUserByUsername(username);
+            console.log('Looking up user:', username, 'Found:', mentionedUser?.id);
+            
+            // Skip if mentioning yourself, or if this user is already getting a reply notification
+            if (mentionedUser && 
+                mentionedUser.id !== currentUserId && 
+                mentionedUser.id !== parentCommentOwnerId) {
+              // Send notification to mentioned user
+              console.log('Sending mention notification to:', mentionedUser.id);
+              await createNotification(
+                mentionedUser.id,
+                'mention',
+                currentUserId,
+                profile?.username || 'Anonymous',
+                profile?.profileImage,
+                post.id,
+                post.imageUrls?.[0] || post.imageUrl,
+                commentText.trim()
+              );
+              console.log('Mention notification sent successfully');
+            } else if (mentionedUser?.id === parentCommentOwnerId) {
+              console.log('Skipping mention notification - user already getting reply notification');
+            }
+          } catch (error) {
+            console.error(`Failed to notify @${username}:`, error);
+          }
+        }
+      }
 
       // Reload comments
       const updatedComments = await getPostComments(post.id);
@@ -391,6 +448,43 @@ export default function PostDetailScreen() {
     return text.replace(/#\w+/g, '').replace(/\s+/g, ' ').trim();
   };
 
+  // Function to render text with clickable mentions
+  const renderTextWithMentions = (text: string) => {
+    const parts = text.split(/(@\w+)/g);
+    
+    return (
+      <Text style={styles.captionText}>
+        {parts.map((part, index) => {
+          if (part.startsWith('@')) {
+            const username = part.substring(1);
+            return (
+              <Text
+                key={index}
+                style={{ fontWeight: '700' }}
+                onPress={async () => {
+                  try {
+                    const user = await UserService.getUserByUsername(username);
+                    if (user && user.id) {
+                      router.push(`/user/${user.id}` as any);
+                    } else {
+                      Alert.alert('User not found', `@${username} does not exist`);
+                    }
+                  } catch (error) {
+                    console.error('Error finding user:', error);
+                    Alert.alert('Error', 'Failed to load user profile');
+                  }
+                }}
+              >
+                {part}
+              </Text>
+            );
+          }
+          return <Text key={index}>{part}</Text>;
+        })}
+      </Text>
+    );
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -559,7 +653,7 @@ export default function PostDetailScreen() {
           {post.caption && removeHashtagsFromText(post.caption).length > 0 && (
             <View style={styles.captionContainer}>
               <Text style={styles.captionUsername}>{displayUsername} </Text>
-              <Text style={styles.captionText}>{removeHashtagsFromText(post.caption)}</Text>
+              {renderTextWithMentions(removeHashtagsFromText(post.caption))}
             </View>
           )}
 
@@ -629,7 +723,7 @@ export default function PostDetailScreen() {
               <Text style={{ fontSize: 14, color: '#657786' }}>?</Text>
             </View>
           )}
-          <TextInput
+          <MentionInput
             style={styles.commentInput}
             placeholder={replyingTo ? `Reply to @${replyingTo.username}...` : "Add a comment..."}
             value={commentText}

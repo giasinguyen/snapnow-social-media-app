@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import { collection, getDocs, limit, query, where } from 'firebase/firestore';
+import React, { forwardRef, useEffect, useState } from 'react';
 import {
-  View,
-  TextInput,
-  ScrollView,
-  TouchableOpacity,
-  Text,
-  StyleSheet,
   Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
   TextInputProps,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
 interface User {
@@ -25,12 +25,12 @@ interface MentionInputProps extends TextInputProps {
   style?: any;
 }
 
-export default function MentionInput({
+const MentionInput = forwardRef<TextInput, MentionInputProps>(({
   value,
   onChangeText,
   style,
   ...props
-}: MentionInputProps) {
+}, ref) => {
   const [suggestions, setSuggestions] = useState<User[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
@@ -151,6 +151,7 @@ export default function MentionInput({
     <View style={styles.container}>
       <TextInput
         {...props}
+        ref={ref}
         value={value}
         onChangeText={onChangeText}
         style={[styles.input, style]}
@@ -188,7 +189,11 @@ export default function MentionInput({
       )}
     </View>
   );
-}
+});
+
+MentionInput.displayName = 'MentionInput';
+
+export default MentionInput;
 
 const styles = StyleSheet.create({
   container: {
@@ -211,6 +216,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
     maxHeight: 200,
+    zIndex: 1000,
   },
   suggestionsList: {
     maxHeight: 200,
