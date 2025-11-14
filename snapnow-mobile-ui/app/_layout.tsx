@@ -13,6 +13,7 @@ import {
 } from '../services/pushNotifications';
 import { InAppNotification } from '../components/InAppNotification';
 import { useGlobalMessageNotifications } from '../services/useGlobalMessageNotifications';
+import GlobalCallListener from '../components/call/GlobalCallListener';
 import { doc, getDoc } from 'firebase/firestore';
 
 import '../global.css';
@@ -126,6 +127,9 @@ export default function RootLayout() {
           
           {/* In-app notification banner */}
           <InAppNotification />
+          
+          {/* Global incoming call listener */}
+          {user && <GlobalCallListener />}
         </PaperProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

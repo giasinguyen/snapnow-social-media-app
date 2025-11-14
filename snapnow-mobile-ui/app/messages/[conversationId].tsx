@@ -29,6 +29,7 @@ import {
   subscribeToMessages,
 } from '../../services/messages';
 import { generateRoomId } from '../../utils/callUtils';
+import { createCall } from '../../services/calls';
 
 export default function ChatScreen() {
   const params = useLocalSearchParams();
@@ -58,7 +59,7 @@ export default function ChatScreen() {
   const currentUserPhoto = currentUser?.photoURL || 'https://via.placeholder.com/150';
 
   // Handler for video call button
-  const handleVideoCall = () => {
+  const handleVideoCall = async () => {
     if (!otherUserId || !currentUserId) {
       Alert.alert('Error', 'Unable to start call. Please try again.');
       return;
@@ -66,14 +67,34 @@ export default function ChatScreen() {
 
     const roomId = generateRoomId(currentUserId, otherUserId as string);
     
-    router.push({
-      pathname: '/call/[roomId]',
-      params: {
+    try {
+      // Create call document in Firestore
+      await createCall({
         roomId,
-        otherUserName: otherUserName as string,
-        otherUserId: otherUserId as string,
-      },
-    });
+        callerId: currentUserId,
+        callerName: currentUserName,
+        callerPhoto: currentUserPhoto,
+        receiverId: otherUserId as string,
+        receiverName: otherUserName as string,
+        receiverPhoto: otherUserPhoto as string,
+        type: 'video',
+      });
+
+      console.log('✅ Call created, navigating to call screen');
+      
+      // Navigate to call screen
+      router.push({
+        pathname: '/call/[roomId]',
+        params: {
+          roomId,
+          otherUserName: otherUserName as string,
+          otherUserId: otherUserId as string,
+        },
+      });
+    } catch (error) {
+      console.error('Error creating call:', error);
+      Alert.alert('Error', 'Failed to start call. Please try again.');
+    }
   };
 
   // Keyboard listeners

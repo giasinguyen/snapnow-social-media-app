@@ -1,13 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Platform,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
+import { endCall, updateCallStatus } from '../../services/calls';
 
 export default function CallScreen() {
   const params = useLocalSearchParams();
@@ -16,6 +18,48 @@ export default function CallScreen() {
 
   // Construct Jitsi Meet URL
   const jitsiUrl = `https://meet.jit.si/${roomId}`;
+
+  // Update call status to active when screen loads
+  useEffect(() => {
+    const markCallActive = async () => {
+      if (roomId) {
+        try {
+          await updateCallStatus(roomId as string, 'active');
+          console.log('✅ Call marked as active:', roomId);
+        } catch (error) {
+          console.error('Error marking call as active:', error);
+        }
+      }
+    };
+
+    markCallActive();
+  }, [roomId]);
+
+  // Handle ending the call
+  const handleEndCall = async () => {
+    try {
+      if (roomId) {
+        await endCall(roomId as string);
+        console.log('✅ Call ended:', roomId);
+      }
+      router.back();
+    } catch (error) {
+      console.error('Error ending call:', error);
+      router.back();
+    }
+  };
+
+  // Confirm before leaving
+  const handleClose = () => {
+    Alert.alert(
+      'End Call',
+      'Are you sure you want to end this call?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'End Call', style: 'destructive', onPress: handleEndCall },
+      ]
+    );
+  };
 
   return (
     <>
@@ -29,7 +73,7 @@ export default function CallScreen() {
           headerTintColor: '#ffffff',
           headerLeft: () => (
             <TouchableOpacity
-              onPress={() => router.back()}
+              onPress={handleClose}
               style={{ marginLeft: 8 }}
             >
               <Ionicons name="close" size={28} color="#ffffff" />
