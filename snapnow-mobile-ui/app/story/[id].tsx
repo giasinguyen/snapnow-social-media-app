@@ -1,13 +1,14 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import React, { useEffect, useRef, useState } from 'react'
+import { useFocusEffect } from '@react-navigation/native'
+import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { ActivityIndicator, Alert, Animated, Dimensions, Image, Keyboard, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import StoryProgressBar from '../../components/StoryProgressBar'
 import StoryViewersModal from '../../components/StoryViewersModal'
 import { auth } from '../../config/firebase'
-import { addStoryReaction, deleteStory, getFollowedUsersStories, getStoryViewers, markStoryAsViewed, type Story as StoryType, type StoryView } from '../../services/stories'
+import { addStoryReaction, deleteStory, getFollowedUsersStories, getStoryViewers, markStoryAsViewed, type Story as StoryType, type StoryView, saveStory, unsaveStory, hasUserSavedStory } from '../../services/stories'
 
 const STORY_DURATION = 5000; // 5 seconds per story
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -37,6 +38,23 @@ export default function StoryScreen() {
   const [showViewersModal, setShowViewersModal] = useState(false)
   const [viewers, setViewers] = useState<StoryView[]>([])
   const [loadingViewers, setLoadingViewers] = useState(false)
+  const [isSaved, setIsSaved] = useState(false)
+
+  useFocusEffect(
+    useCallback(() => {
+      const checkSavedStatus = async () => {
+        if (currentUserId && userStories.length > 0) {
+          const userStoriesArray = userStories[currentUserIndex] || []
+          const story = userStoriesArray[currentStoryIndex]
+          if (story?.id) {
+            const saved = await hasUserSavedStory(currentUserId, story.id)
+            setIsSaved(saved)
+          }
+        }
+      }
+      checkSavedStatus()
+    }, [currentUserId, currentUserIndex, currentStoryIndex, userStories.length])
+  )
 
   useEffect(() => {
     const loadStories = async () => {
@@ -475,6 +493,30 @@ export default function StoryScreen() {
     ])
   }
 
+  const handleArchiveStory = async () => {
+    const currentUserStoriesArray = userStories[currentUserIndex] || []
+    const currentStory = currentUserStoriesArray[currentStoryIndex]
+    
+    if (!currentStory || !currentUserId) return
+    
+    try {
+      if (isSaved) {
+        await unsaveStory(currentStory.id, currentUserId)
+        setIsSaved(false)
+      } else {
+        await saveStory(currentStory.id, currentUserId, {
+          imageUrl: currentStory.imageUrl,
+          username: currentStory.username,
+          caption: currentStory.text || '',
+        })
+        setIsSaved(true)
+      }
+    } catch (error) {
+      console.error('Error toggling archive:', error)
+      Alert.alert('Error', 'Failed to toggle archive')
+    }
+  }
+
   const handleReaction = async (emoji: string) => {
     setReaction(emoji)
     setIsPaused(true)
@@ -599,9 +641,14 @@ export default function StoryScreen() {
                   <Ionicons name="trash-outline" size={20} color="#fff" />
                 </TouchableOpacity>
               ) : (
-                <TouchableOpacity style={styles.moreButton} onPress={handleMenuPress}>
-                  <Ionicons name="ellipsis-vertical" size={20} color="#fff" />
-                </TouchableOpacity>
+                <>
+                  <TouchableOpacity style={styles.archiveButton} onPress={handleArchiveStory}>
+                    <Ionicons name={isSaved ? "archive" : "archive-outline"} size={20} color="#fff" />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.moreButton} onPress={handleMenuPress}>
+                    <Ionicons name="ellipsis-vertical" size={20} color="#fff" />
+                  </TouchableOpacity>
+                </>
               )}
               <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
                 <Ionicons name="close" size={24} color="#fff" />
@@ -825,6 +872,9 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   moreButton: {
+    padding: 4,
+  },
+  archiveButton: {
     padding: 4,
   },
   deleteButton: {
