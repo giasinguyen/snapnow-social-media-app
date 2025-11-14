@@ -322,8 +322,8 @@ export default function SettingsScreen() {
           <SettingItem
             icon="archive-outline"
             title="Archive"
-            subtitle="View archived stories and posts"
-            onPress={() => console.log('Archive')}
+            subtitle="View archived stories"
+            onPress={() => router.push('/(tabs)/settings/archive')}
           />
           <SettingItem
             icon="heart-outline"

@@ -28,17 +28,39 @@ export interface PostSearchResult {
 
 export async function searchPostsByQuery(qstr: string, maxResults = 50): Promise<PostSearchResult[]> {
   if (!qstr) return [];
-  // 
+  
   const qLower = qstr.toLowerCase();
+  
+  // Check if query is a hashtag search (starts with #)
+  const isHashtagSearch = qLower.startsWith('#');
+  const searchTerm = isHashtagSearch ? qLower.substring(1) : qLower;
 
   const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(maxResults));
   const snap = await getDocs(q);
   const results: PostSearchResult[] = [];
+  
   snap.forEach(d => {
     const data = d.data() as any;
     const caption = (data.caption || '').toString().toLowerCase();
-    if (caption.includes(qLower) || caption.split(/\s+/).some((w: string) => w.includes('#') && w.includes(qLower))) {
-      results.push({ id: d.id, imageUrl: data.imageUrl, caption: data.caption, username: data.username, userImage: data.userImage });
+    
+    // Match caption text directly
+    let captionMatches = caption.includes(searchTerm);
+    
+    // Match hashtags in caption
+    const hashtagRegex = /#[\w]+/g;
+    const hashtags = caption.match(hashtagRegex) || [];
+    const hashtagMatches = hashtags.some((tag: string) => tag.toLowerCase().includes('#' + searchTerm));
+    
+    // If searching for hashtag specifically, only match hashtags
+    // Otherwise, match both caption text and hashtags
+    if (isHashtagSearch ? hashtagMatches : (captionMatches || hashtagMatches)) {
+      results.push({ 
+        id: d.id, 
+        imageUrl: data.imageUrl, 
+        caption: data.caption, 
+        username: data.username, 
+        userImage: data.userImage 
+      });
     }
   });
 

@@ -331,3 +331,98 @@ export function subscribeToStories(
 
   return unsubscribe
 }
+
+/**
+ * Save a story to user's archive
+ */
+export const saveStory = async (
+  storyId: string,
+  userId: string,
+  storyData?: {
+    imageUrl?: string
+    username?: string
+    caption?: string
+  }
+) => {
+  try {
+    const saveRef = doc(db, 'savedStories', `${userId}_${storyId}`)
+    await updateDoc(saveRef, {
+      storyId,
+      userId,
+      imageUrl: storyData?.imageUrl || '',
+      username: storyData?.username || 'Anonymous',
+      caption: storyData?.caption || '',
+      savedAt: serverTimestamp(),
+    }).catch(() => {
+      // If doc doesn't exist, create it
+      return addDoc(collection(db, 'savedStories'), {
+        storyId,
+        userId,
+        imageUrl: storyData?.imageUrl || '',
+        username: storyData?.username || 'Anonymous',
+        caption: storyData?.caption || '',
+        savedAt: serverTimestamp(),
+      })
+    })
+  } catch (error) {
+    console.error('Error saving story:', error)
+    throw error
+  }
+}
+
+/**
+ * Remove a story from user's archive
+ */
+export const unsaveStory = async (storyId: string, userId: string) => {
+  try {
+    const q = query(
+      collection(db, 'savedStories'),
+      where('userId', '==', userId),
+      where('storyId', '==', storyId)
+    )
+    
+    const querySnapshot = await getDocs(q)
+    querySnapshot.forEach(async (doc) => {
+      await deleteDoc(doc.ref)
+    })
+  } catch (error) {
+    console.error('Error unsaving story:', error)
+    throw error
+  }
+}
+
+/**
+ * Check if user has saved a story
+ */
+export const hasUserSavedStory = async (
+  userId: string,
+  storyId: string
+): Promise<boolean> => {
+  try {
+    const q = query(
+      collection(db, 'savedStories'),
+      where('userId', '==', userId),
+      where('storyId', '==', storyId)
+    )
+
+    const querySnapshot = await getDocs(q)
+    return !querySnapshot.empty
+  } catch (error) {
+    console.error('Error checking saved story:', error)
+    return false
+  }
+}
+
+/**
+ * Get count of saved stories
+ */
+export const getSavedStoriesCount = async (storyId: string): Promise<number> => {
+  try {
+    const q = query(collection(db, 'savedStories'), where('storyId', '==', storyId))
+    const querySnapshot = await getDocs(q)
+    return querySnapshot.size
+  } catch (error) {
+    console.error('Error getting saves count:', error)
+    return 0
+  }
+}
