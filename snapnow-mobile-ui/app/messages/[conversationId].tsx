@@ -28,6 +28,7 @@ import {
   sendMessage,
   subscribeToMessages,
 } from '../../services/messages';
+import { generateRoomId } from '../../utils/callUtils';
 
 export default function ChatScreen() {
   const params = useLocalSearchParams();
@@ -55,6 +56,25 @@ export default function ChatScreen() {
   const currentUserId = currentUser?.uid || '';
   const currentUserName = currentUser?.displayName || 'Unknown';
   const currentUserPhoto = currentUser?.photoURL || 'https://via.placeholder.com/150';
+
+  // Handler for video call button
+  const handleVideoCall = () => {
+    if (!otherUserId || !currentUserId) {
+      Alert.alert('Error', 'Unable to start call. Please try again.');
+      return;
+    }
+
+    const roomId = generateRoomId(currentUserId, otherUserId as string);
+    
+    router.push({
+      pathname: '/call/[roomId]',
+      params: {
+        roomId,
+        otherUserName: otherUserName as string,
+        otherUserId: otherUserId as string,
+      },
+    });
+  };
 
   // Keyboard listeners
   useEffect(() => {
@@ -415,7 +435,7 @@ export default function ChatScreen() {
           ),
           headerRight: () => (
             <View style={{ flexDirection: 'row', gap: 16, paddingRight: 8 }}>
-              <TouchableOpacity>
+              <TouchableOpacity onPress={handleVideoCall}>
                 <Ionicons name="videocam-outline" size={26} color="#000" />
               </TouchableOpacity>
               <TouchableOpacity>
