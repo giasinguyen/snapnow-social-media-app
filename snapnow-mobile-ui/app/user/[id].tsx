@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -19,8 +20,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth } from '../../config/firebase';
+import { blockUser, unblockUser } from '../../services/blocking';
 import { formatFollowers } from '../../services/mockData';
 import { fetchUserPosts } from '../../services/posts';
+import { getUserStories, Story } from '../../services/stories';
 import { UserService } from '../../services/user';
 import { Post, User } from '../../types';
 
@@ -46,6 +49,11 @@ export default function UserProfileScreen() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [isBlockedBy, setIsBlockedBy] = useState(false);
+  const [userStories, setUserStories] = useState<Story[]>([]);
+  const [showAvatarMenu, setShowAvatarMenu] = useState(false);
+  const [showAvatarViewer, setShowAvatarViewer] = useState(false);
   const router = useRouter();
 
   const loadUserProfile = async () => {
@@ -68,15 +76,25 @@ export default function UserProfileScreen() {
       try {
         const { AuthService } = await import('../../services/authService');
         const { isFollowing: checkFollowing } = await import('../../services/follow');
+        const { isUserBlocked: checkBlocked, isBlockedBy: checkBlockedBy } = await import('../../services/blocking');
         const currentUser = await AuthService.getCurrentUserProfile();
         
         if (currentUser && userData?.id) {
           // Check if this is the current user's own profile
           setIsOwnProfile(currentUser.id === userData.id);
           
-          const following = await checkFollowing(currentUser.id, userData.id);
-          setIsFollowing(following);
-          console.log('👥 Follow status:', following ? 'Following' : 'Not following');
+          // Check block status
+          const blocked = await checkBlocked(currentUser.id, userData.id);
+          const blockedBy = await checkBlockedBy(currentUser.id, userData.id);
+          setIsBlocked(blocked);
+          setIsBlockedBy(blockedBy);
+          
+          // Only check following if not blocked
+          if (!blocked && !blockedBy) {
+            const following = await checkFollowing(currentUser.id, userData.id);
+            setIsFollowing(following);
+            console.log('👥 Follow status:', following ? 'Following' : 'Not following');
+          }
         }
       } catch (err) {
         console.error('Failed to check follow status', err);
@@ -91,11 +109,24 @@ export default function UserProfileScreen() {
 
   useEffect(() => {
     loadUserProfile();
+    loadUserStories();
   }, [id]);
+
+  const loadUserStories = async () => {
+    if (!id) return;
+    try {
+      const stories = await getUserStories(id);
+      console.log('📖 Loaded user stories:', stories.length, stories);
+      setUserStories(stories);
+    } catch (error) {
+      console.error('Error loading user stories:', error);
+    }
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
     await loadUserProfile();
+    await loadUserStories();
     setRefreshing(false);
   };
 
@@ -193,22 +224,66 @@ export default function UserProfileScreen() {
 
   const handleBlock = () => {
     setShowOptionsMenu(false);
-    Alert.alert(
-      'Block User',
-      `Are you sure you want to block @${user?.username}? They won't be able to find your profile, posts or story on SnapNow. SnapNow won't let them know you blocked them.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Block', 
-          style: 'destructive',
-          onPress: () => {
-            // TODO: Implement block functionality
-            console.log('Block user:', user?.id);
-            Alert.alert('User Blocked', `You have blocked @${user?.username}`);
+    
+    if (isBlocked) {
+      // Unblock
+      Alert.alert(
+        'Unblock User',
+        `Unblock @${user?.username}? They will be able to see your posts and follow you.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Unblock', 
+            style: 'destructive',
+            onPress: async () => {
+              if (!user || !auth.currentUser) return;
+              try {
+                await unblockUser(auth.currentUser.uid, user.id);
+                setIsBlocked(false);
+                Alert.alert('Success', `@${user.username} has been unblocked`);
+                // Reload profile to show content
+                await loadUserProfile();
+              } catch (error) {
+                console.error('Error unblocking user:', error);
+                Alert.alert('Error', 'Failed to unblock user');
+              }
+            }
           }
-        }
-      ]
-    );
+        ]
+      );
+    } else {
+      // Block
+      Alert.alert(
+        'Block User',
+        `Block @${user?.username}? They won't be able to see your posts or contact you.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Block', 
+            style: 'destructive',
+            onPress: async () => {
+              if (!user || !auth.currentUser) return;
+              try {
+                await blockUser(
+                  auth.currentUser.uid,
+                  user.id,
+                  user.username,
+                  user.profileImage
+                );
+                setIsBlocked(true);
+                setIsFollowing(false);
+                Alert.alert('User Blocked', `You have blocked @${user.username}`);
+                // Reload profile to hide content
+                await loadUserProfile();
+              } catch (error) {
+                console.error('Error blocking user:', error);
+                Alert.alert('Error', 'Failed to block user');
+              }
+            }
+          }
+        ]
+      );
+    }
   };
 
   const handleReport = () => {
@@ -262,6 +337,36 @@ export default function UserProfileScreen() {
       .catch((error) => {
         console.error('Error sharing profile:', error);
       });
+  };
+
+  const handleAvatarPress = () => {
+    console.log('👆 Avatar pressed, stories count:', userStories.length);
+    if (userStories.length > 0) {
+      console.log('📱 Navigating to story:', userStories[0].id);
+      // Navigate to story viewer
+      router.push(`/story/${userStories[0].id}` as any);
+    } else {
+      console.log('⚠️ No stories to show');
+    }
+  };
+
+  const handleAvatarLongPress = () => {
+    // Long press always goes directly to avatar viewer (no menu)
+    setShowAvatarViewer(true);
+  };
+
+  const handleViewStory = () => {
+    setShowAvatarMenu(false);
+    console.log('📱 View story clicked, stories count:', userStories.length);
+    if (userStories.length > 0) {
+      console.log('📱 Navigating to story:', userStories[0].id);
+      router.push(`/story/${userStories[0].id}` as any);
+    }
+  };
+
+  const handleViewAvatar = () => {
+    setShowAvatarMenu(false);
+    setShowAvatarViewer(true);
   };
 
   if (loading) {
@@ -327,14 +432,32 @@ export default function UserProfileScreen() {
         {/* Profile Header Section */}
         <View style={styles.profileHeader}>
           {/* Large Centered Avatar */}
-          <View style={styles.avatarContainer}>
-            <LinearGradient
-              colors={['#0095F6', '#E91E63', '#9C27B0']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.avatarGradient}
-            >
-              <View style={styles.avatarInner}>
+          <TouchableOpacity 
+            style={styles.avatarContainer}
+            onPress={handleAvatarPress}
+            onLongPress={handleAvatarLongPress}
+            activeOpacity={0.9}
+          >
+            {userStories.length > 0 ? (
+              <LinearGradient
+                colors={['#0095F6', '#E91E63', '#9C27B0']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.avatarGradient}
+              >
+                <View style={styles.avatarInner}>
+                  <Image
+                    source={
+                      user.profileImage 
+                        ? { uri: user.profileImage } 
+                        : { uri: 'https://i.pravatar.cc/150?img=1' }
+                    }
+                    style={styles.avatar}
+                  />
+                </View>
+              </LinearGradient>
+            ) : (
+              <View style={styles.avatarNoStory}>
                 <Image
                   source={
                     user.profileImage 
@@ -344,8 +467,8 @@ export default function UserProfileScreen() {
                   style={styles.avatar}
                 />
               </View>
-            </LinearGradient>
-          </View>
+            )}
+          </TouchableOpacity>
 
           {/* Name and Bio */}
           <View style={styles.nameSection}>
@@ -443,6 +566,31 @@ export default function UserProfileScreen() {
           </View>
         </View>
 
+        {/* Blocked User Message */}
+        {isBlocked && (
+          <View style={styles.blockedMessage}>
+            <Ionicons name="ban" size={48} color="#8E8E8E" />
+            <Text style={styles.blockedTitle}>You blocked this account</Text>
+            <Text style={styles.blockedSubtitle}>
+              Unblock to see their posts and profile
+            </Text>
+          </View>
+        )}
+
+        {/* Blocked By User Message */}
+        {isBlockedBy && !isBlocked && (
+          <View style={styles.blockedMessage}>
+            <Ionicons name="lock-closed" size={48} color="#8E8E8E" />
+            <Text style={styles.blockedTitle}>This account is private</Text>
+            <Text style={styles.blockedSubtitle}>
+              You cannot view their content
+            </Text>
+          </View>
+        )}
+
+        {/* Only show tabs and content if not blocked */}
+        {!isBlocked && !isBlockedBy && (
+          <>
         {/* Tabs */}
         <View style={styles.tabsContainer}>
           <TouchableOpacity
@@ -558,6 +706,8 @@ export default function UserProfileScreen() {
             </Text>
           </View>
         )}
+          </>
+        )}
       </ScrollView>
 
       {/* Options Menu Modal */}
@@ -596,6 +746,66 @@ export default function UserProfileScreen() {
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
+      </Modal>
+
+      {/* Avatar Menu Modal */}
+      <Modal
+        visible={showAvatarMenu}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowAvatarMenu(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowAvatarMenu(false)}
+        >
+          <View style={styles.optionsMenu}>
+            <TouchableOpacity style={styles.optionItem} onPress={handleViewStory}>
+              <Ionicons name="play-circle-outline" size={20} color="#262626" />
+              <Text style={styles.optionText}>Watch Story</Text>
+            </TouchableOpacity>
+            
+            <View style={styles.optionDivider} />
+            
+            <TouchableOpacity style={styles.optionItem} onPress={handleViewAvatar}>
+              <Ionicons name="image-outline" size={20} color="#262626" />
+              <Text style={styles.optionText}>See Avatar</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Avatar Viewer Modal */}
+      <Modal
+        visible={showAvatarViewer}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowAvatarViewer(false)}
+      >
+        <BlurView intensity={100} style={styles.avatarViewerContainer}>
+          <TouchableOpacity 
+            style={styles.avatarViewerOverlay}
+            activeOpacity={1}
+            onPress={() => setShowAvatarViewer(false)}
+          >
+            <TouchableOpacity style={styles.closeButton} onPress={() => setShowAvatarViewer(false)}>
+              <Ionicons name="close" size={32} color="#fff" />
+            </TouchableOpacity>
+            
+            <View style={styles.avatarViewerContent}>
+              <Image
+                source={
+                  user?.profileImage 
+                    ? { uri: user.profileImage } 
+                    : { uri: 'https://i.pravatar.cc/150?img=1' }
+                }
+                style={styles.avatarViewerImage}
+                resizeMode="cover"
+              />
+            </View>
+          </TouchableOpacity>
+        </BlurView>
       </Modal>
     </SafeAreaView>
   );
@@ -668,6 +878,15 @@ const styles = StyleSheet.create({
     width: 126,
     height: 126,
     borderRadius: 63,
+    padding: 3,
+  },
+  avatarNoStory: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#DBDBDB',
     padding: 3,
   },
   avatarInner: {
@@ -960,5 +1179,67 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#EFEFEF',
     marginVertical: 4,
+  },
+
+  // Blocked User Message
+  blockedMessage: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 100,
+    paddingHorizontal: 40,
+    backgroundColor: '#fff',
+  },
+  blockedTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#262626',
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  blockedSubtitle: {
+    fontSize: 14,
+    color: '#8E8E8E',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+
+  // Avatar Viewer Modal
+  avatarViewerContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+  },
+  avatarViewerOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    padding: 8,
+  },
+  avatarViewerContent: {
+    width: width * 0.8,
+    height: width * 0.8,
+    borderRadius: (width * 0.8) / 2,
+    overflow: 'hidden',
+    borderWidth: 4,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  avatarViewerImage: {
+    width: '100%',
+    height: '100%',
   },
 });

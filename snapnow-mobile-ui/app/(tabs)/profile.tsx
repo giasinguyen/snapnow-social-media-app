@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -8,6 +9,7 @@ import {
   Alert,
   Dimensions,
   Image,
+  Modal,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -26,6 +28,7 @@ import { uploadToCloudinary } from '../../services/cloudinary';
 import { formatFollowers } from '../../services/mockData';
 import { fetchUserPosts } from '../../services/posts';
 import { cleanupExpiredSnaps, createSnap, fetchUserSnaps, Snap } from '../../services/snaps';
+import { getUserStories, Story } from '../../services/stories';
 import { fetchTaggedPosts } from '../../services/tagged';
 import { Post } from '../../types';
 
@@ -51,6 +54,8 @@ export default function ProfileScreen() {
   const [showCreateAlbumModal, setShowCreateAlbumModal] = useState(false);
   const [showAddPhotosModal, setShowAddPhotosModal] = useState(false);
   const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(null);
+  const [userStories, setUserStories] = useState<Story[]>([]);
+  const [showAvatarViewer, setShowAvatarViewer] = useState(false);
   const router = useRouter();
 
   const loadProfile = async () => {
@@ -96,16 +101,46 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     loadProfile();
+    loadUserStories();
   }, []);
+
+  const loadUserStories = async () => {
+    try {
+      const currentUser = await AuthService.getCurrentUserProfile();
+      if (currentUser?.id) {
+        const stories = await getUserStories(currentUser.id);
+        console.log('📖 Loaded own stories:', stories.length, stories);
+        setUserStories(stories);
+      }
+    } catch (error) {
+      console.error('Error loading user stories:', error);
+    }
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
     await loadProfile();
+    await loadUserStories();
     setRefreshing(false);
   };
 
   const handleSettings = () => {
     router.push('/(tabs)/settings');
+  };
+
+  const handleAvatarPress = () => {
+    console.log('👆 Avatar pressed, stories count:', userStories.length);
+    if (userStories.length > 0) {
+      console.log('📱 Navigating to story:', userStories[0].id);
+      router.push(`/story/${userStories[0].id}` as any);
+    } else {
+      console.log('⚠️ No stories to show');
+    }
+  };
+
+  const handleAvatarLongPress = () => {
+    // For own profile, long press goes directly to avatar viewer
+    setShowAvatarViewer(true);
   };
 
   const handleSnapNow = async () => {
@@ -250,14 +285,32 @@ export default function ProfileScreen() {
         {/* Profile Header Section */}
         <View style={styles.profileHeader}>
           {/* Large Centered Avatar with Camera Overlay - SnapNow Focus */}
-          <View style={styles.avatarContainer}>
-            <LinearGradient
-              colors={['#0095F6', '#E91E63', '#9C27B0']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.avatarGradient}
-            >
-              <View style={styles.avatarInner}>
+          <TouchableOpacity 
+            style={styles.avatarContainer}
+            onPress={handleAvatarPress}
+            onLongPress={handleAvatarLongPress}
+            activeOpacity={0.9}
+          >
+            {userStories.length > 0 ? (
+              <LinearGradient
+                colors={['#0095F6', '#E91E63', '#9C27B0']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.avatarGradient}
+              >
+                <View style={styles.avatarInner}>
+                  <Image
+                    source={
+                      profile.profileImage 
+                        ? { uri: profile.profileImage } 
+                        : { uri: 'https://i.pravatar.cc/150?img=1' }
+                    }
+                    style={styles.avatar}
+                  />
+                </View>
+              </LinearGradient>
+            ) : (
+              <View style={styles.avatarNoStory}>
                 <Image
                   source={
                     profile.profileImage 
@@ -267,12 +320,12 @@ export default function ProfileScreen() {
                   style={styles.avatar}
                 />
               </View>
-            </LinearGradient>
+            )}
             {/* Camera Icon Overlay - SnapNow Feature */}
             <TouchableOpacity style={styles.cameraOverlay} onPress={handleSnapNow}>
               <Ionicons name="camera" size={20} color="#fff" />
             </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
 
           {/* Name and Bio */}
           <View style={styles.nameSection}>
@@ -350,7 +403,7 @@ export default function ProfileScreen() {
               color={activeTab === 'grid' ? '#262626' : '#8E8E8E'}
             />
             <Text style={[styles.tabText, activeTab === 'grid' && styles.activeTabText]}>
-              Grid
+              Post
             </Text>
           </TouchableOpacity>
           
@@ -619,6 +672,38 @@ export default function ProfileScreen() {
           )}
         </>
       )}
+
+      {/* Avatar Viewer Modal */}
+      <Modal
+        visible={showAvatarViewer}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowAvatarViewer(false)}
+      >
+        <BlurView intensity={100} style={styles.avatarViewerContainer}>
+          <TouchableOpacity 
+            style={styles.avatarViewerOverlay}
+            activeOpacity={1}
+            onPress={() => setShowAvatarViewer(false)}
+          >
+            <TouchableOpacity style={styles.closeButton} onPress={() => setShowAvatarViewer(false)}>
+              <Ionicons name="close" size={32} color="#fff" />
+            </TouchableOpacity>
+            
+            <View style={styles.avatarViewerContent}>
+              <Image
+                source={
+                  profile?.profileImage 
+                    ? { uri: profile.profileImage } 
+                    : { uri: 'https://i.pravatar.cc/150?img=1' }
+                }
+                style={styles.avatarViewerImage}
+                resizeMode="cover"
+              />
+            </View>
+          </TouchableOpacity>
+        </BlurView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -699,6 +784,15 @@ const styles = StyleSheet.create({
     width: 126,
     height: 126,
     borderRadius: 63,
+    padding: 3,
+  },
+  avatarNoStory: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#DBDBDB',
     padding: 3,
   },
   avatarInner: {
@@ -1068,5 +1162,43 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+
+  // Avatar Viewer Modal
+  avatarViewerContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+  },
+  avatarViewerOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    padding: 8,
+  },
+  avatarViewerContent: {
+    width: width * 0.8,
+    height: width * 0.8,
+    borderRadius: (width * 0.8) / 2,
+    overflow: 'hidden',
+    borderWidth: 4,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  avatarViewerImage: {
+    width: '100%',
+    height: '100%',
   },
 });
