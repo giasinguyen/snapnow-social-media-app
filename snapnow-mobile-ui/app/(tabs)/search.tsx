@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -55,6 +56,13 @@ export default function SearchScreen() {
 
   const onChange = (text: string) => {
     setQuery(text);
+    setQuery(text);
+    // if input cleared, remove any incoming route param and clear results
+    if (!text || text.trim() === '') {
+      setResults([]);
+      try { router.replace('/(tabs)/search'); } catch (e) { /* ignore */ }
+      return;
+    }
     debouncedSearch(text);
   };
 
@@ -65,9 +73,26 @@ export default function SearchScreen() {
     })();
   }, []);
 
+  // Reset search state when screen loses focus (tab switch or back press)
+  useFocusEffect(
+    useCallback(() => {
+      // Cleanup when leaving the screen
+      return () => {
+        // Only reset if no active query param (not coming from hashtag click)
+        if (!params.query) {
+          setQuery('');
+          setResults([]);
+          setMode('users');
+        }
+      };
+    }, [params.query])
+  );
+
   const clearRecent = async () => {
     setQuery('');
+    setResults([]);
     await AsyncStorage.removeItem('recentSearches');
+    try { router.replace('/(tabs)/search'); } catch (e) { }
   };
 
   const refresh = () => {
@@ -122,8 +147,39 @@ export default function SearchScreen() {
       </View>
 
       <View style={{ flexDirection: 'row', paddingHorizontal: 12, marginBottom: 8 }}>
-        <TouchableOpacity style={[styles.tabBtn, mode === 'users' && styles.tabActive]} onPress={() => setMode('users')}><Text>Users</Text></TouchableOpacity>
-        <TouchableOpacity style={[styles.tabBtn, mode === 'posts' && styles.tabActive, { marginLeft: 8 }]} onPress={() => setMode('posts')}><Text>Posts</Text></TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tabBtn, mode === 'users' && styles.tabActive]} 
+          onPress={() => {
+            setMode('users');
+            setResults([]);
+            setQuery('');
+            try { router.replace('/(tabs)/search'); } catch (e) { }
+          }}
+        >
+          <Text>Users</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tabBtn, mode === 'posts' && styles.tabActive, { marginLeft: 8 }]} 
+          onPress={() => {
+            setMode('posts');
+            setResults([]);
+            setQuery('');
+            try { router.replace('/(tabs)/search'); } catch (e) { }
+          }}
+        >
+          <Text>Posts</Text>
+        </TouchableOpacity>
+        
+        {/* <TouchableOpacity 
+          style={[styles.tabBtn, mode === 'posts' && styles.tabActive, { marginLeft: 8 }]} 
+          onPress={() => {
+            setMode('posts');
+            setResults([]);
+          }}
+        >
+          <Text>Posts</Text>
+        </TouchableOpacity> */}
+
         <View style={{ flex: 1 }} />
         <TouchableOpacity onPress={clearRecent}><Text style={{ color: '#c00' }}>Clear</Text></TouchableOpacity>
       </View>
