@@ -30,9 +30,9 @@ SnapNow was developed by **The Challengers**, a team of passionate developers wh
 
 * **Nguyễn Trần Gia Sĩ**: Team Leader & Full Stack Developer. A dedicated leader with a strong focus on both frontend and backend development, ensuring the app runs seamlessly across multiple platforms. [GitHub: @giasinguyen](https://github.com/giasinguyen)
 
-* **Đào Quốc Tuấn**: Frontend Developer & UI/UX Designer. With a keen eye for design and user experience, Tuấn has worked on building the stunning, intuitive interfaces for SnapNow. [GitHub: @tuandaocode](https://github.com/yezsudev)
+* **Đào Quốc Tuấn**: Frontend Developer & UI/UX Designer. With a keen eye for design and user experience, Tuấn has worked on building the stunning, intuitive interfaces for SnapNow. [GitHub: @yezsudev](https://github.com/yezsudev)
 
-* **Hà Xuân Phú**: Backend Developer & Database Architect. Phú has implemented the robust backend system, ensuring smooth data flow and real-time features on SnapNow. [GitHub: @phuhx](https://github.com/haphu2512-java)
+* **Hà Xuân Phú**: Backend Developer & Database Architect. Phú has implemented the robust backend system, ensuring smooth data flow and real-time features on SnapNow. [GitHub: @haphu2512-java](https://github.com/haphu2512-java)
 
 ---
 
