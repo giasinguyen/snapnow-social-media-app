@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
-import { StyleSheet, Text, TextInput, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import Avatar from '../../components/ui/Avatar';
+import MentionInput from '../MentionInput';
 
 type Props = {
   avatarUri: string;
@@ -11,7 +12,7 @@ type Props = {
 };
 
 const UserComposer: React.FC<Props> = ({ avatarUri, username, value, onChangeText, placeholder }) => {
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<any>(null);
 
   return (
     <View style={styles.row}>
@@ -20,7 +21,8 @@ const UserComposer: React.FC<Props> = ({ avatarUri, username, value, onChangeTex
       </TouchableOpacity>
       <View style={styles.right}>
         <Text style={styles.name}>{username}</Text>
-        <TextInput
+        <MentionInput
+          // @ts-ignore
           ref={inputRef}
           style={styles.input}
           multiline
@@ -30,6 +32,7 @@ const UserComposer: React.FC<Props> = ({ avatarUri, username, value, onChangeTex
           placeholder={placeholder}
           placeholderTextColor="#999"
           autoFocus={false}
+          // @ts-ignore
           returnKeyType="default"
           blurOnSubmit={false}
         />

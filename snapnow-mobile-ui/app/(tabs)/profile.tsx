@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   Image,
   RefreshControl,
@@ -14,21 +16,23 @@ import {
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AddPhotosToAlbumModal from '../../components/AddPhotosToAlbumModal';
+import CreateAlbumModal from '../../components/CreateAlbumModal';
+import ShareProfileModal from '../../components/ShareProfileModal';
+import { CLOUDINARY_FOLDERS } from '../../config/cloudinary';
+import { Album, createAlbum, fetchUserAlbums } from '../../services/albums';
 import { AuthService, UserProfile } from '../../services/authService';
+import { uploadToCloudinary } from '../../services/cloudinary';
 import { formatFollowers } from '../../services/mockData';
 import { fetchUserPosts } from '../../services/posts';
+import { cleanupExpiredSnaps, createSnap, fetchUserSnaps, Snap } from '../../services/snaps';
+import { fetchTaggedPosts } from '../../services/tagged';
 import { Post } from '../../types';
 
 const { width } = Dimensions.get('window');
 const POST_SIZE = (width - 2) / 3; // 2px total gap, 1px between each
 
 type TabType = 'grid' | 'snaps' | 'albums' | 'tagged';
-
-const ACHIEVEMENTS = [
-  { id: '1', icon: 'camera', label: '100 Snaps', color: '#0095F6' },
-  { id: '2', icon: 'flash', label: 'Daily Snapper', color: '#FF6B6B' },
-  { id: '3', icon: 'trophy', label: 'Top Creator', color: '#FFD93D' },
-];
 
 export default function ProfileScreen() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -37,6 +41,16 @@ export default function ProfileScreen() {
   const [activeTab, setActiveTab] = useState<TabType>('grid');
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [snaps, setSnaps] = useState<Snap[]>([]);
+  const [loadingSnaps, setLoadingSnaps] = useState(false);
+  const [albums, setAlbums] = useState<Album[]>([]);
+  const [loadingAlbums, setLoadingAlbums] = useState(false);
+  const [taggedPosts, setTaggedPosts] = useState<Post[]>([]);
+  const [loadingTagged, setLoadingTagged] = useState(false);
+  const [showCreateAlbumModal, setShowCreateAlbumModal] = useState(false);
+  const [showAddPhotosModal, setShowAddPhotosModal] = useState(false);
+  const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(null);
   const router = useRouter();
 
   const loadProfile = async () => {
@@ -53,6 +67,25 @@ export default function ProfileScreen() {
         const posts = await fetchUserPosts(currentUser.id);
         setUserPosts(posts);
         setLoadingPosts(false);
+
+        // Load snaps
+        setLoadingSnaps(true);
+        await cleanupExpiredSnaps(currentUser.id); // Clean up expired snaps first
+        const userSnaps = await fetchUserSnaps(currentUser.id);
+        setSnaps(userSnaps);
+        setLoadingSnaps(false);
+
+        // Load albums
+        setLoadingAlbums(true);
+        const userAlbums = await fetchUserAlbums(currentUser.id);
+        setAlbums(userAlbums);
+        setLoadingAlbums(false);
+
+        // Load tagged posts
+        setLoadingTagged(true);
+        const tagged = await fetchTaggedPosts(currentUser.username);
+        setTaggedPosts(tagged);
+        setLoadingTagged(false);
       }
     } catch (err) {
       console.error('Failed to load profile', err);
@@ -75,13 +108,95 @@ export default function ProfileScreen() {
     router.push('/(tabs)/settings');
   };
 
-  const handleSnapNow = () => {
-    console.log('Open camera for quick snap');
-    // TODO: Implement camera
+  const handleSnapNow = async () => {
+    if (!profile) return;
+
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Permission Required', 'Camera permission is required to take photos.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        quality: 0.8,
+        allowsEditing: true,
+        aspect: [1, 1],
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const imageUri = result.assets[0].uri;
+        
+        // Show loading
+        Alert.alert('Uploading...', 'Creating your snap');
+
+        // Upload to Cloudinary
+        const uploadResult = await uploadToCloudinary(imageUri, {
+          folder: CLOUDINARY_FOLDERS.snaps,
+          tags: ['snap', profile.id],
+        });
+
+        // Create snap in Firestore
+        await createSnap({
+          userId: profile.id,
+          userName: profile.displayName || profile.username,
+          userPhoto: profile.profileImage || '',
+          imageUrl: uploadResult.secure_url,
+          expiresIn24h: true,
+        });
+
+        // Reload snaps
+        const userSnaps = await fetchUserSnaps(profile.id);
+        setSnaps(userSnaps);
+
+        Alert.alert('Success', 'Snap created! It will disappear in 24 hours.');
+        setActiveTab('snaps'); // Switch to snaps tab
+      }
+    } catch (error) {
+      console.error('Error creating snap:', error);
+      Alert.alert('Error', 'Failed to create snap. Please try again.');
+    }
   };
 
   const handleShare = () => {
-    console.log('Share profile');
+    setShowShareModal(true);
+  };
+
+  const handleCreateAlbum = async (title: string, description: string) => {
+    if (!profile) return;
+
+    try {
+      // Create album in Firestore
+      const newAlbum = await createAlbum({
+        userId: profile.id,
+        title,
+        description,
+      });
+
+      // Reload albums
+      const userAlbums = await fetchUserAlbums(profile.id);
+      setAlbums(userAlbums);
+
+      console.log('✅ Album created:', newAlbum.id);
+    } catch (error) {
+      console.error('❌ Error creating album:', error);
+      throw error;
+    }
+  };
+
+  const handlePhotosAdded = async () => {
+    if (!profile?.id) return;
+    
+    try {
+      setLoadingAlbums(true);
+      const userAlbums = await fetchUserAlbums(profile.id);
+      setAlbums(userAlbums);
+    } catch (error) {
+      console.error('Error reloading albums:', error);
+    } finally {
+      setLoadingAlbums(false);
+    }
   };
 
   if (loading) {
@@ -174,8 +289,11 @@ export default function ProfileScreen() {
               <Text style={styles.statLabel}>Posts</Text>
             </TouchableOpacity>
             <View style={styles.statDivider} />
-            <TouchableOpacity style={styles.statItem}>
-              <Text style={styles.statNumber}>0</Text>
+            <TouchableOpacity 
+              style={styles.statItem}
+              onPress={() => setActiveTab('snaps')}
+            >
+              <Text style={styles.statNumber}>{snaps.length}</Text>
               <Text style={styles.statLabel}>Snaps</Text>
             </TouchableOpacity>
             <View style={styles.statDivider} />
@@ -201,21 +319,6 @@ export default function ProfileScreen() {
               <Text style={styles.statLabel}>Following</Text>
             </TouchableOpacity>
             <View style={styles.statDivider} />
-          </View>
-
-          {/* Achievement Badges - SnapNow Unique Feature */}
-          <View style={styles.achievementsSection}>
-            <Text style={styles.sectionTitle}>Achievements</Text>
-            <View style={styles.achievementsList}>
-              {ACHIEVEMENTS.map((achievement) => (
-                <View key={achievement.id} style={styles.achievementBadge}>
-                  <View style={[styles.achievementIcon, { backgroundColor: achievement.color }]}>
-                    <Ionicons name={achievement.icon as any} size={16} color="#fff" />
-                  </View>
-                  <Text style={styles.achievementLabel}>{achievement.label}</Text>
-                </View>
-              ))}
-            </View>
           </View>
 
           {/* Action Buttons - Clean Threads Style */}
@@ -331,22 +434,52 @@ export default function ProfileScreen() {
           <View style={styles.snapsContainer}>
             <View style={styles.snapsHeader}>
               <Text style={styles.snapsTitle}>Quick Snaps</Text>
-              <Text style={styles.snapsSubtitle}>Your spontaneous moments</Text>
+              <Text style={styles.snapsSubtitle}>Disappear in 24 hours</Text>
             </View>
-            <View style={styles.snapsGrid}>
-              {/* Add Snap Button */}
-              <TouchableOpacity style={styles.addSnapButton} onPress={handleSnapNow}>
-                <View style={styles.addSnapIconContainer}>
-                  <Ionicons name="camera" size={32} color="#0095F6" />
-                </View>
-                <Text style={styles.addSnapText}>Snap Now</Text>
-              </TouchableOpacity>
-
-              {/* TODO: Load real snaps from Firestore when feature is implemented */}
-              <View style={styles.emptyState}>
-                <Text style={styles.emptySubtitle}>Snaps feature coming soon!</Text>
+            {loadingSnaps ? (
+              <View style={styles.center}>
+                <ActivityIndicator size="large" color="#0095F6" />
               </View>
-            </View>
+            ) : (
+              <View style={styles.snapsGrid}>
+                {/* Add Snap Button */}
+                <TouchableOpacity style={styles.addSnapButton} onPress={handleSnapNow}>
+                  <View style={styles.addSnapIconContainer}>
+                    <Ionicons name="camera" size={32} color="#0095F6" />
+                  </View>
+                  <Text style={styles.addSnapText}>Snap Now</Text>
+                </TouchableOpacity>
+
+                {/* Display Snaps */}
+                {snaps.map((snap) => {
+                  const createdAt = snap.createdAt?.toDate ? snap.createdAt.toDate() : new Date();
+                  const hoursAgo = Math.floor((new Date().getTime() - createdAt.getTime()) / (1000 * 60 * 60));
+                  const timeLeft = 24 - hoursAgo;
+
+                  return (
+                    <TouchableOpacity
+                      key={snap.id}
+                      style={styles.snapItem}
+                      onPress={() => {
+                        // TODO: Open snap viewer
+                        Alert.alert('Snap', `${timeLeft}h left`);
+                      }}
+                    >
+                      <Image source={{ uri: snap.imageUrl }} style={styles.snapImage} />
+                      <View style={styles.snapOverlay}>
+                        <Text style={styles.snapTime}>{timeLeft}h left</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+
+                {snaps.length === 0 && (
+                  <View style={styles.emptySnapMessage}>
+                    <Text style={styles.emptySubtitle}>No snaps yet. Create your first snap!</Text>
+                  </View>
+                )}
+              </View>
+            )}
           </View>
         )}
 
@@ -355,33 +488,91 @@ export default function ProfileScreen() {
           <View style={styles.albumsContainer}>
             <View style={styles.albumsHeader}>
               <Text style={styles.albumsTitle}>Photo Albums</Text>
-              <TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowCreateAlbumModal(true)}>
                 <Ionicons name="add-circle-outline" size={28} color="#0095F6" />
               </TouchableOpacity>
             </View>
-            {/* TODO: Load real albums from Firestore when feature is implemented */}
-            <View style={styles.emptyState}>
-              <View style={styles.emptyIconContainer}>
-                <Ionicons name="albums-outline" size={64} color="#DBDBDB" />
+            {loadingAlbums ? (
+              <View style={styles.center}>
+                <ActivityIndicator size="large" color="#0095F6" />
               </View>
-              <Text style={styles.emptyTitle}>No albums yet</Text>
-              <Text style={styles.emptySubtitle}>
-                Create albums to organize your photos
-              </Text>
-            </View>
+            ) : albums.length === 0 ? (
+              <View style={styles.emptyState}>
+                <View style={styles.emptyIconContainer}>
+                  <Ionicons name="albums-outline" size={64} color="#DBDBDB" />
+                </View>
+                <Text style={styles.emptyTitle}>No albums yet</Text>
+                <Text style={styles.emptySubtitle}>
+                  Create albums to organize your photos
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.albumsGrid}>
+                {albums.map((album) => (
+                  <TouchableOpacity
+                    key={album.id}
+                    style={styles.albumItem}
+                    onPress={() => {
+                      setSelectedAlbumId(album.id);
+                      setShowAddPhotosModal(true);
+                    }}
+                  >
+                    {album.coverPhoto ? (
+                      <Image source={{ uri: album.coverPhoto }} style={styles.albumCover} />
+                    ) : (
+                      <View style={[styles.albumCover, { backgroundColor: '#F0F0F0', justifyContent: 'center', alignItems: 'center' }]}>
+                        <Ionicons name="albums" size={40} color="#DBDBDB" />
+                      </View>
+                    )}
+                    <View style={styles.albumInfo}>
+                      <Text style={styles.albumTitle}>{album.title}</Text>
+                      <Text style={styles.albumCount}>{album.postsCount} photos</Text>
+                      {album.description && (
+                        <Text style={styles.albumDescription} numberOfLines={2}>
+                          {album.description}
+                        </Text>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </View>
         )}
 
         {/* Tagged Tab */}
         {activeTab === 'tagged' && (
-          <View style={styles.emptyState}>
-            <View style={styles.emptyIconContainer}>
-              <Ionicons name="person-circle-outline" size={64} color="#DBDBDB" />
-            </View>
-            <Text style={styles.emptyTitle}>Photos and videos of you</Text>
-            <Text style={styles.emptySubtitle}>
-              When people tag you in photos and videos, they&apos;ll appear here.
-            </Text>
+          <View style={styles.postsGrid}>
+            {loadingTagged ? (
+              <View style={styles.center}>
+                <ActivityIndicator size="large" color="#0095F6" />
+              </View>
+            ) : taggedPosts.length === 0 ? (
+              <View style={styles.emptyState}>
+                <View style={styles.emptyIconContainer}>
+                  <Ionicons name="person-circle-outline" size={64} color="#DBDBDB" />
+                </View>
+                <Text style={styles.emptyTitle}>Photos and videos of you</Text>
+                <Text style={styles.emptySubtitle}>
+                  When people tag you in photos and videos, they'll appear here.
+                </Text>
+              </View>
+            ) : (
+              taggedPosts.map((post) => (
+                <TouchableOpacity
+                  key={post.id}
+                  style={styles.gridItem}
+                  activeOpacity={0.9}
+                  onPress={() => router.push(`/post/${post.id}` as any)}
+                >
+                  <Image source={{ uri: post.imageUrl }} style={styles.gridImage} />
+                  {/* Tagged indicator */}
+                  <View style={styles.taggedIndicator}>
+                    <Ionicons name="person" size={16} color="#fff" />
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
           </View>
         )}
 
@@ -399,6 +590,35 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         )}
       </ScrollView>
+
+      {/* Share Profile Modal */}
+      {profile && (
+        <>
+          <ShareProfileModal
+            visible={showShareModal}
+            onClose={() => setShowShareModal(false)}
+            username={profile.username}
+            displayName={profile.displayName || profile.username}
+          />
+          <CreateAlbumModal
+            visible={showCreateAlbumModal}
+            onClose={() => setShowCreateAlbumModal(false)}
+            onCreateAlbum={handleCreateAlbum}
+          />
+          {selectedAlbumId && (
+            <AddPhotosToAlbumModal
+              visible={showAddPhotosModal}
+              onClose={() => {
+                setShowAddPhotosModal(false);
+                setSelectedAlbumId(null);
+              }}
+              albumId={selectedAlbumId}
+              userId={profile.id}
+              onPhotosAdded={handlePhotosAdded}
+            />
+          )}
+        </>
+      )}
     </SafeAreaView>
   );
 }
@@ -562,44 +782,6 @@ const styles = StyleSheet.create({
     width: 1,
     height: 32,
     backgroundColor: '#EFEFEF',
-  },
-
-  // Achievements - SnapNow Unique
-  achievementsSection: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#8E8E8E',
-    marginBottom: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  achievementsList: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  achievementBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8F8F8',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    gap: 6,
-  },
-  achievementIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  achievementLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#262626',
   },
 
   // Action Buttons - Clean Threads Style
@@ -768,6 +950,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#fff',
   },
+  emptySnapMessage: {
+    width: '100%',
+    paddingVertical: 40,
+    alignItems: 'center',
+  },
 
   // Albums Tab - SnapNow Feature
   albumsContainer: {
@@ -814,6 +1001,25 @@ const styles = StyleSheet.create({
   albumCount: {
     fontSize: 13,
     color: '#8E8E8E',
+  },
+  albumDescription: {
+    fontSize: 12,
+    color: '#8E8E8E',
+    marginTop: 4,
+    lineHeight: 16,
+  },
+
+  // Tagged Posts
+  taggedIndicator: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   // Empty State
