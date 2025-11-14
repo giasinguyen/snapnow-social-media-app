@@ -233,8 +233,6 @@ const CreateSnapScreen: React.FC = () => {
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={{
                 paddingBottom: 56 + keyboardHeight,
-                flexGrow: 1,
-                justifyContent: 'center',
               }}
             >
               <UserComposer
