@@ -723,14 +723,16 @@ export default function PostDetailScreen() {
               <Text style={{ fontSize: 14, color: '#657786' }}>?</Text>
             </View>
           )}
-          <MentionInput
-            style={styles.commentInput}
-            placeholder={replyingTo ? `Reply to @${replyingTo.username}...` : "Add a comment..."}
-            value={commentText}
-            onChangeText={setCommentText}
-            multiline
-            maxLength={500}
-          />
+          <View style={styles.commentInputWrapper}>
+            <MentionInput
+              style={styles.commentInput}
+              placeholder={replyingTo ? `Reply to @${replyingTo.username}...` : "Add a comment..."}
+              value={commentText}
+              onChangeText={setCommentText}
+              multiline
+              maxLength={500}
+            />
+          </View>
           <TouchableOpacity
             onPress={handleComment}
             disabled={!commentText.trim() || submittingComment}
@@ -1081,10 +1083,12 @@ const styles = StyleSheet.create({
     height: 35,
     borderRadius: 17.5,
   },
-  commentInput: {
+  commentInputWrapper: {
     flex: 1,
     marginLeft: 12,
     marginRight: 12,
+  },
+  commentInput: {
     fontSize: 14,
     color: '#262626',
     maxHeight: 80,

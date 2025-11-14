@@ -32,6 +32,7 @@ const UserComposer: React.FC<Props> = ({ avatarUri, username, value, onChangeTex
           placeholder={placeholder}
           placeholderTextColor="#999"
           autoFocus={false}
+          suggestionsPosition="below"
           // @ts-ignore
           returnKeyType="default"
           blurOnSubmit={false}

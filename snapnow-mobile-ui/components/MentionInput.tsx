@@ -23,12 +23,14 @@ interface MentionInputProps extends TextInputProps {
   value: string;
   onChangeText: (text: string) => void;
   style?: any;
+  suggestionsPosition?: 'above' | 'below';
 }
 
 const MentionInput = forwardRef<TextInput, MentionInputProps>(({
   value,
   onChangeText,
   style,
+  suggestionsPosition = 'above',
   ...props
 }, ref) => {
   const [suggestions, setSuggestions] = useState<User[]>([]);
@@ -175,7 +177,10 @@ const MentionInput = forwardRef<TextInput, MentionInputProps>(({
       />
       
       {showSuggestions && suggestions.length > 0 && (
-        <View style={styles.suggestionsContainer}>
+        <View style={[
+          styles.suggestionsContainer,
+          suggestionsPosition === 'below' ? styles.suggestionsBelow : styles.suggestionsAbove
+        ]}>
           <ScrollView
             keyboardShouldPersistTaps="handled"
             style={styles.suggestionsList}
@@ -221,19 +226,26 @@ const styles = StyleSheet.create({
   },
   suggestionsContainer: {
     position: 'absolute',
-    bottom: '100%',
     left: 0,
     right: 0,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    marginBottom: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 5,
     maxHeight: 200,
     zIndex: 1000,
+  },
+  suggestionsAbove: {
+    bottom: '100%',
+    marginBottom: 8,
+    shadowOffset: { width: 0, height: -2 },
+  },
+  suggestionsBelow: {
+    top: '100%',
+    marginTop: 8,
+    shadowOffset: { width: 0, height: 2 },
   },
   suggestionsList: {
     maxHeight: 200,
