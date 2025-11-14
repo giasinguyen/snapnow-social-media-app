@@ -609,6 +609,3 @@ If you find this project useful, please give us a ⭐ on GitHub!
 *SnapNow - Capture Every Moment, Share Every Story* 📸
 
 </div>
-
-
-Test Rename Branch 
