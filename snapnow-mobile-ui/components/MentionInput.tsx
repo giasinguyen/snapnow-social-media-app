@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { db } from '../config/firebase';
+import { auth, db } from '../config/firebase';
 
 interface User {
   id: string;
@@ -73,59 +73,76 @@ const MentionInput = forwardRef<TextInput, MentionInputProps>(({
   }, [value]);
 
   const searchUsers = async (searchQuery: string) => {
-    if (!searchQuery || searchQuery.length < 1) {
-      // Show recent/popular users when @ is typed without query
-      try {
+    if (!auth.currentUser) {
+      setSuggestions([]);
+      return;
+    }
+
+    try {
+      // Get current user's following list
+      const followingQuery = query(
+        collection(db, 'follows'),
+        where('followerId', '==', auth.currentUser.uid)
+      );
+      const followingSnapshot = await getDocs(followingQuery);
+      const followingIds = followingSnapshot.docs.map(doc => doc.data().followingId);
+
+      if (followingIds.length === 0) {
+        setSuggestions([]);
+        return;
+      }
+
+      if (!searchQuery || searchQuery.length < 1) {
+        // Show users you follow when @ is typed without query
         const usersQuery = query(
           collection(db, 'users'),
-          limit(5)
+          limit(20)
         );
         const snapshot = await getDocs(usersQuery);
         
         const users: User[] = [];
         snapshot.forEach((doc) => {
-          const data = doc.data();
-          users.push({
-            id: doc.id,
-            username: data.username,
-            displayName: data.displayName || data.username,
-            profileImage: data.profileImage,
-          });
+          if (followingIds.includes(doc.id)) {
+            const data = doc.data();
+            users.push({
+              id: doc.id,
+              username: data.username,
+              displayName: data.displayName || data.username,
+              profileImage: data.profileImage,
+            });
+          }
         });
         
-        setSuggestions(users);
-      } catch (error) {
-        console.error('Error fetching users:', error);
-      }
-      return;
-    }
-
-    // Search users by username
-    try {
-      const searchLower = searchQuery.toLowerCase();
-      
-      // Query users where username starts with search query
-      const usersQuery = query(
-        collection(db, 'users'),
-        where('username', '>=', searchLower),
-        where('username', '<=', searchLower + '\uf8ff'),
-        limit(5)
-      );
-      
-      const snapshot = await getDocs(usersQuery);
-      
-      const users: User[] = [];
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        users.push({
-          id: doc.id,
-          username: data.username,
-          displayName: data.displayName || data.username,
-          profileImage: data.profileImage,
+        setSuggestions(users.slice(0, 5));
+      } else {
+        // Search users you follow by username
+        const searchLower = searchQuery.toLowerCase();
+        
+        // Query users where username starts with search query
+        const usersQuery = query(
+          collection(db, 'users'),
+          where('username', '>=', searchLower),
+          where('username', '<=', searchLower + '\uf8ff'),
+          limit(20)
+        );
+        
+        const snapshot = await getDocs(usersQuery);
+        
+        const users: User[] = [];
+        snapshot.forEach((doc) => {
+          if (followingIds.includes(doc.id)) {
+            const data = doc.data();
+            users.push({
+              id: doc.id,
+              username: data.username,
+              displayName: data.displayName || data.username,
+              profileImage: data.profileImage,
+            });
+          }
         });
-      });
-      
-      setSuggestions(users);
+        
+        setSuggestions(users.slice(0, 5));
+      }
     } catch (error) {
       console.error('Error searching users:', error);
       setSuggestions([]);

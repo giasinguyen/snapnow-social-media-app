@@ -97,9 +97,9 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
       <View style={styles.leftContent}>
         {renderAvatar()}
         <View style={styles.textContainer}>
-          <Text style={styles.message} numberOfLines={3}>
+          <Text style={styles.message} numberOfLines={2}>
             <Text style={styles.username}>{notification.fromUsername}</Text>
-            <Text style={styles.messageText}> {notification.message.replace(notification.fromUsername, '')}</Text>
+            <Text style={styles.messageText}> {notification.message}</Text>
           </Text>
           <Text style={styles.time}>{formatTime(notification.createdAt)}</Text>
         </View>
@@ -132,9 +132,9 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 46,
+    height: 46,
+    borderRadius: 22,
   },
   avatarPlaceholder: {
     backgroundColor: '#DBDBDB',
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
   },
@@ -150,9 +150,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: -2,
     bottom: -2,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
@@ -163,8 +163,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   message: {
-    fontSize: 14,
-    lineHeight: 18,
+    fontSize: 13,
+    lineHeight: 17,
     color: '#262626',
   },
   username: {
@@ -176,13 +176,13 @@ const styles = StyleSheet.create({
     color: '#262626',
   },
   time: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#8E8E8E',
-    marginTop: 4,
+    marginTop: 3,
   },
   postImage: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderRadius: 4,
   },
 });

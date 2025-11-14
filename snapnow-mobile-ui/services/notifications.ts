@@ -32,27 +32,27 @@ export async function createNotification(
     let message = ""
     switch (type) {
       case "like":
-        message = `${fromUsername} liked your post`
+        message = `liked your post`
         break
       case "comment":
-        message = commentText ? `${fromUsername} commented: ${commentText}` : `${fromUsername} commented on your post`
+        message = commentText ? `commented: ${commentText}` : `commented on your post`
         break
       case "comment_reply":
-        message = commentText ? `${fromUsername} replied: ${commentText}` : `${fromUsername} replied to your comment`
+        message = commentText ? `replied: ${commentText}` : `replied to your comment`
         break
       case "comment_like":
-        message = `${fromUsername} liked your comment`
+        message = `liked your comment`
         break
       case "follow":
-        message = `${fromUsername} started following you`
+        message = `started following you`
         break
       case "story_reaction":
-        message = `${fromUsername} reacted ${reactionEmoji || '❤️'} to your story`
+        message = `reacted ${reactionEmoji || '❤️'} to your story`
         break
       case "mention":
         message = commentText 
-          ? `${fromUsername} mentioned you in a comment` 
-          : `${fromUsername} mentioned you in a post`
+          ? `mentioned you in a comment` 
+          : `mentioned you in a post`
         break
     }
 
