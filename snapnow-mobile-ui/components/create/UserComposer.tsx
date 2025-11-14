@@ -4,7 +4,7 @@ import Avatar from '../../components/ui/Avatar';
 import MentionInput from '../MentionInput';
 
 type Props = {
-  avatarUri: string;
+  avatarUri: any;
   username: string;
   value: string;
   onChangeText: (t: string) => void;

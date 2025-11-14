@@ -399,9 +399,14 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, bookmarked: bookma
       {post.hashtags && post.hashtags.length > 0 && (
         <View style={styles.hashtagsContainer}>
           {post.hashtags.map((tag, index) => (
-            <Text key={index} style={styles.hashtag}>
-              {tag}{' '}
-            </Text>
+            <TouchableOpacity
+              key={index}
+              onPress={() => router.push({ pathname: '/(tabs)/search', params: { query: tag } })}
+            >
+              <Text style={styles.hashtag}>
+                {tag}{' '}
+              </Text>
+            </TouchableOpacity>
           ))}
         </View>
       )}

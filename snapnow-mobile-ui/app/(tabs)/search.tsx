@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,25 +20,38 @@ export default function SearchScreen() {
   const [recent, setRecent] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const params = useLocalSearchParams<{ query?: string }>();
 
-  const doSearch = async (q: string) => {
+  const doSearch = useCallback(async (q: string, searchMode?: 'users' | 'posts') => {
     if (!q) { setResults([]); return; }
     setLoading(true);
     try {
       let res: any[] = [];
-      if (mode === 'users') res = await searchUsersByUsernamePrefix(q.toLowerCase());
+      const currentMode = searchMode || mode;
+      if (currentMode === 'users') res = await searchUsersByUsernamePrefix(q.toLowerCase());
       else res = await searchPostsByQuery(q);
       setResults(res);
       // save recent
-      const next = [q, ...recent.filter(r => r !== q)].slice(0, 10);
-      setRecent(next);
-      await AsyncStorage.setItem('recentSearches', JSON.stringify(next));
+      setRecent(prev => {
+        const next = [q, ...prev.filter(r => r !== q)].slice(0, 10);
+        AsyncStorage.setItem('recentSearches', JSON.stringify(next));
+        return next;
+      });
     } catch (err) {
       console.error('Search error', err);
     } finally { setLoading(false); }
-  };
+  }, [mode]);
 
-  const debouncedSearch = useCallback(debounceFn((q: string) => doSearch(q), 350), []);
+  useEffect(() => {
+    // If query param is passed (e.g., from hashtag click), auto-search for posts with that hashtag
+    if (params.query) {
+      setQuery(params.query);
+      setMode('posts');
+      doSearch(params.query, 'posts');
+    }
+  }, [params.query, doSearch]);
+
+  const debouncedSearch = useCallback(debounceFn((q: string) => doSearch(q), 350), [doSearch]);
 
   const onChange = (text: string) => {
     setQuery(text);
