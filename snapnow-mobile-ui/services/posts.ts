@@ -184,21 +184,36 @@ export async function createPost(postData: {
   hashtags?: string[]
 }) {
   try {
-    const docRef = await addDoc(collection(db, "posts"), {
-      ...postData,
+    // Clean data - remove undefined values to avoid Firestore error
+    const cleanData: any = {
+      userId: postData.userId,
+      username: postData.username,
+      userImage: postData.userImage || '', // Default to empty string instead of undefined
+      caption: postData.caption,
+      hashtags: postData.hashtags || [],
       likes: 0,
       commentsCount: 0,
       createdAt: serverTimestamp(),
-    })
+    };
+
+    // Add image fields only if they have values
+    if (postData.imageUrl) {
+      cleanData.imageUrl = postData.imageUrl;
+    }
+    if (postData.imageUrls && postData.imageUrls.length > 0) {
+      cleanData.imageUrls = postData.imageUrls;
+    }
+
+    const docRef = await addDoc(collection(db, "posts"), cleanData);
 
     // Log post activity
-    const thumbnailUrl = postData.imageUrls?.[0] || postData.imageUrl
-    await logPostActivity(postData.userId, docRef.id, postData.caption, thumbnailUrl)
+    const thumbnailUrl = postData.imageUrls?.[0] || postData.imageUrl;
+    await logPostActivity(postData.userId, docRef.id, postData.caption, thumbnailUrl);
 
-    return docRef.id
+    return docRef.id;
   } catch (error) {
-    console.error("Error creating post:", error)
-    throw error
+    console.error("Error creating post:", error);
+    throw error;
   }
 }
 

@@ -108,19 +108,24 @@ export default function UserProfileHeader({
             <Text style={styles.editButtonText}>Edit Profile</Text>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity
-            style={[styles.followButton, following && styles.followingButton]}
-            onPress={handleFollowToggle}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color={following ? "#262626" : "#fff"} />
-            ) : (
-              <Text style={[styles.followButtonText, following && styles.followingButtonText]}>
-                {following ? "Following" : "Follow"}
-              </Text>
-            )}
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity
+              style={[styles.followButton, following && styles.followingButton]}
+              onPress={handleFollowToggle}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color={following ? "#262626" : "#fff"} />
+              ) : (
+                <Text style={[styles.followButtonText, following && styles.followingButtonText]}>
+                  {following ? "Following" : "Follow"}
+                </Text>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.messageButton}>
+              <Text style={styles.messageButtonText}>Message</Text>
+            </TouchableOpacity>
+          </>
         )}
       </View>
     </View>
@@ -219,6 +224,20 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   followingButtonText: {
+    color: "#262626",
+  },
+  messageButton: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignItems: "center",
+    backgroundColor: "#efefef",
+    borderWidth: 1,
+    borderColor: "#dbdbdb",
+  },
+  messageButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
     color: "#262626",
   },
 })

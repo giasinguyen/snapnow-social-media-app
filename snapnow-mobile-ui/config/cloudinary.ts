@@ -26,4 +26,6 @@ export const CLOUDINARY_FOLDERS = {
   posts: 'snapnow/posts',
   stories: 'snapnow/stories',
   messages: 'snapnow/messages',
+  snaps: 'snapnow/snaps',
+  albums: 'snapnow/albums',
 };
