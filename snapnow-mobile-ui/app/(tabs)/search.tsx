@@ -99,6 +99,14 @@ export default function SearchScreen() {
     debouncedSearch(query);
   };
 
+  const handlePostPress = useCallback((postId: string, imageIndex?: number) => {
+    if (imageIndex !== undefined) {
+      router.push(`/post/${postId}?imageIndex=${imageIndex}` as any);
+    } else {
+      router.push(`/post/${postId}` as any);
+    }
+  }, [router]);
+
   const renderItem = ({ item }: { item: any }) => {
     if (mode === 'users') return (
       <TouchableOpacity style={styles.row} onPress={() => router.push(`/user/${item.id}` as any)}>
@@ -113,7 +121,7 @@ export default function SearchScreen() {
     // post item
     return (
       <View style={{ paddingVertical: 8 }}>
-        <TouchableOpacity onPress={() => router.push(`/(tabs)?post=${item.id}`)}>
+        <TouchableOpacity onPress={() => handlePostPress(item.id)}>
           <Image source={item.imageUrl ? { uri: item.imageUrl } : require('../../assets/images/default-avatar.jpg')} style={{ width: '100%', height: 220, borderRadius: 8 }} />
           <Text style={{ marginTop: 8 }}>{item.caption}</Text>
           <Text style={{ color: '#666', marginTop: 4 }}>@{item.username}</Text>
