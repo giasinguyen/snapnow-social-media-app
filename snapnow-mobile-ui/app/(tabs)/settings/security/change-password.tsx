@@ -1,21 +1,55 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { updatePassword } from '../../../../services/authService';
 
 export default function ChangePassword() {
   const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const onSave = () => {
-    // UI only
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    router.back();
+  const onSave = async () => {
+    // Validate inputs
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      Alert.alert('Error', 'New passwords do not match');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters');
+      return;
+    }
+
+    if (currentPassword === newPassword) {
+      Alert.alert('Error', 'New password must be different from current password');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await updatePassword(currentPassword, newPassword);
+      Alert.alert('Success', 'Password updated successfully');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      router.back();
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to update password');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -29,33 +63,97 @@ export default function ChangePassword() {
           <View style={{ width: 24 }} />
         </View>
 
+{/* 1 */}
         <View style={styles.content}>
-          <TextInput
-            style={styles.input}
-            placeholder="Current password"
-            secureTextEntry
-            value={currentPassword}
-            onChangeText={setCurrentPassword}
-          />
+          <View style={{ position: "relative" }}>
+            <TextInput
+              style={styles.input}
+              placeholder="Current password"
+              secureTextEntry={!showPassword}
+              value={currentPassword}
+              onChangeText={setCurrentPassword}
+            />
 
-          <TextInput
-            style={styles.input}
-            placeholder="New password"
-            secureTextEntry
-            value={newPassword}
-            onChangeText={setNewPassword}
-          />
+            <TouchableOpacity
+              style={{
+                position: "absolute",
+                right: 10,
+                top: "50%",
+                transform: [{ translateY: -12 }]
+              }}
+              onPress={() => setShowPassword(!showPassword)}
+            >
+              <Ionicons
+                name={showPassword ? "eye" : "eye-off"}
+                size={24}
+                color="#999"
+              />
+            </TouchableOpacity>
+          </View>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Confirm new password"
-            secureTextEntry
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-          />
+{/* 2 */}
 
-          <TouchableOpacity style={styles.primaryBtn} onPress={onSave}>
-            <Text style={styles.primaryBtnText}>Save password</Text>
+          <View style={{ position: "relative" }}>
+            <TextInput
+              style={styles.input}
+              placeholder="New password"
+              secureTextEntry={!showNewPassword}
+              value={newPassword}
+              onChangeText={setNewPassword}
+            />
+
+            <TouchableOpacity
+              style={{
+                position: "absolute",
+                right: 10,
+                top: "50%",
+                transform: [{ translateY: -12 }]
+              }}
+              onPress={() => setShowNewPassword(!showNewPassword)}
+            >
+              <Ionicons
+                name={showNewPassword ? "eye" : "eye-off"}
+                size={24}
+                color="#999"
+              />
+            </TouchableOpacity>
+          </View>
+
+{/* 3 */}
+          <View style={{ position: "relative" }}>
+            <TextInput
+              style={styles.input}
+              placeholder="Confirm new password"
+              secureTextEntry={!showConfirmPassword}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+            />
+
+            <TouchableOpacity
+              style={{
+                position: "absolute",
+                right: 10,
+                top: "50%",
+                transform: [{ translateY: -12 }]
+              }}
+              onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+            >
+              <Ionicons
+                name={showConfirmPassword ? "eye" : "eye-off"}
+                size={24}
+                color="#999"
+              />
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.primaryBtn, isLoading && styles.primaryBtnDisabled]}
+            onPress={onSave}
+            disabled={isLoading}
+          >
+            <Text style={styles.primaryBtnText}>
+              {isLoading ? 'Updating...' : 'Save password'}
+            </Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -81,5 +179,6 @@ const styles = StyleSheet.create({
   content: { padding: 16, marginTop: 12 },
   input: { backgroundColor: '#fff', padding: 12, borderRadius: 8, marginBottom: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: '#e5e5e5' },
   primaryBtn: { backgroundColor: '#0095f6', paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
+  primaryBtnDisabled: { opacity: 0.6 },
   primaryBtnText: { color: '#fff', fontWeight: '700' },
 });

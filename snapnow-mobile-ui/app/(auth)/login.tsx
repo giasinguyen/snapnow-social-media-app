@@ -170,9 +170,11 @@ export default function LoginScreen() {
               </TouchableOpacity>
 
               {/* Forgot Password */}
-              <TouchableOpacity style={styles.centerMb6}>
-                <Text style={styles.linkBlueSemibold}>Forgot password?</Text>
-              </TouchableOpacity>
+              <Link href="/forgot-password" asChild>
+                <TouchableOpacity style={styles.centerMb6}>
+                  <Text style={styles.linkBlueSemibold}>Forgot password?</Text>
+                </TouchableOpacity>
+              </Link>
 
               {/* Divider */}
               <View style={styles.dividerRow}>
@@ -211,7 +213,6 @@ export default function LoginScreen() {
                   <Text style={[styles.socialText, { color: '#92400E' }]}>Bypass Login (Dev)</Text>
                 </TouchableOpacity>
               )} */}
-
 
             </View>
 
