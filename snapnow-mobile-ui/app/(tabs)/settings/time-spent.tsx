@@ -1,9 +1,20 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
-import { Dimensions, Modal, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, Dimensions, Modal, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 import { BarChart } from "react-native-chart-kit";
 import { SafeAreaView } from "react-native-safe-area-context";
+import {
+    forceUpdateSession,
+    getDailyLimit,
+    getLast7DaysUsage,
+    getSleepMode,
+    getTodayUsage,
+    getWeeklyAverage,
+    setDailyLimit as saveDailyLimit,
+    setSleepMode as saveSleepMode,
+    type SleepModeConfig
+} from "../../../services/timeTracking";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -16,11 +27,73 @@ export default function TimeSpentScreen() {
     const [endTime, setEndTime] = useState('12:00AM');
     const [selectedDays, setSelectedDays] = useState<boolean[]>([false,false,false,false,false,false,false]);
     const [showTimePicker, setShowTimePicker] = useState<null | 'start' | 'end'>(null);
+    const [loading, setLoading] = useState(true);
+    const [weeklyData, setWeeklyData] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
+    const [dailyAverage, setDailyAverage] = useState(0);
+    const [todayUsage, setTodayUsage] = useState(0);
     const router = useRouter();
 
+    useEffect(() => {
+        loadData();
+    }, []);
+
+    const loadData = async () => {
+        try {
+            setLoading(true);
+            
+            // Force update current session before loading data
+            await forceUpdateSession();
+            
+            // Load usage data
+            const last7Days = await getLast7DaysUsage();
+            const weeklyDataArray = last7Days.map(day => day.minutes);
+            setWeeklyData(weeklyDataArray);
+            
+            // Load average
+            const avg = await getWeeklyAverage();
+            setDailyAverage(avg);
+            
+            // Load today's usage
+            const today = await getTodayUsage();
+            setTodayUsage(today);
+            
+            // Load daily limit
+            const limit = await getDailyLimit();
+            setDailyLimit(limit);
+            
+            // Load sleep mode config
+            const sleepConfig = await getSleepMode();
+            if (sleepConfig) {
+                setSleepEnabled(sleepConfig.enabled);
+                setStartTime(sleepConfig.startTime);
+                setEndTime(sleepConfig.endTime);
+                setSelectedDays(sleepConfig.selectedDays);
+            }
+        } catch (error) {
+            console.error('Error loading time tracking data:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const getDayLabels = () => {
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const labels = [];
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            if (i === 0) {
+                labels.push('Today');
+            } else {
+                labels.push(days[date.getDay()]);
+            }
+        }
+        return labels;
+    };
+
     const data = {
-        labels: ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Today"],
-        datasets: [{ data: [0, 0, 0, 0, 0, 0, 12] }],  // 👈 không cần 'color' trong dataset
+        labels: getDayLabels(),
+        datasets: [{ data: weeklyData.length > 0 ? weeklyData : [0, 0, 0, 0, 0, 0, 0] }],
     };
 
     const chartConfig = {
@@ -46,8 +119,14 @@ export default function TimeSpentScreen() {
 
             {/* Content */}
             <ScrollView contentContainerStyle={styles.content}>
+                {loading ? (
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color="#A020F0" />
+                    </View>
+                ) : (
+                    <>
                 <View style={styles.summary}>
-                    <Text style={styles.timeText}>12 min</Text>
+                    <Text style={styles.timeText}>{dailyAverage} min</Text>
                     <Text style={styles.avgLabel}>Daily Average</Text>
                     <Text style={styles.desc}>
                         This is your average daily time spent on SnapNow using this device in the past week.
@@ -94,6 +173,8 @@ export default function TimeSpentScreen() {
                         <Ionicons name="chevron-forward" size={20} color="#bbb" />
                     </TouchableOpacity>
                 </View>
+                    </>
+                )}
             </ScrollView>
             {/* Sleep Mode Modal (full screen white UI) */}
             <Modal visible={showSleepModal} animationType="slide" onRequestClose={() => setShowSleepModal(false)}>
@@ -147,7 +228,20 @@ export default function TimeSpentScreen() {
 
                         <Text style={sleepStyles.hint}>{sleepEnabled ? '' : 'Sleep mode is off.'}</Text>
 
-                        <TouchableOpacity style={[sleepStyles.saveBtn, !sleepEnabled && { opacity: 0.6 }]} disabled={!sleepEnabled} onPress={() => setShowSleepModal(false)}>
+                        <TouchableOpacity 
+                            style={[sleepStyles.saveBtn, !sleepEnabled && { opacity: 0.6 }]} 
+                            disabled={!sleepEnabled} 
+                            onPress={async () => {
+                                const config: SleepModeConfig = {
+                                    enabled: sleepEnabled,
+                                    startTime,
+                                    endTime,
+                                    selectedDays,
+                                };
+                                await saveSleepMode(config);
+                                setShowSleepModal(false);
+                            }}
+                        >
                             <Text style={sleepStyles.saveBtnText}>Save</Text>
                         </TouchableOpacity>
                     </ScrollView>
@@ -215,8 +309,9 @@ export default function TimeSpentScreen() {
                                         styles.hourItem,
                                         dailyLimit === hour && styles.hourItemSelected,
                                     ]}
-                                    onPress={() => {
+                                    onPress={async () => {
                                         setDailyLimit(hour);
+                                        await saveDailyLimit(hour);
                                         setShowLimitModal(false);
                                     }}
                                 >
@@ -258,6 +353,12 @@ const styles = StyleSheet.create({
     backBtn: { marginRight: 8 },
     headerTitle: { fontSize: 18, fontWeight: "600", color: "#111", flex: 1 },
     content: { padding: 16 },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingVertical: 40,
+    },
     summary: { marginBottom: 24 },
     timeText: { fontSize: 48, fontWeight: "700", color: "#111" },
     avgLabel: { fontSize: 16, fontWeight: "500", color: "#444", marginTop: 4 },
