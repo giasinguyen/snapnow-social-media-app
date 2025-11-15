@@ -1,15 +1,15 @@
 import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc,
-    getDocs,
-    limit,
-    onSnapshot,
-    query,
-    serverTimestamp,
-    updateDoc,
-    where,
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  limit,
+  onSnapshot,
+  query,
+  serverTimestamp,
+  updateDoc,
+  where,
 } from "firebase/firestore"
 import { db } from "../config/firebase"
 import type { Notification } from "../types"
@@ -17,7 +17,7 @@ import type { Notification } from "../types"
 // Create a notification
 export async function createNotification(
   userId: string,
-  type: "like" | "comment" | "follow" | "comment_reply" | "comment_like" | "story_reaction" | "mention",
+  type: "like" | "comment" | "follow" | "comment_reply" | "comment_like" | "story_reaction" | "mention" | "follow_request" | "follow_request_accepted",
   fromUserId: string,
   fromUsername: string,
   fromUserProfileImage: string | undefined,
@@ -46,6 +46,12 @@ export async function createNotification(
       case "follow":
         message = `started following you`
         break
+      case "follow_request":
+        message = `requested to follow you`
+        break
+      case "follow_request_accepted":
+        message = `accepted your follow request`
+        break
       case "story_reaction":
         message = `reacted ${reactionEmoji || '❤️'} to your story`
         break
@@ -71,7 +77,9 @@ export async function createNotification(
       createdAt: serverTimestamp(),
     }
 
+    console.log(`📝 Creating ${type} notification for user ${userId}:`, notificationData);
     const docRef = await addDoc(collection(db, "notifications"), notificationData)
+    console.log(`✅ Notification created with ID: ${docRef.id}`);
     return docRef.id
   } catch (error) {
     console.error("Error creating notification:", error)

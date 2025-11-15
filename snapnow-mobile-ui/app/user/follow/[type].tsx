@@ -2,22 +2,22 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    FlatList,
-    Image,
-    Modal,
-    PanResponder,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  FlatList,
+  Image,
+  Modal,
+  PanResponder,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getFollowers, getFollowing, unfollowUser } from '../../../services/follow';
+import { getFollowers, getFollowing, removeFollower, unfollowUser } from '../../../services/follow';
 import { UserService } from '../../../services/user';
 import { User } from '../../../types';
 
@@ -30,6 +30,8 @@ export default function UserFollowScreen() {
   const [filteredFollowing, setFilteredFollowing] = useState<User[]>([]);
   const [targetUserId, setTargetUserId] = useState<string>('');
   const [targetUser, setTargetUser] = useState<User | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState<string | null>(null);
@@ -81,14 +83,18 @@ export default function UserFollowScreen() {
     try {
       setLoading(true);
       
+      // Get current user
+      const { AuthService } = await import('../../../services/authService');
+      const currentUser = await AuthService.getCurrentUserProfile();
+      const currentId = currentUser?.id || '';
+      setCurrentUserId(currentId);
+      
       // Use provided userId or get current user
-      let userIdToUse = userId;
-      if (!userIdToUse) {
-        const { AuthService } = await import('../../../services/authService');
-        const currentUser = await AuthService.getCurrentUserProfile();
-        userIdToUse = currentUser?.id || '';
-      }
+      let userIdToUse = userId || currentId;
       setTargetUserId(userIdToUse);
+      
+      // Check if viewing own profile
+      setIsOwnProfile(!userId || userId === currentId);
       
       if (!userIdToUse) {
         console.log('❌ No user ID available');
@@ -97,7 +103,7 @@ export default function UserFollowScreen() {
       }
 
       // Load target user information if it's not the current user
-      if (userId) {
+      if (userId && userId !== currentId) {
         try {
           const user = await UserService.getUserProfile(userIdToUse);
           setTargetUser(user);
@@ -182,6 +188,24 @@ export default function UserFollowScreen() {
     router.push(`/user/${userId}` as any);
   };
 
+  const handleMessage = async (otherUserId: string, otherUser: User) => {
+    try {
+      // Navigate to messages with user info
+      router.push({
+        pathname: '/messages/[conversationId]' as any,
+        params: {
+          conversationId: `new_${otherUserId}`,
+          otherUserId: otherUserId,
+          otherUserName: otherUser.displayName || otherUser.username,
+          otherUserPhoto: otherUser.profileImage || '',
+          otherUserUsername: otherUser.username || '',
+        },
+      });
+    } catch (error) {
+      console.error('Error opening message:', error);
+    }
+  };
+
   const handleRemoveFollower = async (userId: string, username: string) => {
     Alert.alert(
       'Remove Follower',
@@ -193,13 +217,22 @@ export default function UserFollowScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              // TODO: Implement remove follower logic in backend
-              // For now, just remove from local state
-              console.log('Remove follower:', userId);
+              // Get current user
+              const { AuthService } = await import('../../../services/authService');
+              const currentUser = await AuthService.getCurrentUserProfile();
+              if (!currentUser?.id) return;
+
+              // Remove the follower (this makes them unfollow you)
+              await removeFollower(currentUser.id, userId);
+              
+              // Remove from local state
               const updatedFollowers = followers.filter(user => user.id !== userId);
               const updatedFilteredFollowers = filteredFollowers.filter(user => user.id !== userId);
               setFollowers(updatedFollowers);
               setFilteredFollowers(updatedFilteredFollowers);
+              setShowDropdown(null);
+              
+              console.log(`✅ Successfully removed ${username} from followers`);
             } catch (error) {
               console.error('Error removing follower:', error);
               Alert.alert('Error', 'Failed to remove follower');
@@ -307,43 +340,34 @@ export default function UserFollowScreen() {
         </View>
       </TouchableOpacity>
       
-      <View style={styles.actionContainer}>
-        <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionButtonText}>Message</Text>
-        </TouchableOpacity>
-        
-        {activeTab === 'followers' ? (
+      {/* Only show action buttons if viewing own profile */}
+      {isOwnProfile && (
+        <View style={styles.actionContainer}>
           <TouchableOpacity 
-            style={styles.deleteButton}
-            onPress={() => handleRemoveFollower(item.id, item.username)}
+            style={styles.actionButton}
+            onPress={() => handleMessage(item.id, item)}
           >
-            <Ionicons name="close" size={20} color="#8E8E8E" />
+            <Text style={styles.actionButtonText}>Message</Text>
           </TouchableOpacity>
-        ) : (
-          <TouchableOpacity 
-            style={styles.moreButton}
-            onPress={() => setShowDropdown(showDropdown === item.id ? null : item.id)}
-          >
-            <Ionicons name="ellipsis-vertical" size={20} color="#8E8E8E" />
-          </TouchableOpacity>
-        )}
-      </View>
-      
-      {/* Dropdown Menu for Following Tab */}
-      {activeTab === 'following' && showDropdown === item.id && (
-        <View style={styles.dropdown}>
-          <TouchableOpacity 
-            style={styles.dropdownItem}
-            onPress={() => handleUnfollow(item.id, item.username)}
-          >
-            <Text style={styles.dropdownTextRed}>Unfollow</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.dropdownItem}
-            onPress={() => handleMute(item.id, item.username)}
-          >
-            <Text style={styles.dropdownText}>Mute</Text>
-          </TouchableOpacity>
+          
+          {activeTab === 'followers' ? (
+            <TouchableOpacity 
+              style={styles.deleteButton}
+              onPress={() => handleRemoveFollower(item.id, item.username)}
+            >
+              <Ionicons name="close" size={20} color="#8E8E8E" />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity 
+              style={styles.moreButton}
+              onPress={() => {
+                console.log('More button pressed for:', item.username, 'item.id:', item.id);
+                setShowDropdown(showDropdown === item.id ? null : item.id);
+              }}
+            >
+              <Ionicons name="ellipsis-vertical" size={20} color="#8E8E8E" />
+            </TouchableOpacity>
+          )}
         </View>
       )}
     </View>
@@ -449,18 +473,50 @@ export default function UserFollowScreen() {
         )}
       </View>
       
-      {/* Modal backdrop to close dropdown */}
+      {/* Dropdown Menu Modal */}
       {showDropdown && (
         <Modal
           transparent={true}
           visible={true}
           onRequestClose={() => setShowDropdown(null)}
+          animationType="fade"
         >
           <TouchableOpacity 
             style={styles.modalBackdrop} 
             activeOpacity={1}
-            onPress={() => setShowDropdown(null)}
-          />
+            onPress={() => {
+              console.log('Backdrop pressed, closing dropdown');
+              setShowDropdown(null);
+            }}
+          >
+            <View style={styles.dropdownContainer}>
+              <View style={styles.dropdown}>
+                <TouchableOpacity 
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    const user = following.find(u => u.id === showDropdown);
+                    if (user) {
+                      console.log('Unfollow pressed for:', user.username);
+                      handleUnfollow(user.id, user.username);
+                    }
+                  }}
+                >
+                  <Text style={styles.dropdownTextRed}>Unfollow</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    const user = following.find(u => u.id === showDropdown);
+                    if (user) {
+                      handleMute(user.id, user.username);
+                    }
+                  }}
+                >
+                  <Text style={styles.dropdownText}>Mute</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableOpacity>
         </Modal>
       )}
     </SafeAreaView>
@@ -652,7 +708,12 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dropdownContainer: {
+    padding: 20,
   },
   emptyState: {
     alignItems: 'center',
