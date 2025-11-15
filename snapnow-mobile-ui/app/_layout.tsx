@@ -1,19 +1,20 @@
+import { router, Stack } from 'expo-router';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
-import { Stack, router } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { InAppNotification } from '../components/InAppNotification';
 import { auth, db } from '../config/firebase';
 import { createAdminAccount } from '../services/authService';
 import { validateCloudinaryConfig } from '../services/cloudinaryValidator';
-import { 
-  registerForPushNotifications, 
-  setupNotificationListeners,
+import {
+    registerForPushNotifications,
+    setupNotificationListeners,
 } from '../services/pushNotifications';
-import { InAppNotification } from '../components/InAppNotification';
+import { initTimeTracking } from '../services/timeTracking';
 import { useGlobalMessageNotifications } from '../services/useGlobalMessageNotifications';
-import { doc, getDoc } from 'firebase/firestore';
 
 import '../global.css';
 
@@ -25,6 +26,9 @@ export default function RootLayout() {
   useGlobalMessageNotifications();
 
   useEffect(() => {
+    // Initialize time tracking
+    const cleanupTimeTracking = initTimeTracking();
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setIsLoading(false);
@@ -107,6 +111,7 @@ export default function RootLayout() {
     return () => {
       unsubscribe();
       cleanupListeners();
+      cleanupTimeTracking();
     };
   }, []);
 

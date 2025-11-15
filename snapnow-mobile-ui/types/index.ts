@@ -8,6 +8,7 @@ export interface User {
   followersCount: number;
   followingCount: number;
   postsCount: number;
+  isPrivate?: boolean;
   createdAt: Date;
 }
 
@@ -62,7 +63,7 @@ export interface Like {
 export interface Notification {
   id: string;
   userId: string;
-  type: 'like' | 'comment' | 'follow' | 'comment_reply' | 'comment_like' | 'story_reaction' | 'mention';
+  type: 'like' | 'comment' | 'follow' | 'comment_reply' | 'comment_like' | 'story_reaction' | 'mention' | 'follow_request' | 'follow_request_accepted';
   fromUserId: string;
   fromUsername: string;
   fromUserProfileImage?: string;

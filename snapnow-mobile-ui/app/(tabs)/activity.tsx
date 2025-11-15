@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import React, { useCallback } from 'react';
 import {
     ActivityIndicator,
@@ -12,11 +13,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EmptyNotifications, NotificationSection } from '../../components/notifications';
+import { auth } from '../../config/firebase';
 import { useNotifications } from '../../hooks/useNotifications';
+import { getPendingRequestsCount } from '../../services/followRequests';
 import { COLORS, SPACING, TYPOGRAPHY } from '../../src/constants/theme';
 import { groupNotificationsByTime } from '../../utils/notificationUtils';
 
 export default function ActivityScreen() {
+  const router = useRouter();
   const {
     notifications,
     unreadCount,
@@ -28,6 +32,7 @@ export default function ActivityScreen() {
   } = useNotifications();
 
   const [refreshing, setRefreshing] = React.useState(false);
+  const [requestsCount, setRequestsCount] = React.useState(0);
 
   // Mark all as read when screen is focused
   useFocusEffect(
@@ -35,6 +40,16 @@ export default function ActivityScreen() {
       if (unreadCount > 0) {
         markAllAsRead();
       }
+      
+      // Load follow requests count
+      const loadRequestsCount = async () => {
+        const userId = auth.currentUser?.uid;
+        if (userId) {
+          const count = await getPendingRequestsCount(userId);
+          setRequestsCount(count);
+        }
+      };
+      loadRequestsCount();
     }, [unreadCount, markAllAsRead])
   );
 
@@ -112,6 +127,27 @@ export default function ActivityScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
+          {/* Follow Requests Section */}
+          {requestsCount > 0 && (
+            <TouchableOpacity
+              style={styles.followRequestsBanner}
+              onPress={() => router.push('/user/follow-requests')}
+            >
+              <View style={styles.followRequestsLeft}>
+                <View style={styles.followRequestsIcon}>
+                  <Ionicons name="person-add" size={20} color="#0095F6" />
+                </View>
+                <View>
+                  <Text style={styles.followRequestsTitle}>Follow Requests</Text>
+                  <Text style={styles.followRequestsSubtitle}>
+                    {requestsCount} {requestsCount === 1 ? 'request' : 'requests'}
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#8E8E8E" />
+            </TouchableOpacity>
+          )}
+
           <NotificationSection
             title="Today"
             notifications={groupedNotifications.today}
@@ -182,5 +218,38 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  followRequestsBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: '#F8F9FA',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#EFEFEF',
+  },
+  followRequestsLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  followRequestsIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#E7F3FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  followRequestsTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#262626',
+  },
+  followRequestsSubtitle: {
+    fontSize: 13,
+    color: '#8E8E8E',
+    marginTop: 2,
   },
 });

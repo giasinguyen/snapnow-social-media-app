@@ -29,6 +29,10 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
         return <Ionicons name="person-add" size={17} color="#0095f6" />;
       case 'mention':
         return <Ionicons name="at" size={17} color="#8e44ad" />;
+      case 'follow_request':
+        return <Ionicons name="person-add" size={17} color="#f68300ff" />;
+      case 'follow_request_accepted':
+        return <Ionicons name="checkmark-circle" size={17} color="#34c759" />;
       default:
         return null;
     }

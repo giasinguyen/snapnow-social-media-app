@@ -47,6 +47,7 @@ export default function UserProfileScreen() {
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [hasRequestedFollow, setHasRequestedFollow] = useState(false);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
@@ -76,6 +77,7 @@ export default function UserProfileScreen() {
       try {
         const { AuthService } = await import('../../services/authService');
         const { isFollowing: checkFollowing } = await import('../../services/follow');
+        const { hasFollowRequest } = await import('../../services/followRequests');
         const { isUserBlocked: checkBlocked, isBlockedBy: checkBlockedBy } = await import('../../services/blocking');
         const currentUser = await AuthService.getCurrentUserProfile();
         
@@ -93,12 +95,18 @@ export default function UserProfileScreen() {
           if (!blocked && !blockedBy) {
             const following = await checkFollowing(currentUser.id, userData.id);
             setIsFollowing(following);
-            console.log('👥 Follow status:', following ? 'Following' : 'Not following');
+            
+            // Check if there's a pending follow request
+            const hasRequest = await hasFollowRequest(currentUser.id, userData.id);
+            setHasRequestedFollow(hasRequest);
+            
+            console.log('👥 Follow status:', following ? 'Following' : hasRequest ? 'Requested' : 'Not following');
           }
         }
       } catch (err) {
         console.error('Failed to check follow status', err);
         setIsFollowing(false);
+        setHasRequestedFollow(false);
       }
     } catch (err) {
       console.error('Failed to load user profile', err);
@@ -145,33 +153,19 @@ export default function UserProfileScreen() {
         return;
       }
 
-      const newFollowingState = !isFollowing;
-      setIsFollowing(newFollowingState);
-
-      if (newFollowingState) {
-        // Follow
-        console.log('📡 Following user...');
-        const { followUser } = await import('../../services/follow');
-        await followUser(
-          currentUser.id,
-          id,
-          currentUser.username || '',
-          currentUser.profileImage
-        );
-        console.log('✅ Followed successfully');
-        
-        // Update local follower count
-        if (user) {
-          setUser({
-            ...user,
-            followersCount: (user.followersCount || 0) + 1
-          });
-        }
-      } else {
+      if (hasRequestedFollow) {
+        // Cancel follow request
+        console.log('📡 Canceling follow request...');
+        const { unfollowUser } = await import('../../services/follow');
+        await unfollowUser(currentUser.id, id);
+        setHasRequestedFollow(false);
+        console.log('✅ Follow request canceled');
+      } else if (isFollowing) {
         // Unfollow
         console.log('📡 Unfollowing user...');
         const { unfollowUser } = await import('../../services/follow');
         await unfollowUser(currentUser.id, id);
+        setIsFollowing(false);
         console.log('✅ Unfollowed successfully');
         
         // Update local follower count
@@ -181,11 +175,36 @@ export default function UserProfileScreen() {
             followersCount: Math.max(0, (user.followersCount || 0) - 1)
           });
         }
+      } else {
+        // Follow or send follow request
+        console.log('📡 Following user...');
+        const { followUser } = await import('../../services/follow');
+        const result = await followUser(
+          currentUser.id,
+          id,
+          currentUser.username || '',
+          currentUser.profileImage
+        );
+        
+        if (result === 'requested') {
+          setHasRequestedFollow(true);
+          console.log('✅ Follow request sent');
+          Alert.alert('Request Sent', 'Your follow request has been sent');
+        } else {
+          setIsFollowing(true);
+          console.log('✅ Followed successfully');
+          
+          // Update local follower count
+          if (user) {
+            setUser({
+              ...user,
+              followersCount: (user.followersCount || 0) + 1
+            });
+          }
+        }
       }
     } catch (error) {
       console.error('❌ Error toggling follow:', error);
-      // Revert state on error
-      setIsFollowing(isFollowing);
       Alert.alert('Error', 'Failed to update follow status. Please try again.');
     }
   };
@@ -545,14 +564,28 @@ export default function UserProfileScreen() {
               <>
                 {/* Other User's Profile - Show Follow and Message */}
                 <TouchableOpacity
-                  style={[styles.primaryButton, isFollowing && styles.followingButton]}
+                  style={[
+                    styles.primaryButton, 
+                    (isFollowing || hasRequestedFollow) && styles.followingButton
+                  ]}
                   onPress={() => {
                     console.log('🔘 Follow button pressed on user profile');
                     handleFollow();
                   }}
                 >
-                  <Text style={[styles.primaryButtonText, isFollowing && styles.followingButtonText]}>
-                    {isFollowing ? 'Following' : 'Follow'}
+                  {hasRequestedFollow && (
+                    <Ionicons 
+                      name="hourglass-outline" 
+                      size={16} 
+                      color="#262626" 
+                      style={{ marginRight: 6 }} 
+                    />
+                  )}
+                  <Text style={[
+                    styles.primaryButtonText, 
+                    (isFollowing || hasRequestedFollow) && styles.followingButtonText
+                  ]}>
+                    {isFollowing ? 'Following' : hasRequestedFollow ? 'Requested' : 'Follow'}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.secondaryButton} onPress={handleMessage}>
@@ -588,8 +621,19 @@ export default function UserProfileScreen() {
           </View>
         )}
 
-        {/* Only show tabs and content if not blocked */}
-        {!isBlocked && !isBlockedBy && (
+        {/* Private Account Message - Show when not following a private account */}
+        {!isBlocked && !isBlockedBy && !isOwnProfile && user?.isPrivate && !isFollowing && (
+          <View style={styles.blockedMessage}>
+            <Ionicons name="lock-closed" size={64} color="#DBDBDB" />
+            <Text style={styles.blockedTitle}>This Account is Private</Text>
+            <Text style={styles.blockedSubtitle}>
+              Follow to see their photos and videos
+            </Text>
+          </View>
+        )}
+
+        {/* Only show tabs and content if not blocked and can view content */}
+        {!isBlocked && !isBlockedBy && (isOwnProfile || !user?.isPrivate || isFollowing) && (
           <>
         {/* Tabs */}
         <View style={styles.tabsContainer}>
@@ -1004,10 +1048,12 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     flex: 1,
+    flexDirection: 'row',
     paddingVertical: 10,
     backgroundColor: '#0095F6',
     borderRadius: 8,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   primaryButtonText: {
     fontSize: 14,
