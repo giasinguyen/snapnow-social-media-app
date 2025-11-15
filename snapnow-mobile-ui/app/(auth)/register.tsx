@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link } from 'expo-router';
 // Sử dụng Firebase authService thật
 import { registerUser } from '../../services/authService';
+import { UserService } from '../../services/user';
 
 export default function RegisterScreen() {
   const [email, setEmail] = useState('');
@@ -41,6 +42,14 @@ export default function RegisterScreen() {
 
     setIsLoading(true);
     try {
+      // Check if username is available
+      const isAvailable = await UserService.isUsernameAvailable(username);
+      if (!isAvailable) {
+        Alert.alert('Username Taken', 'This username is already in use. Please choose another one.');
+        setIsLoading(false);
+        return;
+      }
+
       await registerUser(email, password, username, displayName);
       // Alert sẽ được hiển thị từ registerUser
     } catch (error: any) {

@@ -1,14 +1,14 @@
 import { Ionicons } from '@expo/vector-icons'
-import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useFocusEffect } from '@react-navigation/native'
-import React, { useEffect, useRef, useState, useCallback } from 'react'
+import { useLocalSearchParams, useRouter } from 'expo-router'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, Alert, Animated, Dimensions, Image, Keyboard, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import StoryProgressBar from '../../components/StoryProgressBar'
 import StoryViewersModal from '../../components/StoryViewersModal'
 import { auth } from '../../config/firebase'
-import { addStoryReaction, deleteStory, getFollowedUsersStories, getStoryViewers, markStoryAsViewed, type Story as StoryType, type StoryView, saveStory, unsaveStory, hasUserSavedStory } from '../../services/stories'
+import { addStoryReaction, deleteStory, getFollowedUsersStories, getStoryViewers, hasUserSavedStory, markStoryAsViewed, saveStory, unsaveStory, type Story as StoryType, type StoryView } from '../../services/stories'
 
 const STORY_DURATION = 5000; // 5 seconds per story
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -25,6 +25,7 @@ export default function StoryScreen() {
   const [isPaused, setIsPaused] = useState(false)
   const [fadeAnim] = useState(new Animated.Value(1))
   const [showMenu, setShowMenu] = useState(false)
+  const [showOwnStoryMenu, setShowOwnStoryMenu] = useState(false)
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isHolding = useRef(false)
   const isNavigating = useRef(false)
@@ -392,6 +393,11 @@ export default function StoryScreen() {
     setIsPaused(!showMenu)
   }
 
+  const handleOwnStoryMenuPress = () => {
+    setShowOwnStoryMenu(!showOwnStoryMenu)
+    setIsPaused(!showOwnStoryMenu)
+  }
+
   const handleShowViewers = async () => {
     const currentUserStoriesArray = userStories[currentUserIndex] || []
     const currentStory = currentUserStoriesArray[currentStoryIndex]
@@ -418,6 +424,10 @@ export default function StoryScreen() {
     const currentStory = currentUserStoriesArray[currentStoryIndex]
     
     if (!currentStory) return
+
+    // Close the menu first
+    setShowOwnStoryMenu(false)
+    setIsPaused(false)
 
     Alert.alert(
       'Delete Story',
@@ -498,6 +508,10 @@ export default function StoryScreen() {
     const currentStory = currentUserStoriesArray[currentStoryIndex]
     
     if (!currentStory || !currentUserId) return
+
+    // Close the menu first
+    setShowOwnStoryMenu(false)
+    setIsPaused(false)
     
     try {
       if (isSaved) {
@@ -621,7 +635,13 @@ export default function StoryScreen() {
           </View>
 
           <View style={styles.topBar}>
-            <View style={styles.userInfo}>
+            <TouchableOpacity 
+              style={styles.userInfo}
+              onPress={() => {
+                router.push(`/user/${currentStory.userId}` as any);
+              }}
+              activeOpacity={0.7}
+            >
               <Image 
                 source={{ uri: currentStory.userProfileImage }} 
                 style={styles.avatarSmall} 
@@ -634,11 +654,11 @@ export default function StoryScreen() {
                     : ''}
                 </Text>
               </View>
-            </View>
+            </TouchableOpacity>
             <View style={styles.topBarButtons}>
               {isOwnStory ? (
-                <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteStory}>
-                  <Ionicons name="trash-outline" size={20} color="#fff" />
+                <TouchableOpacity style={styles.moreButton} onPress={handleOwnStoryMenuPress}>
+                  <Ionicons name="ellipsis-vertical" size={20} color="#fff" />
                 </TouchableOpacity>
               ) : (
                 <>
@@ -656,7 +676,7 @@ export default function StoryScreen() {
             </View>
           </View>
 
-          {/* Menu dropdown */}
+          {/* Menu dropdown for other users' stories */}
           {showMenu && (
             <View style={styles.menuContainer}>
               <TouchableOpacity style={styles.menuItem} onPress={handleReport}>
@@ -667,6 +687,21 @@ export default function StoryScreen() {
               <TouchableOpacity style={styles.menuItem} onPress={handleMute}>
                 <Ionicons name="volume-mute-outline" size={20} color="#fff" />
                 <Text style={styles.menuText}>Mute</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Menu dropdown for own stories */}
+          {showOwnStoryMenu && (
+            <View style={styles.menuContainer}>
+              <TouchableOpacity style={styles.menuItem} onPress={handleArchiveStory}>
+                <Ionicons name={isSaved ? "archive" : "archive-outline"} size={20} color="#fff" />
+                <Text style={styles.menuText}>{isSaved ? "Unsave" : "Save"}</Text>
+              </TouchableOpacity>
+              <View style={styles.menuDivider} />
+              <TouchableOpacity style={styles.menuItem} onPress={handleDeleteStory}>
+                <Ionicons name="trash-outline" size={20} color="#fff" />
+                <Text style={styles.menuText}>Delete</Text>
               </TouchableOpacity>
             </View>
           )}
