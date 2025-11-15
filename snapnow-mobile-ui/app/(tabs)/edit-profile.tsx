@@ -22,6 +22,7 @@ import Input from '../../components/ui/Input';
 import { auth, db } from '../../config/firebase';
 import { AuthService, UserProfile } from '../../services/authService';
 import { uploadAvatar } from '../../services/cloudinary';
+import { UserService } from '../../services/user';
 
 const MAX_BIO_LENGTH = 150;
 const MAX_DISPLAYNAME_LENGTH = 50;
@@ -128,6 +129,16 @@ export default function EditProfileScreen() {
 
     setSaving(true);
     try {
+      // Check if username has changed and if new username is available
+      if (username.trim().toLowerCase() !== profile.username.toLowerCase()) {
+        const isAvailable = await UserService.isUsernameAvailable(username.trim(), profile.id);
+        if (!isAvailable) {
+          Alert.alert('Username Taken', 'This username is already in use. Please choose another one.');
+          setSaving(false);
+          return;
+        }
+      }
+
       let photoURL = profile.profileImage || null;
 
       // Upload avatar to Cloudinary if new image selected

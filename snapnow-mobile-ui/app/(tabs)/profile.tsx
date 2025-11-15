@@ -687,7 +687,7 @@ export default function ProfileScreen() {
             onPress={() => setShowAvatarViewer(false)}
           >
             <TouchableOpacity style={styles.closeButton} onPress={() => setShowAvatarViewer(false)}>
-              <Ionicons name="close" size={32} color="#fff" />
+              <Ionicons name="close" size={32} color="#000000ff" />
             </TouchableOpacity>
             
             <View style={styles.avatarViewerContent}>
@@ -1167,7 +1167,7 @@ const styles = StyleSheet.create({
   // Avatar Viewer Modal
   avatarViewerContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    backgroundColor: 'rgba(173, 173, 173, 0.95)',
   },
   avatarViewerOverlay: {
     flex: 1,

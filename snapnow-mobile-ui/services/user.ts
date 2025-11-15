@@ -44,6 +44,30 @@ export class UserService {
     }
   }
 
+  // Check if username is available (not taken by another user)
+  static async isUsernameAvailable(username: string, excludeUserId?: string): Promise<boolean> {
+    try {
+      const usersRef = collection(db, "users")
+      const q = query(usersRef, where("username", "==", username.toLowerCase()))
+      const snapshot = await getDocs(q)
+      
+      if (snapshot.empty) {
+        return true // Username is available
+      }
+      
+      // If excludeUserId is provided, check if the found user is the same user
+      if (excludeUserId) {
+        const foundUserId = snapshot.docs[0].id
+        return foundUserId === excludeUserId // Available if it's the same user
+      }
+      
+      return false // Username is taken
+    } catch (error) {
+      console.error("Error checking username availability:", error)
+      throw error
+    }
+  }
+
   // Update user profile
   static async updateUserProfile(userId: string, updates: Partial<User>) {
     try {
