@@ -35,14 +35,17 @@ export async function sendFollowRequest(
     const requestId = `${fromUserId}_${toUserId}`;
 
     // Create follow request document
-    await setDoc(doc(db, "followRequests", requestId), {
+    const requestData: any = {
       fromUserId,
       toUserId,
       fromUsername,
-      fromProfileImage,
+      // Firestore does not accept `undefined` values — store `null` when image is not provided
+      fromProfileImage: fromProfileImage ?? null,
       status: "pending",
       createdAt: Timestamp.now(),
-    });
+    };
+
+    await setDoc(doc(db, "followRequests", requestId), requestData);
 
     // Create notification for the user receiving the request
     await createNotification(
