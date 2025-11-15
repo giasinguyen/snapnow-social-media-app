@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
 import { useRouter } from 'expo-router'
-import React, { useRef, useState } from 'react'
+import React, { useRef, useState, useEffect } from 'react'
 import {
   ActivityIndicator,
   Alert,
   Animated,
+  BackHandler,
   Dimensions,
   Image,
   PanResponder,
@@ -37,6 +38,7 @@ export default function CreateStoryScreen() {
   const [textPosition, setTextPosition] = useState({ x: SCREEN_WIDTH / 2 - 100, y: SCREEN_HEIGHT / 3 - 50 })
   const [uploading, setUploading] = useState(false)
   const [showTextOptions, setShowTextOptions] = useState(false)
+  // const textInputRef = useRef<TextInput | null>(null)
 
   // Animation for text options panel
   const slideAnim = useRef(new Animated.Value(0)).current
@@ -122,6 +124,27 @@ export default function CreateStoryScreen() {
       }).start()
     }
   }, [showTextOptions])
+
+  // Intercept hardware back button when there's an unsaved story
+  useEffect(() => {
+    const onBackPress = () => {
+      if (imageUri) {
+        Alert.alert(
+          'Discard Changes?',
+          'Are you sure you want to discard this story?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Discard', style: 'destructive', onPress: () => setImageUri(null) },
+          ]
+        )
+        return true
+      }
+      return false
+    }
+
+    const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress)
+    return () => sub.remove()
+  }, [imageUri])
 
   const pickImage = async () => {
     try {
@@ -255,7 +278,19 @@ export default function CreateStoryScreen() {
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => setImageUri(null)}>
+        <TouchableOpacity
+          onPress={() => {
+            // Confirm before discarding an image/story draft
+            Alert.alert(
+              'Discard Changes?',
+              'Are you sure you want to discard this story?',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Discard', style: 'destructive', onPress: () => setImageUri(null) },
+              ]
+            )
+          }}
+        >
           <Ionicons name="arrow-back" size={28} color="#fff" />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: '#fff' }]}>Create Story</Text>
