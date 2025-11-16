@@ -363,9 +363,6 @@ export default function CommentsModal({ visible, postId, onClose }: CommentsModa
               </Text>
             </View>
           )}
-          <TouchableOpacity style={styles.cameraButton} onPress={handleCameraPress}>
-            <Ionicons name="camera-outline" size={20} color="#8e8e8e" />
-          </TouchableOpacity>
           <View style={styles.inputWrapper}>
             <MentionInput
               ref={inputRef}
@@ -377,6 +374,9 @@ export default function CommentsModal({ visible, postId, onClose }: CommentsModa
               maxLength={500}
             />
           </View>
+          <TouchableOpacity style={styles.cameraButton} onPress={handleCameraPress}>
+            <Ionicons name="image-outline" size={24} color="#8e8e8e" />
+          </TouchableOpacity>
           <TouchableOpacity
             onPress={handleAddComment}
             disabled={(!commentText.trim() && !selectedImage) || submitting}
