@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { CLOUDINARY_FOLDERS } from '../../config/cloudinary';
 import { auth } from '../../config/firebase';
+import { formatLastActive, getUserActivityStatus } from '../../services/activityStatus';
 import { uploadToCloudinary } from '../../services/cloudinary';
 import {
   createConversation,
@@ -49,6 +50,8 @@ export default function ChatScreen() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [isOnline, setIsOnline] = useState(false);
+  const [lastActiveText, setLastActiveText] = useState('');
 
   const flatListRef = useRef<FlatList>(null);
   const currentUser = auth.currentUser;
@@ -134,6 +137,28 @@ export default function ChatScreen() {
     return () => unsubscribe();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]);
+
+  // Load activity status
+  useEffect(() => {
+    if (!otherUserId) return;
+
+    const loadActivityStatus = async () => {
+      const status = await getUserActivityStatus(otherUserId as string);
+      if (status && status.activityStatusEnabled) {
+        setIsOnline(status.isOnline);
+        if (!status.isOnline && status.lastActive) {
+          setLastActiveText(formatLastActive(status.lastActive));
+        } else {
+          setLastActiveText('');
+        }
+      }
+    };
+
+    loadActivityStatus();
+    const interval = setInterval(loadActivityStatus, 30000); // Update every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [otherUserId]);
 
   const handleSendMessage = async () => {
     if (!messageText.trim() || sending) return;
@@ -388,28 +413,66 @@ export default function ChatScreen() {
           headerShown: true,
           title: '',
           headerStyle: {
-            backgroundColor: '#ffffff',
+            backgroundColor: '#ffffffff',
           },
           headerShadowVisible: true,
           headerLeft: () => (
             <TouchableOpacity
-              onPress={() => router.back()}
+              onPress={() =>
+                router.push({
+                  pathname: '/messages/conversation-details' as any,
+                  params: {
+                    conversationId,
+                    otherUserId,
+                    otherUserName,
+                    otherUserPhoto,
+                    otherUserUsername,
+                  },
+                })
+              }
               style={{ flexDirection: 'row', alignItems: 'center', paddingRight: 16 }}
             >
-              <Ionicons name="arrow-back" size={24} color="#000" style={{ marginRight: 12 }} />
-              <Image
-                source={{ uri: (otherUserPhoto as string) || 'https://via.placeholder.com/40' }}
-                style={{ width: 36, height: 36, borderRadius: 18, marginRight: 10, backgroundColor: '#e5e7eb' }}
-              />
+              <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 12 }}>
+                <Ionicons name="arrow-back" size={24} color="#000" />
+              </TouchableOpacity>
+              <View style={{ position: 'relative' }}>
+                <Image
+                  source={{ uri: (otherUserPhoto as string) || 'https://via.placeholder.com/40' }}
+                  style={{ width: 36, height: 36, borderRadius: 18, marginRight: 10, backgroundColor: '#e5e7eb' }}
+                />
+                {isOnline && (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      bottom: 0,
+                      right: 10,
+                      width: 12,
+                      height: 12,
+                      borderRadius: 6,
+                      backgroundColor: '#34c759',
+                      borderWidth: 2,
+                      borderColor: '#ffffff',
+                    }}
+                  />
+                )}
+              </View>
               <View>
                 <Text style={{ fontWeight: '700', fontSize: 16, color: '#000' }} numberOfLines={1}>
                   {otherUserName as string || 'Unknown User'}
                 </Text>
-                {otherUserUsername && (
+                {isOnline ? (
+                  <Text style={{ fontSize: 12, color: '#34c759', fontWeight: '500' }}>
+                    Active now
+                  </Text>
+                ) : lastActiveText ? (
+                  <Text style={{ fontSize: 12, color: '#6b7280' }}>
+                    {lastActiveText}
+                  </Text>
+                ) : otherUserUsername ? (
                   <Text style={{ fontSize: 12, color: '#6b7280' }}>
                     @{otherUserUsername}
                   </Text>
-                )}
+                ) : null}
               </View>
             </TouchableOpacity>
           ),

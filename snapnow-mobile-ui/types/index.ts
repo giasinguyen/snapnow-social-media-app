@@ -9,6 +9,9 @@ export interface User {
   followingCount: number;
   postsCount: number;
   isPrivate?: boolean;
+  activityStatus?: boolean; // Show activity status (default true)
+  isOnline?: boolean; // Currently online
+  lastActive?: Date; // Last active timestamp
   createdAt: Date;
 }
 

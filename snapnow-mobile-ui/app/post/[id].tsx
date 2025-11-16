@@ -1,24 +1,25 @@
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
+import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  Dimensions,
-  Image,
-  Keyboard,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View
+    ActivityIndicator,
+    Alert,
+    Animated,
+    Dimensions,
+    Image,
+    Keyboard,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import CommentItem from '../../components/CommentItem';
@@ -51,6 +52,7 @@ export default function PostDetailScreen() {
   const [replyingTo, setReplyingTo] = useState<{ id: string; username: string } | null>(null);
   const [bookmarked, setBookmarked] = useState(false);
   const [savesCount, setSavesCount] = useState(0);
+  const [commentImage, setCommentImage] = useState<string | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const heartScale = useState(new Animated.Value(0))[0];
   const [showHeart, setShowHeart] = useState(false);
@@ -191,8 +193,26 @@ export default function PostDetailScreen() {
     }
   };
 
+  const pickCommentImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setCommentImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  };
+
   const handleComment = async () => {
-    if (!commentText.trim() || !post || !currentUserId) return;
+    if ((!commentText.trim() && !commentImage) || !post || !currentUserId) return;
 
     try {
       setSubmittingComment(true);
@@ -205,7 +225,7 @@ export default function PostDetailScreen() {
         profile?.profileImage,
         commentText.trim(),
         replyingTo?.id, // Pass the parent comment ID if replying
-        undefined // imageUrl
+        commentImage || undefined // imageUrl
       );
 
       // Extract mentions and send notifications
@@ -269,6 +289,7 @@ export default function PostDetailScreen() {
       const updatedComments = await getPostComments(post.id);
       setComments(updatedComments);
       setCommentText('');
+      setCommentImage(null);
       setReplyingTo(null); // Clear reply state
       
       // Dismiss keyboard
@@ -724,6 +745,17 @@ export default function PostDetailScreen() {
             </View>
           )}
           <View style={styles.commentInputWrapper}>
+            {commentImage && (
+              <View style={styles.commentImagePreview}>
+                <Image source={{ uri: commentImage }} style={styles.commentImageThumb} />
+                <TouchableOpacity
+                  style={styles.removeImageButton}
+                  onPress={() => setCommentImage(null)}
+                >
+                  <Ionicons name="close-circle" size={20} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            )}
             <MentionInput
               style={styles.commentInput}
               placeholder={replyingTo ? `Reply to @${replyingTo.username}...` : "Add a comment..."}
@@ -734,8 +766,14 @@ export default function PostDetailScreen() {
             />
           </View>
           <TouchableOpacity
+            onPress={pickCommentImage}
+            style={styles.imageButton}
+          >
+            <Ionicons name="image-outline" size={24} color="#8E8E8E" />
+          </TouchableOpacity>
+          <TouchableOpacity
             onPress={handleComment}
-            disabled={!commentText.trim() || submittingComment}
+            disabled={(!commentText.trim() && !commentImage) || submittingComment}
             style={styles.sendButton}
           >
             {submittingComment ? (
@@ -744,7 +782,7 @@ export default function PostDetailScreen() {
               <Text
                 style={[
                   styles.sendButtonText,
-                  !commentText.trim() && styles.sendButtonTextDisabled,
+                  (!commentText.trim() && !commentImage) && styles.sendButtonTextDisabled,
                 ]}
               >
                 Post
@@ -1093,6 +1131,10 @@ const styles = StyleSheet.create({
     color: '#262626',
     maxHeight: 80,
   },
+  imageButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+  },
   sendButton: {
     padding: 4,
   },
@@ -1103,6 +1145,22 @@ const styles = StyleSheet.create({
   },
   sendButtonTextDisabled: {
     color: '#B0D4F1',
+  },
+  commentImagePreview: {
+    position: 'relative',
+    marginBottom: 8,
+  },
+  commentImageThumb: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 10,
   },
   replyIndicator: {
     flexDirection: "row",

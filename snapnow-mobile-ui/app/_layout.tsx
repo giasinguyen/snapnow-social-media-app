@@ -2,11 +2,13 @@ import { router, Stack } from 'expo-router';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
+import { AppState } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { InAppNotification } from '../components/InAppNotification';
 import { auth, db } from '../config/firebase';
+import { updateOnlineStatus } from '../services/activityStatus';
 import { createAdminAccount } from '../services/authService';
 import { validateCloudinaryConfig } from '../services/cloudinaryValidator';
 import {
@@ -36,6 +38,8 @@ export default function RootLayout() {
       // Register for push notifications when user logs in
       if (user) {
         registerForPushNotifications();
+        // Set user as online when they log in
+        updateOnlineStatus(user.uid, true);
       }
     });
 
@@ -112,8 +116,31 @@ export default function RootLayout() {
       unsubscribe();
       cleanupListeners();
       cleanupTimeTracking();
+      // Set user as offline when app closes
+      if (user) {
+        updateOnlineStatus(user.uid, false);
+      }
     };
   }, []);
+
+  // Track app state changes (foreground/background)
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (user) {
+        if (nextAppState === 'active') {
+          // App came to foreground
+          updateOnlineStatus(user.uid, true);
+        } else if (nextAppState === 'background' || nextAppState === 'inactive') {
+          // App went to background
+          updateOnlineStatus(user.uid, false);
+        }
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [user]);
 
   if (isLoading) {
     return null;

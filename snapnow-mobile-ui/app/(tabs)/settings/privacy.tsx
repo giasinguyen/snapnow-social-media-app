@@ -1,92 +1,255 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context'; // 👈 thêm
+import { doc, updateDoc } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
+import {
+    ScrollView,
+    StyleSheet,
+    Switch,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { auth, db } from '../../../config/firebase';
+import { AuthService } from '../../../services/authService';
 
-export default function PrivacyPolicyScreen() {
+interface SettingItemProps {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  subtitle?: string;
+  onPress?: () => void;
+  showArrow?: boolean;
+  value?: boolean;
+  onValueChange?: (value: boolean) => void;
+  isSwitch?: boolean;
+}
+
+function SettingItem({
+  icon,
+  title,
+  subtitle,
+  onPress,
+  showArrow = true,
+  value,
+  onValueChange,
+  isSwitch = false,
+}: SettingItemProps) {
+  return (
+    <TouchableOpacity
+      style={styles.settingItem}
+      onPress={onPress}
+      disabled={isSwitch}
+      activeOpacity={0.6}
+    >
+      <View style={styles.settingLeft}>
+        <View style={styles.iconContainer}>
+          <Ionicons name={icon} size={22} color="#262626" />
+        </View>
+        <View style={styles.settingTextContainer}>
+          <Text style={styles.settingTitle}>{title}</Text>
+          {subtitle && <Text style={styles.settingSubtitle}>{subtitle}</Text>}
+        </View>
+      </View>
+      {isSwitch ? (
+        <Switch
+          value={value}
+          onValueChange={onValueChange}
+          trackColor={{ false: '#DBDBDB', true: '#0095F6' }}
+          thumbColor="#fff"
+        />
+      ) : (
+        showArrow && <Ionicons name="chevron-forward" size={20} color="#8E8E8E" />
+      )}
+    </TouchableOpacity>
+  );
+}
+
+export default function PrivacyScreen() {
   const router = useRouter();
+  const [privateAccount, setPrivateAccount] = useState(false);
+  const [activityStatus, setActivityStatus] = useState(true);
+  const [storySharingEnabled, setStorySharingEnabled] = useState(true);
+
+  useEffect(() => {
+    loadPrivacySettings();
+  }, []);
+
+  const loadPrivacySettings = async () => {
+    try {
+      const user = await AuthService.getCurrentUserProfile();
+      if (user) {
+        setPrivateAccount(!!(user as any)?.isPrivate);
+        setActivityStatus((user as any)?.activityStatus !== false);
+        setStorySharingEnabled((user as any)?.storySharingEnabled !== false);
+      }
+    } catch (err) {
+      console.warn('Could not load privacy settings', err);
+    }
+  };
+
+  const updatePrivacySetting = async (field: string, value: boolean) => {
+    try {
+      const uid = auth.currentUser?.uid;
+      if (!uid) {
+        console.warn('No authenticated user');
+        return;
+      }
+      await updateDoc(doc(db, 'users', uid), { [field]: value });
+    } catch (err) {
+      console.error(`Failed to update ${field}:`, err);
+    }
+  };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      {/* Header */}
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#262626" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Privacy Policy</Text>
+        <Text style={styles.headerTitle}>Privacy</Text>
+        <View style={{ width: 24 }} />
       </View>
 
-      {/* Content */}
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Privacy Policy</Text>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Account Privacy</Text>
+          <View style={styles.sectionContent}>
+            <SettingItem
+              icon="lock-closed-outline"
+              title="Private Account"
+              subtitle="Only approved followers can see your posts"
+              isSwitch
+              value={privateAccount}
+              onValueChange={(val) => {
+                setPrivateAccount(val);
+                updatePrivacySetting('isPrivate', val);
+              }}
+            />
+          </View>
+        </View>
 
-        <Text style={styles.p}>
-          At <Text style={styles.bold}>SnapNow</Text>, we value your privacy and are committed to
-          protecting your personal information. This Privacy Policy explains how we collect, use,
-          and safeguard your data when you use our app.
-        </Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Activity</Text>
+          <View style={styles.sectionContent}>
+            <SettingItem
+              icon="time-outline"
+              title="Activity Status"
+              subtitle="Show when you're active or recently active"
+              isSwitch
+              value={activityStatus}
+              onValueChange={(val) => {
+                setActivityStatus(val);
+                updatePrivacySetting('activityStatus', val);
+              }}
+            />
+          </View>
+        </View>
 
-        <Text style={styles.section}>1. Information We Collect</Text>
-        <Text style={styles.p}>
-          We may collect information you provide directly (e.g., name, email, photos) and
-          information automatically collected from your device such as IP address, app usage, and
-          device identifiers.
-        </Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Sharing</Text>
+          <View style={styles.sectionContent}>
+            <SettingItem
+              icon="chatbubble-outline"
+              title="Story Sharing"
+              subtitle="Allow others to share your stories"
+              isSwitch
+              value={storySharingEnabled}
+              onValueChange={(val) => {
+                setStorySharingEnabled(val);
+                updatePrivacySetting('storySharingEnabled', val);
+              }}
+            />
+          </View>
+        </View>
 
-        <Text style={styles.section}>2. How We Use Your Information</Text>
-        <Text style={styles.p}>
-          SnapNow uses this data to provide and improve our services, personalize your experience,
-          display relevant content, and ensure safety within the community.
-        </Text>
-
-        <Text style={styles.section}>3. Sharing of Information</Text>
-        <Text style={styles.p}>
-          We do not sell or rent your data. We may share limited information with trusted service
-          providers (like analytics or cloud storage) under strict confidentiality agreements.
-        </Text>
-
-        <Text style={styles.section}>4. Data Security</Text>
-        <Text style={styles.p}>
-          We implement strong encryption and secure storage systems to protect your data against
-          unauthorized access, alteration, or disclosure.
-        </Text>
-
-        <Text style={styles.section}>5. Your Rights</Text>
-        <Text style={styles.p}>
-          You may access, modify, or delete your personal data anytime via Settings → Edit Profile.
-          You may also request account deletion by contacting our support team.
-        </Text>
-
-        <Text style={styles.section}>6. Policy Updates</Text>
-        <Text style={styles.p}>
-          We may update this Privacy Policy from time to time. We encourage you to review it
-          periodically to stay informed about how we protect your data.
-        </Text>
-
-        <Text style={styles.section}>7. Contact Us</Text>
-        <Text style={styles.p}>
-          For privacy concerns or questions, contact us at privacy@snapnow.app.
-        </Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Blocked</Text>
+          <View style={styles.sectionContent}>
+            <SettingItem
+              icon="eye-off-outline"
+              title="Blocked Accounts"
+              subtitle="Manage blocked users"
+              onPress={() => router.push('/(tabs)/settings/blocked-accounts')}
+            />
+          </View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#fff' }, // 👈 nền trắng + safe area
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    backgroundColor: '#fff',
+    borderBottomColor: '#EFEFEF',
   },
-  backBtn: { marginRight: 8 },
-  headerTitle: { fontSize: 18, fontWeight: '600' },
-  content: { padding: 16, paddingBottom: 40 },
-  title: { fontSize: 22, fontWeight: '700', marginBottom: 12, color: '#111' },
-  section: { fontSize: 16, fontWeight: '600', marginTop: 20, marginBottom: 6 },
-  p: { fontSize: 15, lineHeight: 22, color: '#444' },
-  bold: { fontWeight: '700' },
+  backButton: {
+    padding: 4,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#262626',
+  },
+  section: {
+    marginTop: 32,
+  },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#262626',
+    marginLeft: 16,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  sectionContent: {
+    backgroundColor: '#FFFFFF',
+  },
+  settingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#EFEFEF',
+  },
+  settingLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  iconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F7F7F7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  settingTextContainer: {
+    flex: 1,
+  },
+  settingTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#262626',
+    marginBottom: 2,
+  },
+  settingSubtitle: {
+    fontSize: 13,
+    color: '#8E8E8E',
+  },
 });
