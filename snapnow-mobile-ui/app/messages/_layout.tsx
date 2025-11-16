@@ -16,6 +16,13 @@ export default function MessagesLayout() {
           headerShown: false,
         }}
       />
+      <Stack.Screen
+        name="conversation-details"
+        options={{
+          title: '',
+          headerShown: true,
+        }}
+      />
     </Stack>
   );
 }
