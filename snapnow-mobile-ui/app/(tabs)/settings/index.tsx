@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { doc, updateDoc } from 'firebase/firestore';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
     Alert,
     ScrollView,
@@ -13,7 +12,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { showInAppNotification } from '../../../components/InAppNotification';
-import { auth, db } from '../../../config/firebase';
 import { AuthService } from '../../../services/authService';
 import { checkNotificationPermissions } from '../../../services/notificationPermissions';
 import { showMessageNotification } from '../../../services/pushNotifications';
@@ -96,20 +94,6 @@ function SettingSection({ title, children }: SettingSectionProps) {
 export default function SettingsScreen() {
   const router = useRouter();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [privateAccount, setPrivateAccount] = useState(false);
-  const [activityStatus, setActivityStatus] = useState(true);
-  const [storySharingEnabled, setStorySharingEnabled] = useState(true);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const current = await AuthService.getCurrentUserProfile();
-        setPrivateAccount(!!(current as any)?.isPrivate);
-      } catch (err) {
-        console.warn('Could not load user privacy setting', err);
-      }
-    })();
-  }, []);
 
   const handleLogout = async () => {
     Alert.alert(
@@ -183,7 +167,7 @@ export default function SettingsScreen() {
             icon="lock-closed-outline"
             title="Privacy"
             subtitle="Manage your privacy settings"
-            onPress={() => console.log('Privacy')}
+            onPress={() => router.push('/(tabs)/settings/privacy')}
           />
           <SettingItem
             icon="shield-checkmark-outline"
@@ -196,53 +180,6 @@ export default function SettingsScreen() {
             title="Account Access"
             subtitle="Review logins and sessions"
             onPress={() => console.log('Account Access')}
-          />
-        </SettingSection>
-
-        {/* Privacy Settings */}
-        <SettingSection title="Privacy">
-          <SettingItem
-            icon="lock-closed-outline"
-            title="Private Account"
-            subtitle="Only approved followers can see your posts"
-            isSwitch
-            value={privateAccount}
-            onValueChange={async (val?: boolean) => {
-              const value = !!val;
-              setPrivateAccount(value);
-              try {
-                const uid = auth.currentUser?.uid;
-                if (!uid) {
-                  console.warn('No authenticated user to update privacy setting');
-                  return;
-                }
-                await updateDoc(doc(db, 'users', uid), { isPrivate: value });
-              } catch (err) {
-                console.error('Failed to update privacy setting:', err);
-              }
-            }}
-          />
-          <SettingItem
-            icon="time-outline"
-            title="Activity Status"
-            subtitle="Show when you're active"
-            isSwitch
-            value={activityStatus}
-            onValueChange={setActivityStatus}
-          />
-          <SettingItem
-            icon="chatbubble-outline"
-            title="Story Sharing"
-            subtitle="Allow sharing of your stories"
-            isSwitch
-            value={storySharingEnabled}
-            onValueChange={setStorySharingEnabled}
-          />
-          <SettingItem
-            icon="eye-off-outline"
-            title="Blocked Accounts"
-            subtitle="Manage blocked users"
-            onPress={() => router.push('/(tabs)/settings/blocked-accounts')}
           />
         </SettingSection>
 
