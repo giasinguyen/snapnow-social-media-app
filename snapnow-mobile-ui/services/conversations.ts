@@ -38,6 +38,10 @@ export interface Conversation {
   };
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  archivedBy?: string[]; // Array of user IDs who archived this conversation
+  isGroupChat?: boolean; // True if this is a group conversation
+  groupName?: string; // Name for group chats
+  groupPhoto?: string; // Photo for group chats
 }
 
 export interface ConversationInput {
@@ -413,6 +417,74 @@ export const updateParticipantDetails = async (
   }
 };
 
+/**
+ * Archive a conversation for current user
+ */
+export const archiveConversation = async (
+  conversationId: string,
+  userId: string
+): Promise<void> => {
+  try {
+    const conversationRef = doc(db, 'conversations', conversationId);
+    const conversationDoc = await getDoc(conversationRef);
+    
+    if (!conversationDoc.exists()) {
+      throw new Error('Conversation not found');
+    }
+
+    const currentArchivedBy = conversationDoc.data()?.archivedBy || [];
+    
+    if (!currentArchivedBy.includes(userId)) {
+      await updateDoc(conversationRef, {
+        archivedBy: [...currentArchivedBy, userId],
+      });
+    }
+  } catch (error) {
+    console.error('Error archiving conversation:', error);
+    throw error;
+  }
+};
+
+/**
+ * Unarchive a conversation for current user
+ */
+export const unarchiveConversation = async (
+  conversationId: string,
+  userId: string
+): Promise<void> => {
+  try {
+    const conversationRef = doc(db, 'conversations', conversationId);
+    const conversationDoc = await getDoc(conversationRef);
+    
+    if (!conversationDoc.exists()) {
+      throw new Error('Conversation not found');
+    }
+
+    const currentArchivedBy = conversationDoc.data()?.archivedBy || [];
+    const updatedArchivedBy = currentArchivedBy.filter((id: string) => id !== userId);
+    
+    await updateDoc(conversationRef, {
+      archivedBy: updatedArchivedBy,
+    });
+  } catch (error) {
+    console.error('Error unarchiving conversation:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get archived conversations for a user
+ */
+export const getArchivedConversations = async (userId: string): Promise<Conversation[]> => {
+  try {
+    const allConversations = await getUserConversations(userId);
+    return allConversations.filter((conv) => conv.archivedBy?.includes(userId));
+  } catch (error) {
+    console.error('Error getting archived conversations:', error);
+    throw error;
+  }
+};
+
 export default {
   generateConversationId,
   createConversation,
@@ -425,4 +497,7 @@ export default {
   getTotalUnreadCount,
   subscribeToUnreadCount,
   updateParticipantDetails,
+  archiveConversation,
+  unarchiveConversation,
+  getArchivedConversations,
 };
