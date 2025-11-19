@@ -17,8 +17,11 @@ export async function updateOnlineStatus(userId: string, isOnline: boolean): Pro
       isOnline,
       lastActive: serverTimestamp(),
     });
-  } catch (error) {
-    console.error('Error updating online status:', error);
+  } catch (error: any) {
+    // Silently ignore permission errors - this feature requires specific Firestore rules
+    if (error?.code !== 'permission-denied') {
+      console.error('Error updating online status:', error);
+    }
   }
 }
 

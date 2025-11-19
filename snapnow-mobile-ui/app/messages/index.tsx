@@ -9,12 +9,20 @@ import {
   RefreshControl,
   StyleSheet,
   TextInput,
+  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { auth } from '../../config/firebase';
-import { subscribeToConversations, Conversation, getOtherParticipant } from '../../services/conversations';
+import { 
+  subscribeToConversations, 
+  Conversation, 
+  getOtherParticipant,
+  archiveConversation,
+  unarchiveConversation,
+} from '../../services/conversations';
 import { formatDistanceToNow } from 'date-fns';
+import CreateGroupChatModal from '../../components/CreateGroupChatModal';
 
 export default function MessagesScreen() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -22,25 +30,48 @@ export default function MessagesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
 
   const currentUserId = auth.currentUser?.uid || '';
 
-  // Filter conversations based on search
+  // Filter conversations based on search and archive status
   const filteredConversations = useMemo(() => {
-    if (!searchQuery.trim()) return conversations;
+    let filtered = conversations;
     
-    const query = searchQuery.toLowerCase();
-    return conversations.filter((conv) => {
-      const otherUser = getOtherParticipant(conv, currentUserId);
-      if (!otherUser) return false;
-      
-      return (
-        otherUser.displayName?.toLowerCase().includes(query) ||
-        otherUser.username?.toLowerCase().includes(query) ||
-        conv.lastMessage?.text?.toLowerCase().includes(query)
-      );
-    });
-  }, [conversations, searchQuery, currentUserId]);
+    // Filter by archive status
+    if (showArchived) {
+      filtered = filtered.filter((conv) => conv.archivedBy?.includes(currentUserId));
+    } else {
+      filtered = filtered.filter((conv) => !conv.archivedBy?.includes(currentUserId));
+    }
+    
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((conv) => {
+        // For group chat, search by group name
+        if (conv.isGroupChat) {
+          return (
+            conv.groupName?.toLowerCase().includes(query) ||
+            conv.lastMessage?.text?.toLowerCase().includes(query)
+          );
+        }
+        
+        // For 1-1 chat, search by other user's name
+        const otherUser = getOtherParticipant(conv, currentUserId);
+        if (!otherUser) return false;
+        
+        return (
+          otherUser.displayName?.toLowerCase().includes(query) ||
+          otherUser.username?.toLowerCase().includes(query) ||
+          conv.lastMessage?.text?.toLowerCase().includes(query)
+        );
+      });
+    }
+    
+    return filtered;
+  }, [conversations, searchQuery, currentUserId, showArchived]);
 
   useEffect(() => {
     if (!currentUserId) {
@@ -93,27 +124,97 @@ export default function MessagesScreen() {
   };
 
   const handleConversationPress = (conversation: Conversation) => {
-    const otherUser = getOtherParticipant(conversation, currentUserId);
-    if (!otherUser) return;
+    if (conversation.isGroupChat) {
+      // Group chat - only pass conversationId
+      router.push({
+        pathname: '/messages/[conversationId]' as any,
+        params: {
+          conversationId: conversation.id,
+        },
+      });
+    } else {
+      // 1-1 chat - pass other user info
+      const otherUser = getOtherParticipant(conversation, currentUserId);
+      if (!otherUser) return;
 
-    router.push({
-      pathname: '/messages/[conversationId]' as any,
-      params: {
-        conversationId: conversation.id,
-        otherUserId: otherUser.id,
-        otherUserName: otherUser.displayName,
-        otherUserPhoto: otherUser.photoURL,
-        otherUserUsername: otherUser.username,
-      },
-    });
+      router.push({
+        pathname: '/messages/[conversationId]' as any,
+        params: {
+          conversationId: conversation.id,
+          otherUserId: otherUser.id,
+          otherUserName: otherUser.displayName,
+          otherUserPhoto: otherUser.photoURL,
+          otherUserUsername: otherUser.username,
+        },
+      });
+    }
+  };
+
+  const handleArchiveConversation = async (conversationId: string) => {
+    try {
+      await archiveConversation(conversationId, currentUserId);
+      Alert.alert('Success', 'Conversation archived');
+    } catch (error: any) {
+      console.error('Error archiving conversation:', error);
+      Alert.alert('Error', error.message || 'Failed to archive conversation');
+    }
+  };
+
+  const handleUnarchiveConversation = async (conversationId: string) => {
+    try {
+      await unarchiveConversation(conversationId, currentUserId);
+      Alert.alert('Success', 'Conversation unarchived');
+    } catch (error: any) {
+      console.error('Error unarchiving conversation:', error);
+      Alert.alert('Error', error.message || 'Failed to unarchive conversation');
+    }
+  };
+
+  const showConversationOptions = (conversation: Conversation) => {
+    const isArchived = conversation.archivedBy?.includes(currentUserId);
+    const otherUser = getOtherParticipant(conversation, currentUserId);
+    
+    Alert.alert(
+      otherUser?.displayName || 'Options',
+      'Choose an action',
+      [
+        {
+          text: isArchived ? 'Unarchive' : 'Archive',
+          onPress: () => {
+            if (isArchived) {
+              handleUnarchiveConversation(conversation.id);
+            } else {
+              handleArchiveConversation(conversation.id);
+            }
+          },
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ]
+    );
   };
 
   const renderConversationItem = ({ item }: { item: Conversation }) => {
-    const otherUser = getOtherParticipant(item, currentUserId);
-    if (!otherUser) return null;
-
     const unreadCount = item.unreadCount[currentUserId] || 0;
     const isUnread = unreadCount > 0;
+    
+    // Get display name and avatar based on chat type
+    let displayName = 'Unknown';
+    let avatarUri = 'https://via.placeholder.com/50';
+    
+    if (item.isGroupChat) {
+      // Group chat: use group name and photo
+      displayName = item.groupName || 'Group Chat';
+      avatarUri = item.groupPhoto || 'https://via.placeholder.com/50?text=Group';
+    } else {
+      // 1-1 chat: use other participant's info
+      const otherUser = getOtherParticipant(item, currentUserId);
+      if (!otherUser) return null;
+      displayName = otherUser.displayName || otherUser.username || 'Unknown User';
+      avatarUri = otherUser.photoURL || 'https://via.placeholder.com/50';
+    }
     
     // Get last message text
     const lastMessageText = typeof item.lastMessage === 'string' 
@@ -134,26 +235,28 @@ export default function MessagesScreen() {
     return (
       <TouchableOpacity
         onPress={() => handleConversationPress(item)}
+        onLongPress={() => showConversationOptions(item)}
         style={styles.conversationItem}
         activeOpacity={0.7}
       >
         {/* Avatar with online indicator */}
         <View style={styles.avatarContainer}>
           <Image
-            source={{
-              uri: otherUser.photoURL || 'https://via.placeholder.com/50',
-            }}
+            source={{ uri: avatarUri }}
             style={styles.avatar}
           />
-          {/* Optional: Online indicator dot */}
-          {/* <View style={styles.onlineIndicator} /> */}
+          {item.isGroupChat && (
+            <View style={styles.groupBadge}>
+              <Ionicons name="people" size={12} color="#fff" />
+            </View>
+          )}
         </View>
 
         {/* Message Info */}
         <View style={styles.messageInfo}>
           <View style={styles.nameRow}>
             <Text style={[styles.username, isUnread && styles.usernameUnread]} numberOfLines={1}>
-              {otherUser.displayName || otherUser.username || 'Unknown User'}
+              {displayName}
             </Text>
             {timeText && (
               <Text style={styles.timestamp}>{timeText}</Text>
@@ -224,8 +327,28 @@ export default function MessagesScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Search Bar (no title - tab shows "Messages") */}
+      {/* Header with Archive Toggle */}
       <View style={styles.header}>
+        {/* Archive Toggle */}
+        <View style={styles.tabContainer}>
+          <TouchableOpacity
+            onPress={() => setShowArchived(false)}
+            style={[styles.tab, !showArchived && styles.activeTab]}
+          >
+            <Text style={[styles.tabText, !showArchived && styles.activeTabText]}>
+              Messages
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setShowArchived(true)}
+            style={[styles.tab, showArchived && styles.activeTab]}
+          >
+            <Text style={[styles.tabText, showArchived && styles.activeTabText]}>
+              Archived
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Search Bar */}
         <View style={styles.searchContainer}>
           <Ionicons name="search" size={20} color="#9ca3af" style={styles.searchIcon} />
@@ -259,6 +382,31 @@ export default function MessagesScreen() {
         contentContainerStyle={filteredConversations.length === 0 ? styles.emptyListContent : undefined}
         showsVerticalScrollIndicator={false}
       />
+
+      {/* Floating Action Button - Create Group */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => setShowCreateGroup(true)}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="people" size={24} color="#fff" />
+      </TouchableOpacity>
+
+      {/* Create Group Modal */}
+      <CreateGroupChatModal
+        visible={showCreateGroup}
+        onClose={() => setShowCreateGroup(false)}
+        onGroupCreated={(groupId) => {
+          console.log('Group created:', groupId);
+          // Automatically navigate to the new group
+          router.push({
+            pathname: '/messages/[conversationId]' as any,
+            params: {
+              conversationId: groupId,
+            },
+          });
+        }}
+      />
     </View>
   );
 }
@@ -275,6 +423,31 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    marginBottom: 12,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 8,
+    padding: 2,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 6,
+  },
+  activeTab: {
+    backgroundColor: '#ffffff',
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6b7280',
+  },
+  activeTabText: {
+    color: '#000000',
+    fontWeight: '600',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -316,6 +489,19 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 28,
     backgroundColor: '#e5e7eb',
+  },
+  groupBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#3b82f6',
+    borderWidth: 2,
+    borderColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   onlineIndicator: {
     position: 'absolute',
@@ -406,5 +592,21 @@ const styles = StyleSheet.create({
   },
   emptyListContent: {
     flexGrow: 1,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#3b82f6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
 });

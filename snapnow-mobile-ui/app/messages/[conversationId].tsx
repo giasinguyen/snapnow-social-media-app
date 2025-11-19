@@ -22,13 +22,19 @@ import { formatLastActive, getUserActivityStatus } from '../../services/activity
 import { uploadToCloudinary } from '../../services/cloudinary';
 import {
   createConversation,
+  getConversation,
+  Conversation,
 } from '../../services/conversations';
 import {
   markAllMessagesAsRead,
   Message,
   sendMessage,
   subscribeToMessages,
+  deleteMessage,
+  unsendMessage,
+  copyMessageText,
 } from '../../services/messages';
+import * as Clipboard from 'expo-clipboard';
 
 export default function ChatScreen() {
   const params = useLocalSearchParams();
@@ -44,6 +50,7 @@ export default function ChatScreen() {
   const [conversationId, setConversationId] = useState<string>(
     initialConversationId as string || ''
   );
+  const [conversation, setConversation] = useState<Conversation | null>(null);
   const [loading, setLoading] = useState(true);
   const [messageText, setMessageText] = useState('');
   const [sending, setSending] = useState(false);
@@ -112,6 +119,20 @@ export default function ChatScreen() {
   useEffect(() => {
     if (!conversationId) return;
 
+    // Fetch conversation details
+    const fetchConversation = async () => {
+      try {
+        const conv = await getConversation(conversationId);
+        if (conv) {
+          setConversation(conv);
+        }
+      } catch (error) {
+        console.error('Error fetching conversation:', error);
+      }
+    };
+
+    fetchConversation();
+
     const unsubscribe = subscribeToMessages(
       conversationId,
       (updatedMessages: Message[]) => {
@@ -138,9 +159,10 @@ export default function ChatScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]);
 
-  // Load activity status
+  // Load activity status (only for 1-1 chats)
   useEffect(() => {
-    if (!otherUserId) return;
+    // Skip activity status for group chats
+    if (!otherUserId || conversation?.isGroupChat) return;
 
     const loadActivityStatus = async () => {
       const status = await getUserActivityStatus(otherUserId as string);
@@ -158,7 +180,7 @@ export default function ChatScreen() {
     const interval = setInterval(loadActivityStatus, 30000); // Update every 30 seconds
 
     return () => clearInterval(interval);
-  }, [otherUserId]);
+  }, [otherUserId, conversation?.isGroupChat]);
 
   const handleSendMessage = async () => {
     if (!messageText.trim() || sending) return;
@@ -178,7 +200,7 @@ export default function ChatScreen() {
         senderId: currentUserId,
         senderName: currentUserName,
         senderPhoto: currentUserPhoto,
-        receiverId: otherUserId as string,
+        receiverId: conversation?.isGroupChat ? undefined : (otherUserId as string),
         type: 'text',
         text: textToSend,
       });
@@ -271,7 +293,7 @@ export default function ChatScreen() {
         senderId: currentUserId,
         senderName: currentUserName,
         senderPhoto: currentUserPhoto,
-        receiverId: otherUserId as string,
+        receiverId: conversation?.isGroupChat ? undefined : (otherUserId as string),
         type: 'image',
         text: '', // Empty text for image messages
         imageUrl,
@@ -307,85 +329,140 @@ export default function ChatScreen() {
     }
   };
 
+  const handleLongPressMessage = (message: Message) => {
+    const isMyMessage = message.senderId === currentUserId;
+    
+    const options = ['Copy'];
+    
+    if (isMyMessage) {
+      options.push('Delete for Me');
+      options.push('Unsend for Everyone');
+    } else {
+      options.push('Delete for Me');
+    }
+    
+    options.push('Cancel');
+    
+    Alert.alert(
+      'Message Options',
+      message.text || 'Image message',
+      options.map((option) => ({
+        text: option,
+        style: option === 'Cancel' ? 'cancel' : option.includes('Unsend') || option.includes('Delete') ? 'destructive' : 'default',
+        onPress: async () => {
+          try {
+            if (option === 'Copy' && message.text) {
+              await Clipboard.setStringAsync(message.text);
+              Alert.alert('Success', 'Message copied to clipboard');
+            } else if (option === 'Delete for Me') {
+              await deleteMessage(conversationId, message.id, currentUserId);
+            } else if (option === 'Unsend for Everyone') {
+              await unsendMessage(conversationId, message.id, currentUserId);
+            }
+          } catch (error: any) {
+            console.error('Error handling message option:', error);
+            Alert.alert('Error', error.message || 'Failed to perform action');
+          }
+        },
+      })),
+      { cancelable: true }
+    );
+  };
+
   const renderMessage = ({ item, index }: { item: Message; index: number }) => {
     const isMyMessage = item.senderId === currentUserId;
     const prevMessage = index > 0 ? messages[index - 1] : null;
     const showAvatar = !prevMessage || prevMessage.senderId !== item.senderId;
     const timestamp = formatMessageTime(item.createdAt);
 
-    return (
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'flex-end',
-          marginBottom: 12,
-          paddingHorizontal: 12,
-          justifyContent: isMyMessage ? 'flex-end' : 'flex-start',
-        }}
-      >
-        {/* Avatar for other user */}
-        {!isMyMessage && (
-          <View style={{ width: 32, height: 32, marginRight: 8 }}>
-            {showAvatar && (
-              <Image
-                source={{ uri: item.senderPhoto || 'https://via.placeholder.com/32' }}
-                style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#e5e7eb' }}
-              />
-            )}
-          </View>
-        )}
+    // Check if message is deleted
+    const isDeletedForMe = item.deletedBy?.includes(currentUserId);
+    const isDeletedForEveryone = item.deletedForEveryone;
+    
+    // Don't render if deleted for me
+    if (isDeletedForMe) {
+      return null;
+    }
 
-        {/* Message Bubble */}
+    return (
+      <TouchableOpacity
+        onLongPress={() => handleLongPressMessage(item)}
+        activeOpacity={0.8}
+      >
         <View
           style={{
-            maxWidth: '75%',
-            borderRadius: 20,
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-            backgroundColor: isMyMessage ? '#3b82f6' : '#ffffff',
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.08,
-            shadowRadius: 3,
-            elevation: 2,
+            flexDirection: 'row',
+            alignItems: 'flex-end',
+            marginBottom: 12,
+            paddingHorizontal: 12,
+            justifyContent: isMyMessage ? 'flex-end' : 'flex-start',
           }}
         >
-          {item.type === 'image' && item.imageUrl && (
-            <Image
-              source={{ uri: item.imageUrl }}
-              style={{ width: 200, height: 200, borderRadius: 12, marginBottom: 8 }}
-              resizeMode="cover"
-            />
+          {/* Avatar for other user */}
+          {!isMyMessage && (
+            <View style={{ width: 32, height: 32, marginRight: 8 }}>
+              {showAvatar && (
+                <Image
+                  source={{ uri: item.senderPhoto || 'https://via.placeholder.com/32' }}
+                  style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#e5e7eb' }}
+                />
+              )}
+            </View>
           )}
-          
-          <Text
+
+          {/* Message Bubble */}
+          <View
             style={{
-              fontSize: 16,
-              lineHeight: 22,
-              color: isMyMessage ? '#ffffff' : '#1f2937',
+              maxWidth: '75%',
+              borderRadius: 20,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              backgroundColor: isDeletedForEveryone ? '#f3f4f6' : (isMyMessage ? '#3b82f6' : '#ffffff'),
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.08,
+              shadowRadius: 3,
+              elevation: 2,
             }}
           >
-            {item.text}
-          </Text>
-          
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4 }}>
+            {item.type === 'image' && item.imageUrl && !isDeletedForEveryone && (
+              <Image
+                source={{ uri: item.imageUrl }}
+                style={{ width: 200, height: 200, borderRadius: 12, marginBottom: 8 }}
+                resizeMode="cover"
+              />
+            )}
+            
             <Text
               style={{
-                fontSize: 11,
-                color: isMyMessage ? 'rgba(255,255,255,0.75)' : '#9ca3af',
+                fontSize: 16,
+                lineHeight: 22,
+                color: isDeletedForEveryone ? '#9ca3af' : (isMyMessage ? '#ffffff' : '#1f2937'),
+                fontStyle: isDeletedForEveryone ? 'italic' : 'normal',
               }}
             >
-              {timestamp}
+              {item.text}
             </Text>
-            {isMyMessage && item.isRead && (
-              <Ionicons name="checkmark-done" size={14} color="rgba(255,255,255,0.75)" style={{ marginLeft: 4 }} />
-            )}
-            {isMyMessage && !item.isRead && (
-              <Ionicons name="checkmark" size={14} color="rgba(255,255,255,0.75)" style={{ marginLeft: 4 }} />
-            )}
+            
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4 }}>
+              <Text
+                style={{
+                  fontSize: 11,
+                  color: isDeletedForEveryone ? '#9ca3af' : (isMyMessage ? 'rgba(255,255,255,0.75)' : '#9ca3af'),
+                }}
+              >
+                {timestamp}
+              </Text>
+              {isMyMessage && item.isRead && !isDeletedForEveryone && (
+                <Ionicons name="checkmark-done" size={14} color="rgba(255,255,255,0.75)" style={{ marginLeft: 4 }} />
+              )}
+              {isMyMessage && !item.isRead && !isDeletedForEveryone && (
+                <Ionicons name="checkmark" size={14} color="rgba(255,255,255,0.75)" style={{ marginLeft: 4 }} />
+              )}
+            </View>
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -437,10 +514,14 @@ export default function ChatScreen() {
               </TouchableOpacity>
               <View style={{ position: 'relative' }}>
                 <Image
-                  source={{ uri: (otherUserPhoto as string) || 'https://via.placeholder.com/40' }}
+                  source={{ 
+                    uri: conversation?.isGroupChat
+                      ? (conversation.groupPhoto || 'https://via.placeholder.com/40?text=Group')
+                      : ((otherUserPhoto as string) || 'https://via.placeholder.com/40')
+                  }}
                   style={{ width: 36, height: 36, borderRadius: 18, marginRight: 10, backgroundColor: '#e5e7eb' }}
                 />
-                {isOnline && (
+                {!conversation?.isGroupChat && isOnline && (
                   <View
                     style={{
                       position: 'absolute',
@@ -458,9 +539,15 @@ export default function ChatScreen() {
               </View>
               <View>
                 <Text style={{ fontWeight: '700', fontSize: 16, color: '#000' }} numberOfLines={1}>
-                  {otherUserName as string || 'Unknown User'}
+                  {conversation?.isGroupChat
+                    ? (conversation.groupName || 'Group Chat')
+                    : (otherUserName as string || 'Unknown User')}
                 </Text>
-                {isOnline ? (
+                {conversation?.isGroupChat ? (
+                  <Text style={{ fontSize: 12, color: '#6b7280' }}>
+                    {conversation.participants?.length || 0} members
+                  </Text>
+                ) : isOnline ? (
                   <Text style={{ fontSize: 12, color: '#34c759', fontWeight: '500' }}>
                     Active now
                   </Text>
