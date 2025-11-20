@@ -1,16 +1,16 @@
 import {
-  collection,
-  doc,
-  updateDoc,
-  deleteDoc,
-  getDocs,
-  getDoc,
-  query,
-  where,
-  onSnapshot,
-  serverTimestamp,
-  Timestamp,
-  setDoc,
+    collection,
+    deleteDoc,
+    doc,
+    getDoc,
+    getDocs,
+    onSnapshot,
+    query,
+    serverTimestamp,
+    setDoc,
+    Timestamp,
+    updateDoc,
+    where,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
@@ -42,6 +42,8 @@ export interface Conversation {
   isGroupChat?: boolean; // True if this is a group conversation
   groupName?: string; // Name for group chats
   groupPhoto?: string; // Photo for group chats
+  admins?: string[]; // Array of admin user IDs for group chats
+  createdBy?: string; // Creator user ID for group chats
 }
 
 export interface ConversationInput {
@@ -485,6 +487,137 @@ export const getArchivedConversations = async (userId: string): Promise<Conversa
   }
 };
 
+/**
+ * Generate invite link for group conversation
+ */
+export const generateGroupInviteLink = (conversationId: string): string => {
+  // In production, this would be a deep link or shortened URL
+  return `snapnow://group/join/${conversationId}`;
+};
+
+/**
+ * Add member to group conversation
+ */
+export const addGroupMember = async (
+  conversationId: string,
+  newMemberId: string,
+  newMemberName: string,
+  newMemberPhoto: string,
+  newMemberUsername: string
+): Promise<void> => {
+  try {
+    const conversationRef = doc(db, 'conversations', conversationId);
+    const conversationDoc = await getDoc(conversationRef);
+    
+    if (!conversationDoc.exists()) {
+      throw new Error('Conversation not found');
+    }
+
+    const conversation = conversationDoc.data() as Conversation;
+    
+    if (!conversation.isGroupChat) {
+      throw new Error('This is not a group conversation');
+    }
+
+    // Check if user is already a member
+    if (conversation.participants.includes(newMemberId)) {
+      throw new Error('User is already a member of this group');
+    }
+
+    // Add new member to participants
+    const updatedParticipants = [...conversation.participants, newMemberId];
+    
+    // Add new member details
+    const updatedParticipantDetails = {
+      ...conversation.participantDetails,
+      [newMemberId]: {
+        id: newMemberId,
+        displayName: newMemberName,
+        photoURL: newMemberPhoto,
+        username: newMemberUsername,
+      },
+    };
+
+    // Initialize unread count for new member
+    const updatedUnreadCount = {
+      ...conversation.unreadCount,
+      [newMemberId]: 0,
+    };
+
+    await updateDoc(conversationRef, {
+      participants: updatedParticipants,
+      participantDetails: updatedParticipantDetails,
+      unreadCount: updatedUnreadCount,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error('Error adding group member:', error);
+    throw error;
+  }
+};
+
+/**
+ * Remove member from group conversation
+ */
+export const removeGroupMember = async (
+  conversationId: string,
+  memberId: string
+): Promise<void> => {
+  try {
+    const conversationRef = doc(db, 'conversations', conversationId);
+    const conversationDoc = await getDoc(conversationRef);
+    
+    if (!conversationDoc.exists()) {
+      throw new Error('Conversation not found');
+    }
+
+    const conversation = conversationDoc.data() as Conversation;
+    
+    if (!conversation.isGroupChat) {
+      throw new Error('This is not a group conversation');
+    }
+
+    // Remove member from participants
+    const updatedParticipants = conversation.participants.filter(id => id !== memberId);
+    
+    // Remove member details
+    const updatedParticipantDetails = { ...conversation.participantDetails };
+    delete updatedParticipantDetails[memberId];
+
+    // Remove member's unread count
+    const updatedUnreadCount = { ...conversation.unreadCount };
+    delete updatedUnreadCount[memberId];
+
+    await updateDoc(conversationRef, {
+      participants: updatedParticipants,
+      participantDetails: updatedParticipantDetails,
+      unreadCount: updatedUnreadCount,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error('Error removing group member:', error);
+    throw error;
+  }
+};
+
+/**
+ * Join group via invite link
+ */
+export const joinGroupViaInvite = async (
+  conversationId: string,
+  userId: string,
+  userName: string,
+  userPhoto: string,
+  userUsername: string
+): Promise<void> => {
+  try {
+    await addGroupMember(conversationId, userId, userName, userPhoto, userUsername);
+  } catch (error) {
+    console.error('Error joining group:', error);
+    throw error;
+  }
+};
+
 export default {
   generateConversationId,
   createConversation,
@@ -500,4 +633,8 @@ export default {
   archiveConversation,
   unarchiveConversation,
   getArchivedConversations,
+  generateGroupInviteLink,
+  addGroupMember,
+  removeGroupMember,
+  joinGroupViaInvite,
 };

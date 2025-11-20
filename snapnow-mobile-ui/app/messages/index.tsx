@@ -1,28 +1,29 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { formatDistanceToNow } from 'date-fns';
+import { router } from 'expo-router';
+import { doc, onSnapshot } from 'firebase/firestore';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  Image,
   ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
   RefreshControl,
   StyleSheet,
+  Text,
   TextInput,
-  Alert,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { auth } from '../../config/firebase';
-import { 
-  subscribeToConversations, 
-  Conversation, 
-  getOtherParticipant,
+import CreateGroupChatModal from '../../components/CreateGroupChatModal';
+import { auth, db } from '../../config/firebase';
+import {
   archiveConversation,
+  Conversation,
+  getOtherParticipant,
+  subscribeToConversations,
   unarchiveConversation,
 } from '../../services/conversations';
-import { formatDistanceToNow } from 'date-fns';
-import CreateGroupChatModal from '../../components/CreateGroupChatModal';
 
 export default function MessagesScreen() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -32,6 +33,8 @@ export default function MessagesScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showArchived, setShowArchived] = useState(false);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [userInfoMap, setUserInfoMap] = useState<Map<string, { displayName: string; username: string; photoURL: string }>>(new Map());
+  const userSubscriptions = useRef<Map<string, () => void>>(new Map());
 
   const currentUserId = auth.currentUser?.uid || '';
 
@@ -107,6 +110,57 @@ export default function MessagesScreen() {
       unsubscribe();
     };
   }, [currentUserId]); // Only depend on currentUserId!
+
+  // Subscribe to real-time user profile updates for all conversation participants
+  useEffect(() => {
+    if (conversations.length === 0) return;
+
+    // Get unique user IDs from all conversations (excluding current user)
+    const userIds = new Set<string>();
+    conversations.forEach(conv => {
+      if (conv.isGroupChat) {
+        // For group chats, we don't need individual user updates as we show group info
+        return;
+      }
+      // For 1-1 chats, get the other participant
+      const otherUser = getOtherParticipant(conv, currentUserId);
+      if (otherUser) {
+        userIds.add(otherUser.id);
+      }
+    });
+
+    // Subscribe to new users only
+    userIds.forEach(userId => {
+      // Skip if already subscribed
+      if (userSubscriptions.current.has(userId)) return;
+      
+      const userDocRef = doc(db, 'users', userId);
+      const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const userData = docSnap.data();
+          setUserInfoMap(prev => {
+            const newMap = new Map(prev);
+            newMap.set(userId, {
+              displayName: userData.displayName || 'Unknown User',
+              username: userData.username || 'unknown',
+              photoURL: userData.profileImage || userData.photoURL || 'https://via.placeholder.com/50',
+            });
+            return newMap;
+          });
+        }
+      }, (error) => {
+        console.error('Error subscribing to conversation user profile:', userId, error);
+      });
+      
+      userSubscriptions.current.set(userId, unsubscribe);
+    });
+
+    // Cleanup on unmount
+    return () => {
+      userSubscriptions.current.forEach(unsub => unsub());
+      userSubscriptions.current.clear();
+    };
+  }, [conversations, currentUserId]);
 
   const handleRefresh = () => {
     console.log('🔄 Messages: Manual refresh triggered');
@@ -209,11 +263,14 @@ export default function MessagesScreen() {
       displayName = item.groupName || 'Group Chat';
       avatarUri = item.groupPhoto || 'https://via.placeholder.com/50?text=Group';
     } else {
-      // 1-1 chat: use other participant's info
+      // 1-1 chat: use other participant's info with real-time updates
       const otherUser = getOtherParticipant(item, currentUserId);
       if (!otherUser) return null;
-      displayName = otherUser.displayName || otherUser.username || 'Unknown User';
-      avatarUri = otherUser.photoURL || 'https://via.placeholder.com/50';
+      
+      // Get real-time user info if available, otherwise use stored data
+      const realtimeInfo = userInfoMap.get(otherUser.id);
+      displayName = realtimeInfo?.displayName || otherUser.displayName || otherUser.username || 'Unknown User';
+      avatarUri = realtimeInfo?.photoURL || otherUser.photoURL || 'https://via.placeholder.com/50';
     }
     
     // Get last message text
