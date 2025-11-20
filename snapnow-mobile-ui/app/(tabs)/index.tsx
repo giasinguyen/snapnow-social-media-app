@@ -54,7 +54,8 @@ export default function HomeScreen() {
       //   console.warn('Recommendation fetch failed, falling back to global posts', recErr);
       // }
 
-      const realPosts = await fetchPosts();
+      const current = await AuthService.getCurrentUserProfile();
+      const realPosts = await fetchPosts(current?.id);
       setPosts(realPosts);
     } catch (err) {
       console.error('❌ Failed to fetch For You posts:', err);

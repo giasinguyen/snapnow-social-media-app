@@ -583,7 +583,23 @@ export default function StoryScreen() {
     if (replyText.trim()) {
       const currentUserStoriesArray = userStories[currentUserIndex] || []
       const currentStory = currentUserStoriesArray[currentStoryIndex]
-      console.log('Sent reply:', replyText, 'to', currentStory?.username)
+      
+      // Navigate to conversation with the story owner
+      if (currentStory) {
+        const conversationId = [currentUserId, currentStory.userId].sort().join('_')
+        router.push({
+          pathname: '/messages/[conversationId]' as any,
+          params: {
+            conversationId,
+            otherUserId: currentStory.userId,
+            otherUserName: currentStory.username,
+            otherUserPhoto: currentStory.userProfileImage,
+            otherUserUsername: currentStory.username,
+            initialMessage: replyText.trim(),
+          },
+        })
+      }
+      
       setReplyText('')
       setShowReactions(false)
       Keyboard.dismiss()
