@@ -1,21 +1,20 @@
 import {
+  addDoc,
   collection,
   doc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  getDocs,
+  DocumentSnapshot,
   getDoc,
-  query,
-  where,
-  orderBy,
+  getDocs,
   limit,
   onSnapshot,
-  serverTimestamp,
-  Timestamp,
+  orderBy,
+  query,
   QueryConstraint,
+  serverTimestamp,
   startAfter,
-  DocumentSnapshot,
+  Timestamp,
+  updateDoc,
+  where
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
@@ -26,11 +25,19 @@ export interface Message {
   senderName: string;
   senderPhoto: string;
   receiverId?: string; // Optional for group chats
-  type: 'text' | 'image';
+  type: 'text' | 'image' | 'system';
   text: string;
   imageUrl?: string;
   imageWidth?: number;
   imageHeight?: number;
+  storyId?: string; // Reference to story being replied to
+  storyImageUrl?: string; // Story image for preview
+  replyTo?: {
+    messageId: string;
+    text: string;
+    senderName: string;
+    imageUrl?: string;
+  }; // Message being replied to
   createdAt: Timestamp;
   readAt?: Timestamp | null;
   isRead: boolean;
@@ -44,11 +51,19 @@ export interface MessageInput {
   senderName: string;
   senderPhoto: string;
   receiverId?: string; // Optional for group chats
-  type: 'text' | 'image';
+  type: 'text' | 'image' | 'system';
   text: string;
   imageUrl?: string;
   imageWidth?: number;
   imageHeight?: number;
+  storyId?: string; // Reference to story being replied to
+  storyImageUrl?: string; // Story image for preview
+  replyTo?: {
+    messageId: string;
+    text: string;
+    senderName: string;
+    imageUrl?: string;
+  }; // Message being replied to
 }
 
 /**
@@ -279,7 +294,46 @@ export const deleteMessage = async (
       deletedBy: [...currentDeletedBy, userId],
     });
   } catch (error) {
-    console.error('Error deleting message:', error);
+    console.error('Error deleting message for user:', error);
+    throw error;
+  }
+};
+
+/**
+ * Send a system notification message in a conversation
+ */
+export const sendSystemMessage = async (
+  conversationId: string,
+  text: string
+): Promise<void> => {
+  try {
+    const messagesRef = collection(db, 'conversations', conversationId, 'messages');
+    await addDoc(messagesRef, {
+      conversationId,
+      senderId: 'system',
+      senderName: 'System',
+      senderPhoto: '',
+      type: 'system',
+      text,
+      createdAt: serverTimestamp(),
+      readAt: null,
+      isRead: false,
+    });
+
+    // Update conversation's last message
+    const conversationRef = doc(db, 'conversations', conversationId);
+    await updateDoc(conversationRef, {
+      lastMessage: {
+        text,
+        senderId: 'system',
+        senderName: 'System',
+        timestamp: serverTimestamp(),
+        type: 'system',
+      },
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error('Error sending system message:', error);
     throw error;
   }
 };

@@ -1,16 +1,16 @@
 import {
-  collection,
-  doc,
-  addDoc,
-  updateDoc,
-  getDoc,
-  getDocs,
-  query,
-  where,
-  serverTimestamp,
-  Timestamp,
-  arrayUnion,
-  arrayRemove,
+    addDoc,
+    arrayRemove,
+    arrayUnion,
+    collection,
+    doc,
+    getDoc,
+    getDocs,
+    query,
+    serverTimestamp,
+    Timestamp,
+    updateDoc,
+    where,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Conversation } from './conversations';
@@ -142,6 +142,10 @@ export const addParticipantToGroup = async (
       [`unreadCount.${participantId}`]: 0,
       updatedAt: serverTimestamp(),
     });
+
+    // Send system notification
+    const { sendSystemMessage } = require('./messages');
+    await sendSystemMessage(conversationId, `${participantDetails.displayName} was added to the group`);
   } catch (error) {
     console.error('Error adding participant to group:', error);
     throw error;
@@ -181,6 +185,7 @@ export const removeParticipantFromGroup = async (
 
     // Remove participant
     const updatedParticipantDetails = { ...data.participantDetails };
+    const removedUserName = updatedParticipantDetails[participantId]?.displayName || 'A member';
     delete updatedParticipantDetails[participantId];
 
     const updatedUnreadCount = { ...data.unreadCount };
@@ -192,6 +197,10 @@ export const removeParticipantFromGroup = async (
       unreadCount: updatedUnreadCount,
       updatedAt: serverTimestamp(),
     });
+
+    // Send system notification
+    const { sendSystemMessage } = require('./messages');
+    await sendSystemMessage(conversationId, `${removedUserName} was removed from the group`);
   } catch (error) {
     console.error('Error removing participant from group:', error);
     throw error;
@@ -233,6 +242,8 @@ export const leaveGroupChat = async (
     // Remove from admins if applicable
     const updatedAdmins = (data.admins || []).filter((id: string) => id !== userId);
 
+    const userDisplayName = data.participantDetails[userId]?.displayName || 'A member';
+
     await updateDoc(conversationRef, {
       participants: arrayRemove(userId),
       participantDetails: updatedParticipantDetails,
@@ -240,6 +251,10 @@ export const leaveGroupChat = async (
       admins: updatedAdmins,
       updatedAt: serverTimestamp(),
     });
+
+    // Send system notification
+    const { sendSystemMessage } = require('./messages');
+    await sendSystemMessage(conversationId, `${userDisplayName} left the group`);
   } catch (error) {
     console.error('Error leaving group chat:', error);
     throw error;
@@ -354,23 +369,38 @@ export const updateGroupDetails = async (
       throw new Error('Not a group chat');
     }
 
-    // Only admins can update group details
-    if (!data.admins?.includes(requesterId)) {
-      throw new Error('Only admins can update group details');
+    // Allow any participant to update group details
+    if (!data.participants.includes(requesterId)) {
+      throw new Error('Only group members can update group details');
     }
 
     const updateData: any = {
       updatedAt: serverTimestamp(),
     };
 
+    const updaterName = data.participantDetails[requesterId]?.displayName || 'Someone';
+    let systemMessage = '';
+
     if (updates.groupName) {
       updateData.groupName = updates.groupName;
+      systemMessage = `${updaterName} changed the group name to "${updates.groupName}"`;
     }
     if (updates.groupPhoto !== undefined) {
       updateData.groupPhoto = updates.groupPhoto;
+      if (systemMessage) {
+        systemMessage += ' and updated the group photo';
+      } else {
+        systemMessage = `${updaterName} updated the group photo`;
+      }
     }
 
     await updateDoc(conversationRef, updateData);
+
+    // Send system notification if there were changes
+    if (systemMessage) {
+      const { sendSystemMessage } = require('./messages');
+      await sendSystemMessage(conversationId, systemMessage);
+    }
   } catch (error) {
     console.error('Error updating group details:', error);
     throw error;
@@ -407,6 +437,58 @@ export const getUserGroupChats = async (userId: string): Promise<Conversation[]>
   }
 };
 
+/**
+ * Join a group via invite link
+ */
+export const joinGroupViaLink = async (
+  conversationId: string,
+  userId: string,
+  userDetails: {
+    displayName: string;
+    photoURL: string;
+    username: string;
+  }
+): Promise<void> => {
+  try {
+    const conversationRef = doc(db, 'conversations', conversationId);
+    const conversationDoc = await getDoc(conversationRef);
+
+    if (!conversationDoc.exists()) {
+      throw new Error('Group not found');
+    }
+
+    const data = conversationDoc.data();
+    if (!data.isGroupChat) {
+      throw new Error('This is not a group chat');
+    }
+
+    // Check if already a participant
+    if (data.participants.includes(userId)) {
+      throw new Error('You are already a member of this group');
+    }
+
+    // Add user to group
+    await updateDoc(conversationRef, {
+      participants: arrayUnion(userId),
+      [`participantDetails.${userId}`]: {
+        id: userId,
+        ...userDetails,
+        isAdmin: false,
+        joinedAt: serverTimestamp(),
+      },
+      [`unreadCount.${userId}`]: 0,
+      updatedAt: serverTimestamp(),
+    });
+
+    // Send system notification
+    const { sendSystemMessage } = require('./messages');
+    await sendSystemMessage(conversationId, `${userDetails.displayName} joined via invite link`);
+  } catch (error) {
+    console.error('Error joining group via link:', error);
+    throw error;
+  }
+};
+
 export default {
   createGroupChat,
   addParticipantToGroup,
@@ -416,4 +498,6 @@ export default {
   removeGroupAdmin,
   updateGroupDetails,
   getUserGroupChats,
+  joinGroupViaLink,
 };
+

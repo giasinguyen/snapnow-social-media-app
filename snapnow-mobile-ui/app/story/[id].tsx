@@ -1,13 +1,15 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useFocusEffect } from '@react-navigation/native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
+import { doc, onSnapshot } from 'firebase/firestore'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, Alert, Animated, Dimensions, Image, Keyboard, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { showInAppNotification } from '../../components/InAppNotification'
 import StoryProgressBar from '../../components/StoryProgressBar'
 import StoryViewersModal from '../../components/StoryViewersModal'
-import { auth } from '../../config/firebase'
+import { auth, db } from '../../config/firebase'
 import { addStoryReaction, deleteStory, getFollowedUsersStories, getStoryViewers, hasUserSavedStory, markStoryAsViewed, saveStory, unsaveStory, type Story as StoryType, type StoryView } from '../../services/stories'
 
 const STORY_DURATION = 5000; // 5 seconds per story
@@ -40,6 +42,8 @@ export default function StoryScreen() {
   const [viewers, setViewers] = useState<StoryView[]>([])
   const [loadingViewers, setLoadingViewers] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
+  const [storyUserInfo, setStoryUserInfo] = useState<Map<string, { displayName: string; username: string; photoURL: string }>>(new Map())
+  const userSubscriptions = useRef<Map<string, () => void>>(new Map())
 
   useFocusEffect(
     useCallback(() => {
@@ -123,6 +127,46 @@ export default function StoryScreen() {
 
     loadStories()
   }, [id, currentUserId])
+
+  // Subscribe to real-time user profile updates for story owners
+  useEffect(() => {
+    if (userStories.length === 0) return;
+
+    // Get unique user IDs from stories
+    const userIds = [...new Set(userStories.flat().map(story => story.userId))];
+
+    // Subscribe to new users only
+    userIds.forEach(userId => {
+      // Skip if already subscribed
+      if (userSubscriptions.current.has(userId)) return;
+      
+      const userDocRef = doc(db, 'users', userId);
+      const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const userData = docSnap.data();
+          setStoryUserInfo(prev => {
+            const newMap = new Map(prev);
+            newMap.set(userId, {
+              displayName: userData.displayName || 'Unknown User',
+              username: userData.username || 'unknown',
+              photoURL: userData.profileImage || userData.photoURL || 'https://via.placeholder.com/40',
+            });
+            return newMap;
+          });
+        }
+      }, (error) => {
+        console.error('Error subscribing to story user profile:', userId, error);
+      });
+      
+      userSubscriptions.current.set(userId, unsubscribe);
+    });
+
+    // Cleanup on unmount
+    return () => {
+      userSubscriptions.current.forEach(unsub => unsub());
+      userSubscriptions.current.clear();
+    };
+  }, [userStories]);
 
   useEffect(() => {
     fadeAnim.setValue(0)
@@ -579,25 +623,55 @@ export default function StoryScreen() {
     }
   }
 
-  const handleSendReply = () => {
+  const handleSendReply = async () => {
     if (replyText.trim()) {
       const currentUserStoriesArray = userStories[currentUserIndex] || []
       const currentStory = currentUserStoriesArray[currentStoryIndex]
       
-      // Navigate to conversation with the story owner
+      // Send message with story context
       if (currentStory) {
-        const conversationId = [currentUserId, currentStory.userId].sort().join('_')
-        router.push({
-          pathname: '/messages/[conversationId]' as any,
-          params: {
-            conversationId,
+        try {
+          const { createConversation } = require('../../services/conversations')
+          const { sendMessage } = require('../../services/messages')
+          const { auth } = require('../../config/firebase')
+          
+          const currentUser = auth.currentUser
+          if (!currentUser) return
+          
+          // Create/get conversation
+          const conversation = await createConversation({
+            currentUserId: currentUser.uid,
+            currentUserName: currentUser.displayName || 'User',
+            currentUserPhoto: currentUser.photoURL || '',
+            currentUserUsername: currentUser.email?.split('@')[0] || 'user',
             otherUserId: currentStory.userId,
             otherUserName: currentStory.username,
             otherUserPhoto: currentStory.userProfileImage,
             otherUserUsername: currentStory.username,
-            initialMessage: replyText.trim(),
-          },
-        })
+          })
+          
+          // Send message with story reference
+          await sendMessage({
+            conversationId: conversation.id,
+            senderId: currentUser.uid,
+            senderName: currentUser.displayName || 'User',
+            senderPhoto: currentUser.photoURL || '',
+            receiverId: currentStory.userId,
+            type: 'text',
+            text: replyText.trim(),
+            storyId: currentStory.id,
+            storyImageUrl: currentStory.imageUrl,
+          })
+          
+          // Show styled in-app notification
+          showInAppNotification({
+            title: 'Message sent',
+            message: `Your reply was sent to ${currentStory.username}`,
+          })
+        } catch (error) {
+          console.error('Error sending reply:', error)
+          Alert.alert('Error', 'Failed to send message')
+        }
       }
       
       setReplyText('')
@@ -659,11 +733,11 @@ export default function StoryScreen() {
               activeOpacity={0.7}
             >
               <Image 
-                source={{ uri: currentStory.userProfileImage }} 
+                source={{ uri: storyUserInfo.get(currentStory.userId)?.photoURL || currentStory.userProfileImage }} 
                 style={styles.avatarSmall} 
               />
               <View>
-                <Text style={styles.username}>{currentStory.username}</Text>
+                <Text style={styles.username}>{storyUserInfo.get(currentStory.userId)?.username || currentStory.username}</Text>
                 <Text style={styles.time}>
                   {currentStory.createdAt ? 
                     new Date(currentStory.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) 

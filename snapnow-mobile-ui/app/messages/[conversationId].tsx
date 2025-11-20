@@ -3,36 +3,38 @@ import { format, isToday, isYesterday } from 'date-fns';
 import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { doc, onSnapshot } from 'firebase/firestore';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Image,
-    Keyboard,
-    KeyboardAvoidingView,
-    Platform,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
 import { CLOUDINARY_FOLDERS } from '../../config/cloudinary';
-import { auth } from '../../config/firebase';
+import { auth, db } from '../../config/firebase';
 import { formatLastActive, getUserActivityStatus } from '../../services/activityStatus';
 import { uploadToCloudinary } from '../../services/cloudinary';
 import {
-    Conversation,
-    createConversation,
-    getConversation,
+  Conversation,
+  createConversation,
+  getConversation,
 } from '../../services/conversations';
 import {
-    deleteMessage,
-    markAllMessagesAsRead,
-    Message,
-    sendMessage,
-    subscribeToMessages,
-    unsendMessage
+  deleteMessage,
+  markAllMessagesAsRead,
+  Message,
+  sendMessage,
+  subscribeToMessages,
+  unsendMessage
 } from '../../services/messages';
 
 export default function ChatScreen() {
@@ -59,6 +61,14 @@ export default function ChatScreen() {
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [isOnline, setIsOnline] = useState(false);
   const [lastActiveText, setLastActiveText] = useState('');
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredMessages, setFilteredMessages] = useState<Message[]>([]);
+  const swipeableRefs = useRef<Map<string, any>>(new Map());
+  const [senderInfo, setSenderInfo] = useState<Map<string, { displayName: string; photoURL: string }>>(new Map());
+  const [otherUserRealtime, setOtherUserRealtime] = useState<{ displayName: string; photoURL: string; username: string } | null>(null);
+  const senderSubscriptions = useRef<Map<string, () => void>>(new Map());
 
   const flatListRef = useRef<FlatList>(null);
   const currentUser = auth.currentUser;
@@ -119,7 +129,7 @@ export default function ChatScreen() {
   useEffect(() => {
     if (!conversationId) return;
 
-    // Fetch conversation details
+    // Fetch conversation details and listen for updates
     const fetchConversation = async () => {
       try {
         const conv = await getConversation(conversationId);
@@ -132,6 +142,15 @@ export default function ChatScreen() {
     };
 
     fetchConversation();
+
+    // Listen for conversation updates (for group name/photo changes)
+    const conversationRef = doc(db, 'conversations', conversationId);
+    const unsubscribeConversation = onSnapshot(conversationRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const updatedConv = { id: snapshot.id, ...snapshot.data() } as Conversation;
+        setConversation(updatedConv);
+      }
+    });
 
     const unsubscribe = subscribeToMessages(
       conversationId,
@@ -155,7 +174,10 @@ export default function ChatScreen() {
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      unsubscribeConversation();
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]);
 
@@ -182,6 +204,76 @@ export default function ChatScreen() {
     return () => clearInterval(interval);
   }, [otherUserId, conversation?.isGroupChat]);
 
+  // Filter messages based on search query
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      const filtered = messages.filter(msg => 
+        msg.text.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredMessages(filtered);
+    } else {
+      setFilteredMessages(messages);
+    }
+  }, [searchQuery, messages]);
+
+  // Subscribe to real-time user profile updates for all senders
+  useEffect(() => {
+    if (!conversationId || messages.length === 0) return;
+
+    // Get unique sender IDs from messages
+    const senderIds = [...new Set(messages.map(msg => msg.senderId))];
+
+    // Subscribe to new senders only
+    senderIds.forEach(senderId => {
+      // Skip if already subscribed
+      if (senderSubscriptions.current.has(senderId)) return;
+      
+      const userDocRef = doc(db, 'users', senderId);
+      const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const userData = docSnap.data();
+          setSenderInfo(prev => {
+            const newMap = new Map(prev);
+            newMap.set(senderId, {
+              displayName: userData.displayName || 'Unknown User',
+              photoURL: userData.profileImage || userData.photoURL || 'https://via.placeholder.com/32',
+            });
+            return newMap;
+          });
+        }
+      }, (error) => {
+        console.error('Error subscribing to user profile:', senderId, error);
+      });
+      
+      senderSubscriptions.current.set(senderId, unsubscribe);
+    });
+
+    // Cleanup function only unsubscribes when component unmounts
+    return () => {
+      senderSubscriptions.current.forEach(unsub => unsub());
+      senderSubscriptions.current.clear();
+    };
+  }, [conversationId, messages]);
+
+  // Subscribe to other user's profile for real-time header updates (1-on-1 chats only)
+  useEffect(() => {
+    if (!otherUserId || conversation?.isGroupChat) return;
+
+    const userDocRef = doc(db, 'users', otherUserId as string);
+    const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const userData = docSnap.data();
+        setOtherUserRealtime({
+          displayName: userData.displayName || 'Unknown User',
+          photoURL: userData.profileImage || userData.photoURL || 'https://via.placeholder.com/40',
+          username: userData.username || '',
+        });
+      }
+    });
+
+    return () => unsubscribe();
+  }, [otherUserId, conversation?.isGroupChat]);
+
   const handleSendMessage = async () => {
     if (!messageText.trim() || sending) return;
 
@@ -195,7 +287,7 @@ export default function ChatScreen() {
 
       console.log('📤 Sending message to conversation:', finalConversationId);
 
-      await sendMessage({
+      const messageData: any = {
         conversationId: finalConversationId,
         senderId: currentUserId,
         senderName: currentUserName,
@@ -203,9 +295,24 @@ export default function ChatScreen() {
         receiverId: conversation?.isGroupChat ? undefined : (otherUserId as string),
         type: 'text',
         text: textToSend,
-      });
+      };
+
+      // Only add replyTo if it exists
+      if (replyingTo) {
+        messageData.replyTo = {
+          messageId: replyingTo.id,
+          text: replyingTo.text,
+          senderName: replyingTo.senderName,
+          ...(replyingTo.imageUrl && { imageUrl: replyingTo.imageUrl }),
+        };
+      }
+
+      await sendMessage(messageData);
       
       console.log('✅ Message sent successfully');
+      setReplyingTo(null); // Clear reply after sending
+      // Close any open swipeables
+      swipeableRefs.current.forEach(ref => ref?.close());
     } catch (error) {
       console.error('❌ Error sending message:', error);
       Alert.alert('Error', 'Failed to send message');
@@ -330,6 +437,9 @@ export default function ChatScreen() {
   };
 
   const handleLongPressMessage = (message: Message) => {
+    // Don't show options for system messages
+    if (message.type === 'system') return;
+    
     const isMyMessage = message.senderId === currentUserId;
     
     const options = ['Copy'];
@@ -370,11 +480,6 @@ export default function ChatScreen() {
   };
 
   const renderMessage = ({ item, index }: { item: Message; index: number }) => {
-    const isMyMessage = item.senderId === currentUserId;
-    const prevMessage = index > 0 ? messages[index - 1] : null;
-    const showAvatar = !prevMessage || prevMessage.senderId !== item.senderId;
-    const timestamp = formatMessageTime(item.createdAt);
-
     // Check if message is deleted
     const isDeletedForMe = item.deletedBy?.includes(currentUserId);
     const isDeletedForEveryone = item.deletedForEveryone;
@@ -384,7 +489,63 @@ export default function ChatScreen() {
       return null;
     }
 
-    return (
+    // Render system messages differently
+    if (item.type === 'system') {
+      return (
+        <View style={{
+          alignItems: 'center',
+          marginVertical: 8,
+          paddingHorizontal: 20,
+        }}>
+          <View style={{
+            backgroundColor: '#f3f4f6',
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            borderRadius: 16,
+            maxWidth: '80%',
+          }}>
+            <Text style={{
+              fontSize: 13,
+              color: '#6b7280',
+              textAlign: 'center',
+            }}>
+              {item.text}
+            </Text>
+          </View>
+        </View>
+      );
+    }
+
+    const isMyMessage = item.senderId === currentUserId;
+    const prevMessage = index > 0 ? messages[index - 1] : null;
+    const showAvatar = !prevMessage || prevMessage.senderId !== item.senderId;
+    const timestamp = formatMessageTime(item.createdAt);
+    
+    // Get latest sender info from real-time map, fallback to stored message data
+    const latestSenderInfo = senderInfo.get(item.senderId);
+    const senderName = latestSenderInfo?.displayName || item.senderName;
+    const senderPhoto = latestSenderInfo?.photoURL || item.senderPhoto;
+
+    const renderRightActions = () => {
+      return (
+        <View style={{ justifyContent: 'center', paddingHorizontal: 16 }}>
+          <Ionicons name="arrow-undo" size={24} color="#ee6e05ff" />
+        </View>
+      );
+    };
+
+    const handleSwipeReply = () => {
+      if (!isDeletedForEveryone) {
+        setReplyingTo(item);
+        // Close the swipeable after selecting
+        const swipeableRef = swipeableRefs.current.get(item.id);
+        if (swipeableRef) {
+          swipeableRef.close();
+        }
+      }
+    };
+
+    const messageContent = (
       <TouchableOpacity
         onLongPress={() => handleLongPressMessage(item)}
         activeOpacity={0.8}
@@ -403,7 +564,7 @@ export default function ChatScreen() {
             <View style={{ width: 32, height: 32, marginRight: 8 }}>
               {showAvatar && (
                 <Image
-                  source={{ uri: item.senderPhoto || 'https://via.placeholder.com/32' }}
+                  source={{ uri: senderPhoto || 'https://via.placeholder.com/32' }}
                   style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#e5e7eb' }}
                 />
               )}
@@ -417,7 +578,7 @@ export default function ChatScreen() {
               borderRadius: 20,
               paddingHorizontal: 16,
               paddingVertical: 12,
-              backgroundColor: isDeletedForEveryone ? '#f3f4f6' : (isMyMessage ? '#3b82f6' : '#ffffff'),
+              backgroundColor: isDeletedForEveryone ? '#f3f4f6' : (isMyMessage ? '#fc8727ff' : '#ffffff'),
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 1 },
               shadowOpacity: 0.08,
@@ -425,6 +586,75 @@ export default function ChatScreen() {
               elevation: 2,
             }}
           >
+            {/* Reply Preview */}
+            {item.replyTo && !isDeletedForEveryone && (
+              <View style={{
+                backgroundColor: isMyMessage ? 'rgba(255,255,255,0.2)' : '#f3f4f6',
+                borderLeftWidth: 3,
+                borderLeftColor: isMyMessage ? 'rgba(255,255,255,0.5)' : '#fc8727ff',
+                paddingLeft: 8,
+                paddingVertical: 6,
+                marginBottom: 8,
+                borderRadius: 6,
+              }}>
+                <Text style={{
+                  fontSize: 11,
+                  fontWeight: '600',
+                  color: isMyMessage ? 'rgba(255,255,255,0.9)' : '#fc8727ff',
+                  marginBottom: 2,
+                }}>
+                  {senderInfo.get(item.senderId)?.displayName || item.replyTo.senderName}
+                </Text>
+                {item.replyTo.imageUrl && (
+                  <Image
+                    source={{ uri: item.replyTo.imageUrl }}
+                    style={{ width: 60, height: 60, borderRadius: 6, marginBottom: 4 }}
+                    resizeMode="cover"
+                  />
+                )}
+                <Text
+                  numberOfLines={2}
+                  style={{
+                    fontSize: 13,
+                    color: isMyMessage ? 'rgba(255,255,255,0.75)' : '#6b7280',
+                  }}
+                >
+                  {item.replyTo.text || 'Image'}
+                </Text>
+              </View>
+            )}
+
+            {/* Story Reply Preview */}
+            {item.storyId && !isDeletedForEveryone && (
+              <View style={{ marginBottom: 8 }}>
+                {/* Always show "replied to story" text */}
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: isMyMessage ? 'rgba(255,255,255,0.7)' : '#9ca3af',
+                    fontWeight: '500',
+                    marginBottom: 6,
+                  }}
+                >
+                  Replied to {isMyMessage ? 'their' : 'your'} story
+                </Text>
+                
+                {/* Show story image if available */}
+                {item.storyImageUrl && (
+                  <Image
+                    source={{ uri: item.storyImageUrl }}
+                    style={{ 
+                      width: 150, 
+                      height: 200, 
+                      borderRadius: 12, 
+                      opacity: 0.5 
+                    }}
+                    resizeMode="cover"
+                  />
+                )}
+              </View>
+            )}
+
             {item.type === 'image' && item.imageUrl && !isDeletedForEveryone && (
               <Image
                 source={{ uri: item.imageUrl }}
@@ -464,6 +694,29 @@ export default function ChatScreen() {
         </View>
       </TouchableOpacity>
     );
+
+    // Allow swipe-to-reply on all messages
+    if (!isDeletedForEveryone) {
+      return (
+        <Swipeable
+          ref={(ref) => {
+            if (ref) {
+              swipeableRefs.current.set(item.id, ref);
+            } else {
+              swipeableRefs.current.delete(item.id);
+            }
+          }}
+          renderRightActions={renderRightActions}
+          onSwipeableOpen={handleSwipeReply}
+          overshootRight={false}
+          rightThreshold={40}
+        >
+          {messageContent}
+        </Swipeable>
+      );
+    }
+
+    return messageContent;
   };
 
   const renderEmptyState = () => (
@@ -478,7 +731,7 @@ export default function ChatScreen() {
   if (loading && !conversationId) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f9fafb' }}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+        <ActivityIndicator size="large" color="#fc8727ff" />
       </View>
     );
   }
@@ -517,7 +770,7 @@ export default function ChatScreen() {
                   source={{ 
                     uri: conversation?.isGroupChat
                       ? (conversation.groupPhoto || 'https://via.placeholder.com/40?text=Group')
-                      : ((otherUserPhoto as string) || 'https://via.placeholder.com/40')
+                      : (otherUserRealtime?.photoURL || (otherUserPhoto as string) || 'https://via.placeholder.com/40')
                   }}
                   style={{ width: 36, height: 36, borderRadius: 18, marginRight: 10, backgroundColor: '#e5e7eb' }}
                 />
@@ -541,7 +794,7 @@ export default function ChatScreen() {
                 <Text style={{ fontWeight: '700', fontSize: 16, color: '#000' }} numberOfLines={1}>
                   {conversation?.isGroupChat
                     ? (conversation.groupName || 'Group Chat')
-                    : (otherUserName as string || 'Unknown User')}
+                    : (otherUserRealtime?.displayName || (otherUserName as string) || 'Unknown User')}
                 </Text>
                 {conversation?.isGroupChat ? (
                   <Text style={{ fontSize: 12, color: '#6b7280' }}>
@@ -555,16 +808,19 @@ export default function ChatScreen() {
                   <Text style={{ fontSize: 12, color: '#6b7280' }}>
                     {lastActiveText}
                   </Text>
-                ) : otherUserUsername ? (
+                ) : (otherUserRealtime?.username || otherUserUsername) ? (
                   <Text style={{ fontSize: 12, color: '#6b7280' }}>
-                    @{otherUserUsername}
+                    @{otherUserRealtime?.username || otherUserUsername}
                   </Text>
                 ) : null}
               </View>
             </TouchableOpacity>
           ),
           headerRight: () => (
-            <View style={{ flexDirection: 'row', gap: 16, paddingRight: 8 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingRight: 16, gap: 16 }}>
+              <TouchableOpacity onPress={() => setSearchVisible(!searchVisible)}>
+                <Ionicons name="search-outline" size={24} color="#000" />
+              </TouchableOpacity>
               <TouchableOpacity>
                 <Ionicons name="videocam-outline" size={26} color="#000" />
               </TouchableOpacity>
@@ -582,15 +838,61 @@ export default function ChatScreen() {
         style={{ flex: 1, backgroundColor: '#f9fafb' }}
         contentContainerStyle={{ flex: 1 }}
       >
+        {/* Search Bar */}
+        {searchVisible && (
+          <View style={{
+            backgroundColor: '#ffffff',
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            borderBottomWidth: 1,
+            borderBottomColor: '#e5e7eb',
+          }}>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: '#f3f4f6',
+              borderRadius: 20,
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+            }}>
+              <Ionicons name="search" size={20} color="#9ca3af" style={{ marginRight: 8 }} />
+              <TextInput
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Search in conversation..."
+                placeholderTextColor="#9ca3af"
+                autoFocus
+                style={{
+                  flex: 1,
+                  fontSize: 16,
+                  color: '#000',
+                }}
+              />
+              {searchQuery && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <Ionicons name="close-circle" size={20} color="#9ca3af" />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        )}
+
         {/* Messages List */}
         <FlatList
           ref={flatListRef}
-          data={messages}
+          data={searchQuery ? filteredMessages : messages}
           keyExtractor={(item) => item.id}
           renderItem={renderMessage}
-          ListEmptyComponent={renderEmptyState}
+          ListEmptyComponent={searchQuery ? (
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
+              <Ionicons name="search-outline" size={64} color="#d1d5db" />
+              <Text style={{ textAlign: 'center', color: '#6b7280', marginTop: 16, fontSize: 16 }}>
+                No messages found
+              </Text>
+            </View>
+          ) : renderEmptyState}
           contentContainerStyle={{ paddingVertical: 16, flexGrow: 1 }}
-          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+          onContentSizeChange={() => !searchQuery && flatListRef.current?.scrollToEnd({ animated: false })}
           showsVerticalScrollIndicator={false}
         />
 
@@ -630,6 +932,42 @@ export default function ChatScreen() {
             </View>
           )}
 
+          {/* Reply Preview */}
+          {replyingTo && (
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              backgroundColor: '#f3f4f6',
+              borderBottomWidth: 1,
+              borderBottomColor: '#e5e7eb',
+            }}>
+              <View style={{
+                flex: 1,
+                borderLeftWidth: 3,
+                borderLeftColor: '#fc8727ff',
+                paddingLeft: 12,
+              }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#fc8727ff', marginBottom: 2 }}>
+                  Replying to {replyingTo.senderName}
+                </Text>
+                <Text style={{ fontSize: 14, color: '#6b7280' }} numberOfLines={1}>
+                  {replyingTo.text || 'Image'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => {
+                  setReplyingTo(null);
+                  swipeableRefs.current.forEach(ref => ref?.close());
+                }}
+                style={{ padding: 8 }}
+              >
+                <Ionicons name="close" size={20} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+          )}
+
           <View
             style={{
               flexDirection: 'row',
@@ -647,7 +985,7 @@ export default function ChatScreen() {
               <Ionicons 
                 name="camera-outline" 
                 size={24} 
-                color={sending ? '#d1d5db' : '#3b82f6'} 
+                color={sending ? '#d1d5db' : '#fc8727ff'} 
               />
             </TouchableOpacity>
 
@@ -660,7 +998,7 @@ export default function ChatScreen() {
               <Ionicons 
                 name="image-outline" 
                 size={24} 
-                color={sending ? '#d1d5db' : '#3b82f6'} 
+                color={sending ? '#d1d5db' : '#fc8727ff'} 
               />
             </TouchableOpacity>
 
@@ -700,7 +1038,7 @@ export default function ChatScreen() {
               style={{
                 padding: 12,
                 borderRadius: 24,
-                backgroundColor: messageText.trim() && !sending ? '#3b82f6' : '#d1d5db',
+                backgroundColor: messageText.trim() && !sending ? '#fc8727ff' : '#d1d5db',
               }}
             >
               {sending && !uploadingImage ? (

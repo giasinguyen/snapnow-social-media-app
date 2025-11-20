@@ -3,6 +3,7 @@ import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { doc, onSnapshot } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -22,6 +23,7 @@ import AddPhotosToAlbumModal from '../../components/AddPhotosToAlbumModal';
 import CreateAlbumModal from '../../components/CreateAlbumModal';
 import ShareProfileModal from '../../components/ShareProfileModal';
 import { CLOUDINARY_FOLDERS } from '../../config/cloudinary';
+import { db } from '../../config/firebase';
 import { Album, createAlbum, fetchUserAlbums } from '../../services/albums';
 import { AuthService, UserProfile } from '../../services/authService';
 import { uploadToCloudinary } from '../../services/cloudinary';
@@ -103,6 +105,27 @@ export default function ProfileScreen() {
     loadProfile();
     loadUserStories();
   }, []);
+
+  // Subscribe to real-time updates for follower/following counts
+  useEffect(() => {
+    if (!profile?.id) return;
+
+    const userDocRef = doc(db, 'users', profile.id);
+    const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const userData = docSnap.data();
+        setProfile(prev => prev ? {
+          ...prev,
+          followersCount: userData.followersCount || 0,
+          followingCount: userData.followingCount || 0,
+        } : null);
+      }
+    }, (error) => {
+      console.error('Error subscribing to profile updates:', error);
+    });
+
+    return () => unsubscribe();
+  }, [profile?.id]);
 
   const loadUserStories = async () => {
     try {
