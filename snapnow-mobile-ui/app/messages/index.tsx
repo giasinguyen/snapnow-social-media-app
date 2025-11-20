@@ -424,6 +424,34 @@ export default function MessagesScreen() {
         </View>
       </View>
 
+      {/* AI Chat Option - Always at top */}
+      {!showArchived && (
+        <TouchableOpacity
+          onPress={() => router.push('/messages/ai-chat')}
+          style={[styles.conversationItem, styles.aiChatItem]}
+          activeOpacity={0.7}
+        >
+          <View style={styles.avatarContainer}>
+            <View style={styles.aiAvatar}>
+              <Ionicons name="sparkles" size={24} color="#fff" />
+            </View>
+          </View>
+          <View style={styles.messageInfo}>
+            <View style={styles.nameRow}>
+              <Text style={[styles.username, styles.aiChatUsername]}>
+                SnapNow AI
+              </Text>
+              <View style={styles.aiBadge}>
+                <Text style={styles.aiBadgeText}>AI</Text>
+              </View>
+            </View>
+            <Text style={styles.lastMessage} numberOfLines={1}>
+              Hỏi tôi bất cứ điều gì về chụp ảnh, caption, ý tưởng... ✨
+            </Text>
+          </View>
+        </TouchableOpacity>
+      )}
+
       <FlatList
         data={filteredConversations}
         keyExtractor={(item) => item.id}
@@ -665,5 +693,35 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+  },
+  // AI Chat Styles
+  aiChatItem: {
+    backgroundColor: '#f8fafc',
+    borderBottomColor: '#e2e8f0',
+    borderBottomWidth: 2,
+  },
+  aiAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#667eea',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  aiChatUsername: {
+    fontWeight: '700',
+    color: '#1e293b',
+  },
+  aiBadge: {
+    backgroundColor: '#667eea',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginLeft: 8,
+  },
+  aiBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
   },
 });

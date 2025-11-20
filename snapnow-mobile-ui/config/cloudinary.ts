@@ -28,4 +28,5 @@ export const CLOUDINARY_FOLDERS = {
   messages: 'snapnow/messages',
   snaps: 'snapnow/snaps',
   albums: 'snapnow/albums',
+  aiGenerated: 'snapnow/ai-generated', // AI-generated images
 };
