@@ -2,17 +2,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
-  Image,
-  Modal,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    Image,
+    Modal,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
+import { auth } from '../../config/firebase';
+import { Conversation, getConversation } from '../../services/conversations';
 import { UserService } from '../../services/user';
 import { User } from '../../types';
 
@@ -28,6 +30,9 @@ export default function ConversationDetailsScreen() {
   } = params;
 
   const [user, setUser] = useState<User | null>(null);
+  const [conversation, setConversation] = useState<Conversation | null>(null);
+  const [isGroupChat, setIsGroupChat] = useState(false);
+  const [participants, setParticipants] = useState<User[]>([]);
   const [showNicknameModal, setShowNicknameModal] = useState(false);
   const [nicknameInput, setNicknameInput] = useState('');
   const [nickname, setNickname] = useState<string>('');
@@ -36,9 +41,32 @@ export default function ConversationDetailsScreen() {
   const [showOptionsModal, setShowOptionsModal] = useState(false);
 
   useEffect(() => {
+    loadConversationData();
     loadUserDetails();
     loadMediaImages();
   }, [otherUserId, conversationId]);
+
+  const loadConversationData = async () => {
+    if (!conversationId) return;
+    try {
+      const conv = await getConversation(conversationId as string);
+      setConversation(conv);
+      setIsGroupChat(conv?.isGroupChat || false);
+      
+      // If group chat, load all participants
+      if (conv?.isGroupChat && conv.participants) {
+        const currentUserId = auth.currentUser?.uid;
+        const participantUsers = await Promise.all(
+          conv.participants
+            .filter(id => id !== currentUserId)
+            .map(id => UserService.getUserProfile(id))
+        );
+        setParticipants(participantUsers.filter(Boolean) as User[]);
+      }
+    } catch (error) {
+      console.error('Error loading conversation:', error);
+    }
+  };
 
   const loadUserDetails = async () => {
     if (!otherUserId) return;
@@ -200,32 +228,62 @@ export default function ConversationDetailsScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* User Info */}
+        {/* User/Group Info */}
         <View style={styles.userSection}>
-          {otherUserPhoto ? (
-            <Image source={{ uri: otherUserPhoto as string }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatar, styles.avatarPlaceholder]}>
-              <Text style={styles.avatarText}>
-                {(otherUserName as string)?.charAt(0).toUpperCase()}
+          {isGroupChat ? (
+            // Group chat header
+            <>
+              <Image 
+                source={{ uri: conversation?.groupPhoto || 'https://via.placeholder.com/100' }} 
+                style={styles.avatar} 
+              />
+              <Text style={styles.userName}>
+                {conversation?.groupName || 'Group Chat'}
               </Text>
-            </View>
-          )}
-          <Text style={styles.userName}>
-            {nickname || (otherUserName as string)}
-          </Text>
-          {otherUserUsername && (
-            <Text style={styles.username}>@{otherUserUsername}</Text>
+              <TouchableOpacity>
+                <Text style={styles.changeNameLink}>Change name and image</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            // 1-on-1 chat header
+            <>
+              {otherUserPhoto ? (
+                <Image source={{ uri: otherUserPhoto as string }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                  <Text style={styles.avatarText}>
+                    {(otherUserName as string)?.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+              )}
+              <Text style={styles.userName}>
+                {nickname || (otherUserName as string)}
+              </Text>
+              {otherUserUsername && (
+                <Text style={styles.username}>@{otherUserUsername}</Text>
+              )}
+            </>
           )}
 
           {/* Quick Action Buttons */}
           <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.actionButton} onPress={handleViewProfile}>
-              <View style={styles.actionIcon}>
-                <Ionicons name="person-outline" size={24} color="#000000ff" />
-              </View>
-              <Text style={styles.actionLabel}>Profile</Text>
-            </TouchableOpacity>
+            {isGroupChat ? (
+              // Group chat actions
+              <TouchableOpacity style={styles.actionButton}>
+                <View style={styles.actionIcon}>
+                  <Ionicons name="person-add-outline" size={24} color="#000000ff" />
+                </View>
+                <Text style={styles.actionLabel}>Add</Text>
+              </TouchableOpacity>
+            ) : (
+              // 1-on-1 chat actions
+              <TouchableOpacity style={styles.actionButton} onPress={handleViewProfile}>
+                <View style={styles.actionIcon}>
+                  <Ionicons name="person-outline" size={24} color="#000000ff" />
+                </View>
+                <Text style={styles.actionLabel}>Profile</Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity style={styles.actionButton}>
               <View style={styles.actionIcon}>
@@ -276,6 +334,39 @@ export default function ConversationDetailsScreen() {
           </View>
         </TouchableOpacity>
 
+        {/* Group-specific sections */}
+        {isGroupChat && (
+          <>
+            {/* Invite link */}
+            <TouchableOpacity style={styles.menuItem}>
+              <View style={styles.menuLeft}>
+                <View style={styles.menuIconContainer}>
+                  <Ionicons name="link-outline" size={24} color="#000000ff" />
+                </View>
+                <View style={styles.menuTextContainer}>
+                  <Text style={styles.menuText}>Invite link</Text>
+                  <Text style={styles.menuSubtext}>https://ig.me/j/{conversationId?.slice(0, 12)}/</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+
+            {/* People section */}
+            <TouchableOpacity style={styles.menuItem}>
+              <View style={styles.menuLeft}>
+                <View style={styles.menuIconContainer}>
+                  <Ionicons name="people-outline" size={24} color="#000000ff" />
+                </View>
+                <View style={styles.menuTextContainer}>
+                  <Text style={styles.menuText}>People</Text>
+                  {participants.length > 0 && (
+                    <Text style={styles.menuSubtext}>{participants[0].username}</Text>
+                  )}
+                </View>
+              </View>
+            </TouchableOpacity>
+          </>
+        )}
+
         {/* Privacy & safety */}
         <TouchableOpacity style={styles.menuItem}>
           <View style={styles.menuLeft}>
@@ -286,25 +377,29 @@ export default function ConversationDetailsScreen() {
           </View>
         </TouchableOpacity>
 
-        {/* Nicknames */}
-        <TouchableOpacity style={styles.menuItem} onPress={handleChangeNickname}>
-          <View style={styles.menuLeft}>
-            <View style={styles.menuIconContainer}>
-              <Ionicons name="pencil-outline" size={24} color="#000000ff" />
+        {/* Nicknames - only for 1-on-1 */}
+        {!isGroupChat && (
+          <TouchableOpacity style={styles.menuItem} onPress={handleChangeNickname}>
+            <View style={styles.menuLeft}>
+              <View style={styles.menuIconContainer}>
+                <Ionicons name="pencil-outline" size={24} color="#000000ff" />
+              </View>
+              <Text style={styles.menuText}>Nicknames</Text>
             </View>
-            <Text style={styles.menuText}>Nicknames</Text>
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        )}
 
-        {/* Create a group chat */}
-        <TouchableOpacity style={styles.menuItem}>
-          <View style={styles.menuLeft}>
-            <View style={styles.menuIconContainer}>
-              <Ionicons name="people-outline" size={24} color="#000000ff" />
+        {/* Create a group chat - only for 1-on-1 */}
+        {!isGroupChat && (
+          <TouchableOpacity style={styles.menuItem}>
+            <View style={styles.menuLeft}>
+              <View style={styles.menuIconContainer}>
+                <Ionicons name="people-outline" size={24} color="#000000ff" />
+              </View>
+              <Text style={styles.menuText}>Create a group chat</Text>
             </View>
-            <Text style={styles.menuText}>Create a group chat</Text>
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        )}
 
         {/* Bottom Action Bar */}
         <View style={styles.bottomBar}>
@@ -502,6 +597,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#000000ff',
     marginBottom: 24,
+  },
+  changeNameLink: {
+    fontSize: 14,
+    color: '#0095f6',
+    marginTop: 8,
+    marginBottom: 16,
   },
   actionButtons: {
     flexDirection: 'row',

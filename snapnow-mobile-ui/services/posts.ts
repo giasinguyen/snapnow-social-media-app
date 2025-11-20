@@ -16,18 +16,64 @@ import { db } from "../config/firebase"
 import { Post } from "../types"
 import { deletePostActivities, logPostActivity } from "./activityHistory"
 
-export async function fetchPosts(): Promise<Post[]> {
+export async function fetchPosts(currentUserId?: string): Promise<Post[]> {
   const q = query(collection(db, "posts"), orderBy("createdAt", "desc"))
   const snap = await getDocs(q)
   const posts: Post[] = []
+  
+  // Get list of users the current user follows (if logged in)
+  let followingIds: string[] = []
+  if (currentUserId) {
+    const followingQuery = query(collection(db, "follows"), where("followerId", "==", currentUserId))
+    const followingSnap = await getDocs(followingQuery)
+    followingIds = followingSnap.docs.map((doc) => doc.data().followingId)
+  }
+  
+  // Get all unique user IDs from posts to check their privacy settings
+  const userIds = new Set<string>()
+  snap.forEach((docSnap) => {
+    const data = docSnap.data()
+    if (data.userId) {
+      userIds.add(data.userId)
+    }
+  })
+  
+  // Fetch privacy settings for all users
+  const userPrivacyMap = new Map<string, boolean>()
+  for (const userId of userIds) {
+    try {
+      const userDoc = await getDoc(doc(db, "users", userId))
+      if (userDoc.exists()) {
+        const userData = userDoc.data()
+        userPrivacyMap.set(userId, userData.isPrivate === true)
+      }
+    } catch (error) {
+      console.error(`Error fetching user ${userId}:`, error)
+    }
+  }
+  
   snap.forEach((docSnap) => {
     const data = docSnap.data() as any
-    posts.push({
-      id: docSnap.id,
-      ...data,
-      createdAt: data.createdAt?.toDate?.() || new Date(),
-    } as Post)
+    const postUserId = data.userId
+    const isPrivate = userPrivacyMap.get(postUserId) || false
+    
+    // Include post if:
+    // 1. User is not private, OR
+    // 2. User is private but current user follows them, OR
+    // 3. It's the current user's own post
+    const shouldInclude = !isPrivate || 
+                         followingIds.includes(postUserId) || 
+                         postUserId === currentUserId
+    
+    if (shouldInclude) {
+      posts.push({
+        id: docSnap.id,
+        ...data,
+        createdAt: data.createdAt?.toDate?.() || new Date(),
+      } as Post)
+    }
   })
+  
   return posts
 }
 
@@ -260,7 +306,7 @@ export async function deletePost(postId: string, userId: string) {
   }
 }
 
-export async function getPostsByHashtag(hashtag: string): Promise<Post[]> {
+export async function getPostsByHashtag(hashtag: string, currentUserId?: string): Promise<Post[]> {
   try {
     const cleanTag = hashtag.toLowerCase().replace('#', '')
     const postsQuery = query(
@@ -271,14 +317,55 @@ export async function getPostsByHashtag(hashtag: string): Promise<Post[]> {
 
     const snapshot = await getDocs(postsQuery)
     const posts: Post[] = []
+    
+    // Get list of users the current user follows (if logged in)
+    let followingIds: string[] = []
+    if (currentUserId) {
+      const followingQuery = query(collection(db, "follows"), where("followerId", "==", currentUserId))
+      const followingSnap = await getDocs(followingQuery)
+      followingIds = followingSnap.docs.map((doc) => doc.data().followingId)
+    }
+    
+    // Get all unique user IDs to check privacy
+    const userIds = new Set<string>()
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data()
+      if (data.userId) {
+        userIds.add(data.userId)
+      }
+    })
+    
+    // Fetch privacy settings
+    const userPrivacyMap = new Map<string, boolean>()
+    for (const userId of userIds) {
+      try {
+        const userDoc = await getDoc(doc(db, "users", userId))
+        if (userDoc.exists()) {
+          const userData = userDoc.data()
+          userPrivacyMap.set(userId, userData.isPrivate === true)
+        }
+      } catch (error) {
+        console.error(`Error fetching user ${userId}:`, error)
+      }
+    }
 
     snapshot.forEach((docSnap) => {
       const data = docSnap.data()
-      posts.push({
-        id: docSnap.id,
-        ...data,
-        createdAt: data.createdAt?.toDate?.() || new Date(),
-      } as Post)
+      const postUserId = data.userId
+      const isPrivate = userPrivacyMap.get(postUserId) || false
+      
+      // Include post if not private or user follows them or it's their own post
+      const shouldInclude = !isPrivate || 
+                           followingIds.includes(postUserId) || 
+                           postUserId === currentUserId
+      
+      if (shouldInclude) {
+        posts.push({
+          id: docSnap.id,
+          ...data,
+          createdAt: data.createdAt?.toDate?.() || new Date(),
+        } as Post)
+      }
     })
 
     return posts
@@ -351,9 +438,9 @@ export async function fetchFeedPostsPaginated(userId: string, page: number = 1):
 }
 
 
-export async function searchPosts(searchTerm: string): Promise<Post[]> {
+export async function searchPosts(searchTerm: string, currentUserId?: string): Promise<Post[]> {
   try {
-    const allPosts = await fetchPosts()
+    const allPosts = await fetchPosts(currentUserId)
     const lowerSearch = searchTerm.toLowerCase()
     
     return allPosts.filter(post => 

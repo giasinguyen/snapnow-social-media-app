@@ -1,40 +1,39 @@
 import { Ionicons } from '@expo/vector-icons';
 import { format, isToday, isYesterday } from 'date-fns';
+import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Image,
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Image,
+    Keyboard,
+    KeyboardAvoidingView,
+    Platform,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { CLOUDINARY_FOLDERS } from '../../config/cloudinary';
 import { auth } from '../../config/firebase';
 import { formatLastActive, getUserActivityStatus } from '../../services/activityStatus';
 import { uploadToCloudinary } from '../../services/cloudinary';
 import {
-  createConversation,
-  getConversation,
-  Conversation,
+    Conversation,
+    createConversation,
+    getConversation,
 } from '../../services/conversations';
 import {
-  markAllMessagesAsRead,
-  Message,
-  sendMessage,
-  subscribeToMessages,
-  deleteMessage,
-  unsendMessage,
-  copyMessageText,
+    deleteMessage,
+    markAllMessagesAsRead,
+    Message,
+    sendMessage,
+    subscribeToMessages,
+    unsendMessage
 } from '../../services/messages';
-import * as Clipboard from 'expo-clipboard';
 
 export default function ChatScreen() {
   const params = useLocalSearchParams();
@@ -44,6 +43,7 @@ export default function ChatScreen() {
     otherUserName,
     otherUserPhoto,
     otherUserUsername,
+    initialMessage,
   } = params;
 
   const [messages, setMessages] = useState<Message[]>([]);
@@ -52,7 +52,7 @@ export default function ChatScreen() {
   );
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [loading, setLoading] = useState(true);
-  const [messageText, setMessageText] = useState('');
+  const [messageText, setMessageText] = useState(initialMessage as string || '');
   const [sending, setSending] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
