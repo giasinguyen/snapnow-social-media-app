@@ -4,6 +4,7 @@ import { doc, getDoc, onSnapshot } from 'firebase/firestore'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Alert, Animated, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { auth, db } from '../config/firebase'
+import { useTheme } from '../contexts/ThemeContext'
 import { likeComment, unlikeComment } from '../services/comments'
 import { UserService } from '../services/user'
 import { Comment } from '../types'
@@ -25,6 +26,7 @@ export default function CommentItem({ comment, onDelete, onReply, onUserPress, i
   const [mentionUsernames, setMentionUsernames] = useState<Map<string, string>>(new Map())
   const scaleAnim = useRef(new Animated.Value(1)).current
   const router = useRouter()
+  const { colors } = useTheme()
 
   // Subscribe to real-time user profile updates for avatar
   useEffect(() => {
@@ -174,7 +176,7 @@ export default function CommentItem({ comment, onDelete, onReply, onUserPress, i
         return (
           <Text 
             key={index} 
-            style={[styles.mention, isReply && styles.replyMention]}
+            style={[styles.mention, isReply && styles.replyMention, { color: colors.textPrimary }]}
             onPress={() => handleMentionPress(part.username!)}
           >
             {displayText}
@@ -237,7 +239,8 @@ export default function CommentItem({ comment, onDelete, onReply, onUserPress, i
                 <TouchableOpacity onPress={handleUserPress}>
                   <Text style={[
                     styles.username, 
-                    isReply && styles.replyUsername
+                    isReply && styles.replyUsername,
+                    { color: colors.textPrimary }
                   ]}>
                     {comment.username}
                   </Text>
@@ -248,7 +251,8 @@ export default function CommentItem({ comment, onDelete, onReply, onUserPress, i
             
             <Text style={[
               styles.text, 
-              isReply && styles.replyText
+              isReply && styles.replyText,
+              { color: colors.textPrimary }
             ]}>
               {renderTextWithMentions(comment.text)}
             </Text>
@@ -356,11 +360,10 @@ function formatTime(date: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { paddingHorizontal: 8, paddingVertical: 6, marginBottom: 4, backgroundColor: '#ffffff' },
+  container: { paddingHorizontal: 8, paddingVertical: 6, marginBottom: 4 },
   commentWrapper: { flexDirection: 'row', alignItems: 'flex-start' },
   replyWrapper: { 
     paddingLeft: 22, 
-    backgroundColor: '#ffffff',
     marginLeft: 44,
     paddingVertical: 5,
     marginTop: 2
@@ -394,8 +397,8 @@ const styles = StyleSheet.create({
   replyText2Small: { fontSize: 11 },
   deleteBtn: { marginLeft: 16 },
   deleteText2: { color: '#f05c69ff', fontSize: 12, fontWeight: '600' },
-  mention: { fontWeight: '700', color: '#000000' },
-  replyMention: { fontWeight: '700', color: '#000000' },
+  mention: { fontWeight: '700' },
+  replyMention: { fontWeight: '700' },
   commentImage: { 
     width: 132, 
     height: 132, 

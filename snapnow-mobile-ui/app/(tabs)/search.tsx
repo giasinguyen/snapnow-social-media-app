@@ -1,9 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '../../contexts/ThemeContext';
 import { searchPostsByQuery, searchUsersByUsernamePrefix } from '../../services/search';
 import { COLORS, SPACING, TYPOGRAPHY } from '../../src/constants/theme';
 function debounceFn<T extends (...args: any[]) => void>(fn: T, wait = 300) {
@@ -15,6 +16,7 @@ function debounceFn<T extends (...args: any[]) => void>(fn: T, wait = 300) {
 }
 
 export default function SearchScreen() {
+  const { colors } = useTheme();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [mode, setMode] = useState<'users' | 'posts'>('users');
@@ -112,8 +114,8 @@ export default function SearchScreen() {
       <TouchableOpacity style={styles.row} onPress={() => router.push(`/user/${item.id}` as any)}>
         <Image source={item.profileImage ? { uri: item.profileImage } : require('../../assets/images/default-avatar.jpg')} style={styles.avatar} />
         <View style={{ marginLeft: 12 }}>
-          <Text style={styles.name}>{item.displayName || item.username}</Text>
-          <Text style={styles.username}>@{item.username}</Text>
+          <Text style={[styles.name, { color: colors.textPrimary }]}>{item.displayName || item.username}</Text>
+          <Text style={[styles.username, { color: colors.textSecondary }]}>@{item.username}</Text>
         </View>
       </TouchableOpacity>
     );
@@ -131,32 +133,32 @@ export default function SearchScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Search Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Search</Text>
+      <View style={[styles.header, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.border }]}>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Search</Text>
       </View>
 
       <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12 }}>
         <View style={{ flex: 1 }}>
           <TextInput
             placeholder={mode === 'users' ? 'Search users' : 'Search posts (hashtag or caption)'}
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.textSecondary}
             value={query}
             onChangeText={onChange}
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.backgroundGray, color: colors.textPrimary, borderColor: colors.border }]}
             autoCapitalize="none"
           />
         </View>
 
         <TouchableOpacity style={{ marginLeft: 8 }} onPress={refresh}>
-          <Text>Refresh</Text>
+          <Text style={{ color: colors.blue }}>Refresh</Text>
         </TouchableOpacity>
       </View>
 
       <View style={{ flexDirection: 'row', paddingHorizontal: 12, marginBottom: 8 }}>
         <TouchableOpacity 
-          style={[styles.tabBtn, mode === 'users' && styles.tabActive]} 
+          style={[styles.tabBtn, mode === 'users' && styles.tabActive, { backgroundColor: mode === 'users' ? colors.blue : colors.backgroundGray }]} 
           onPress={() => {
             setMode('users');
             setResults([]);
@@ -164,10 +166,10 @@ export default function SearchScreen() {
             try { router.replace('/(tabs)/search'); } catch (e) { }
           }}
         >
-          <Text>Users</Text>
+          <Text style={{ color: mode === 'users' ? '#FFFFFF' : colors.textPrimary }}>Users</Text>
         </TouchableOpacity>
         <TouchableOpacity 
-          style={[styles.tabBtn, mode === 'posts' && styles.tabActive, { marginLeft: 8 }]} 
+          style={[styles.tabBtn, mode === 'posts' && styles.tabActive, { marginLeft: 8, backgroundColor: mode === 'posts' ? colors.blue : colors.backgroundGray }]} 
           onPress={() => {
             setMode('posts');
             setResults([]);
@@ -175,7 +177,7 @@ export default function SearchScreen() {
             try { router.replace('/(tabs)/search'); } catch (e) { }
           }}
         >
-          <Text>Posts</Text>
+          <Text style={{ color: mode === 'posts' ? '#FFFFFF' : colors.textPrimary }}>Posts</Text>
         </TouchableOpacity>
         
         {/* <TouchableOpacity 
@@ -192,12 +194,12 @@ export default function SearchScreen() {
         <TouchableOpacity onPress={clearRecent}><Text style={{ color: '#c00' }}>Clear</Text></TouchableOpacity>
       </View>
 
-      {loading ? <ActivityIndicator style={{ marginTop: 12 }} /> : null}
+      {loading ? <ActivityIndicator style={{ marginTop: 12 }} color={colors.textPrimary} /> : null}
 
       {!loading && query.trim() !== '' && results.length === 0 ? (
         <View style={styles.noResults}>
-          <Text style={styles.noResultsText}>Không tìm thấy</Text>
-          <Text style={{ marginTop: 8, color: '#666' }}>Thử các từ khóa khác</Text>
+          <Text style={[styles.noResultsText, { color: colors.textPrimary }]}>Không tìm thấy</Text>
+          <Text style={{ marginTop: 8, color: colors.textSecondary }}>Thử các từ khóa khác</Text>
         </View>
       ) : (
         <FlatList data={results} keyExtractor={r => r.id} renderItem={renderItem} contentContainerStyle={{ padding: 12 }} />
@@ -220,7 +222,7 @@ export default function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.backgroundWhite },
+  container: { flex: 1 },
   header: {
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,

@@ -2,10 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Image, View } from 'react-native';
+import { useTheme } from '../../contexts/ThemeContext';
 import { AuthService, UserProfile } from '../../services/authService';
 import { subscribeToNotifications } from '../../services/notifications';
 
 export default function TabsLayout() {
+  const { colors } = useTheme();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -43,7 +45,7 @@ export default function TabsLayout() {
           height: 26,
           borderRadius: 13,
           borderWidth: focused ? 2 : 1,
-          borderColor: focused ? '#262626' : '#8E8E8E',
+          borderColor: focused ? colors.textPrimary : colors.textSecondary,
           overflow: 'hidden'
         }}>
           <Image
@@ -60,7 +62,7 @@ export default function TabsLayout() {
       <Ionicons 
         name={focused ? "person" : "person-outline"} 
         size={26} 
-        color={focused ? '#262626' : '#8E8E8E'} 
+        color={focused ? colors.textPrimary : colors.textSecondary} 
       />
     );
   };
@@ -70,16 +72,16 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#fff',
+          backgroundColor: colors.backgroundWhite,
           borderTopWidth: 0.5,
-          borderTopColor: '#DBDBDB',
+          borderTopColor: colors.border,
           height: 60,
           paddingTop: 4,
           paddingBottom: 4,
           elevation: 0,
         },
-        tabBarActiveTintColor: '#262626',
-        tabBarInactiveTintColor: '#8E8E8E',
+        tabBarActiveTintColor: colors.textPrimary,
+        tabBarInactiveTintColor: colors.textSecondary,
         tabBarLabelStyle: {
           fontSize: 10,
           fontWeight: '600',

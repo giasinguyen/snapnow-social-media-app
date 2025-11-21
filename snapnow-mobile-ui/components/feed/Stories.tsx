@@ -4,15 +4,16 @@ import { useRouter } from 'expo-router';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-    Image,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Image,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { auth, db } from '../../config/firebase';
+import { useTheme } from '../../contexts/ThemeContext';
 import { getFollowedUsersStories, hasViewedStory, type Story as StoryType } from '../../services/stories';
 import { COLORS, RADIUS, SIZES, SPACING, TYPOGRAPHY } from '../../src/constants/theme';
 
@@ -33,6 +34,7 @@ const Stories: React.FC<StoriesProps> = React.memo(({
   stories: propStories,
   onDismiss,
 }) => {
+  const { colors } = useTheme();
   const router = useRouter();
   const [stories, setStories] = useState<Story[]>(propStories || []);
   const [refreshing, setRefreshing] = useState(false);
@@ -259,12 +261,12 @@ const Stories: React.FC<StoriesProps> = React.memo(({
   }, [stories]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.backgroundGray }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Stories</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>Stories</Text>
         {onDismiss && (
           <TouchableOpacity onPress={onDismiss} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Ionicons name="close" size={SIZES.icon.sm} color={COLORS.textSecondary} />
+            <Ionicons name="close" size={SIZES.icon.sm} color={colors.textSecondary} />
           </TouchableOpacity>
         )}
       </View>
@@ -286,9 +288,9 @@ const Stories: React.FC<StoriesProps> = React.memo(({
           >
             <View style={styles.createStoryContainer}>
               <View style={styles.createStoryBg}>
-                <Ionicons name="add" size={28} color={"#ee6e05ff"} />
+                <Ionicons name="add" size={28} color={"#fc8727ff"} />
               </View>
-              <Text style={styles.storyUsername}>Create</Text>
+              <Text style={[styles.storyUsername, { color: colors.textPrimary }]}>Create</Text>
             </View>
           </TouchableOpacity>
         ) : (
@@ -319,16 +321,16 @@ const Stories: React.FC<StoriesProps> = React.memo(({
                         style={styles.yourStoryAvatar}
                       />
                       <View style={styles.plusIconOverlay}>
-                        <Ionicons name="add" size={20} color={COLORS.textWhite} />
+                        <Ionicons name="add" size={20} color={"#FFFFFF"} />
                       </View>
                     </View>
                   ) : (
                     // Show blue circle with + icon
                     <View style={styles.createStoryBg}>
-                      <Ionicons name="add" size={28} color={COLORS.textWhite} />
+                      <Ionicons name="add" size={28} color={"#fc8727ff"} />
                     </View>
                   )}
-                  <Text style={styles.storyUsername}>{story.username}</Text>
+                  <Text style={[styles.storyUsername, { color: colors.textPrimary }]}>{story.username}</Text>
                 </View>
               ) : (
                 <>
@@ -345,7 +347,7 @@ const Stories: React.FC<StoriesProps> = React.memo(({
                   ) : (
                     // Unviewed story - gradient border
                     <LinearGradient
-                      colors={[COLORS.gradientPurple, COLORS.gradientPurpleAlt, COLORS.gradientBlue]}
+                      colors={['#fc8727ff', '#fc8727ff', '#fc8727ff']}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
                       style={styles.storyGradient}
@@ -358,7 +360,7 @@ const Stories: React.FC<StoriesProps> = React.memo(({
                       </View>
                     </LinearGradient>
                   )}
-                  <Text style={styles.storyUsername} numberOfLines={1}>
+                  <Text style={[styles.storyUsername, { color: colors.textPrimary }]} numberOfLines={1}>
                     {displayUsername}
                   </Text>
                 </>
@@ -471,7 +473,6 @@ const styles = StyleSheet.create({
   },
   storyUsername: {
     fontSize: TYPOGRAPHY.fontSize.xs,
-    color: COLORS.textPrimary,
     textAlign: 'center',
     maxWidth: 68,
   },

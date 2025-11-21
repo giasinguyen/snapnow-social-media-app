@@ -1,30 +1,31 @@
-import { Ionicons } from "@expo/vector-icons"
-import * as ImagePicker from 'expo-image-picker'
-import { useRouter } from 'expo-router'
-import { useEffect, useRef, useState } from "react"
+import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    FlatList,
-    Image,
-    KeyboardAvoidingView,
-    Modal,
-    PanResponder,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-} from "react-native"
-import { SafeAreaView } from "react-native-safe-area-context"
-import { auth } from "../config/firebase"
-import { uploadToCloudinary } from "../services/cloudinary"
-import { addComment, deleteComment, getPostComments } from "../services/comments"
-import type { Comment } from "../types"
-import CommentItem from './CommentItem'
-import MentionInput from './MentionInput'
+  ActivityIndicator,
+  Alert,
+  Animated,
+  FlatList,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  PanResponder,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { auth } from "../config/firebase";
+import { useTheme } from '../contexts/ThemeContext';
+import { uploadToCloudinary } from "../services/cloudinary";
+import { addComment, deleteComment, getPostComments } from "../services/comments";
+import type { Comment } from "../types";
+import CommentItem from './CommentItem';
+import MentionInput from './MentionInput';
 
 interface CommentsModalProps {
   visible: boolean
@@ -33,6 +34,7 @@ interface CommentsModalProps {
 }
 
 export default function CommentsModal({ visible, postId, onClose }: CommentsModalProps) {
+  const { colors } = useTheme();
   const router = useRouter()
   const [comments, setComments] = useState<Comment[]>([])
   const [commentText, setCommentText] = useState("")
@@ -286,34 +288,34 @@ export default function CommentsModal({ visible, postId, onClose }: CommentsModa
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={styles.container} edges={['bottom']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.backgroundWhite }]} edges={['bottom']}>
         <Animated.View 
           style={[
             styles.modalContent,
-            { transform: [{ translateY }] }
+            { transform: [{ translateY }], backgroundColor: colors.backgroundWhite }
           ]}
         >
           {/* Drag indicator */}
-          <View {...panResponder.panHandlers} style={styles.dragIndicatorContainer}>
-            <View style={styles.dragIndicator} />
+          <View {...panResponder.panHandlers} style={[styles.dragIndicatorContainer, { backgroundColor: colors.backgroundWhite }]}>
+            <View style={[styles.dragIndicator, { backgroundColor: colors.borderLight }]} />
           </View>
 
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>Comments</Text>
+          <View style={[styles.header, { borderBottomColor: colors.borderLight }]}>
+            <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Comments</Text>
             <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={28} color="#262626" />
+              <Ionicons name="close" size={28} color={colors.textPrimary} />
             </TouchableOpacity>
           </View>
 
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#262626" />
+            <ActivityIndicator size="large" color={colors.textPrimary} />
           </View>
         ) : comments.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="chatbubble-outline" size={64} color="#c7c7c7" />
-            <Text style={styles.emptyTitle}>No comments yet</Text>
-            <Text style={styles.emptySubtitle}>Be the first to comment!</Text>
+            <Ionicons name="chatbubble-outline" size={64} color={colors.borderLight} />
+            <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>No comments yet</Text>
+            <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>Be the first to comment!</Text>
           </View>
         ) : (
           <FlatList
@@ -326,7 +328,7 @@ export default function CommentsModal({ visible, postId, onClose }: CommentsModa
 
         {/* Selected image preview */}
         {selectedImage && (
-          <View style={styles.imagePreview}>
+          <View style={[styles.imagePreview, { backgroundColor: colors.backgroundGray, borderTopColor: colors.borderLight }]}>
             <Image source={{ uri: selectedImage }} style={styles.previewImage} />
             <TouchableOpacity onPress={handleRemoveImage} style={styles.removeImageBtn}>
               <Ionicons name="close-circle" size={24} color="#ed4956" />
@@ -336,27 +338,27 @@ export default function CommentsModal({ visible, postId, onClose }: CommentsModa
 
         {/* Reply indicator */}
         {replyingTo && (
-          <View style={styles.replyIndicator}>
+          <View style={[styles.replyIndicator, { backgroundColor: colors.backgroundGray, borderTopColor: colors.borderLight }]}>
             <View style={styles.replyIndicatorContent}>
-              <Ionicons name="arrow-undo-outline" size={14} color="#8e8e8e" style={styles.replyIcon} />
-              <Text style={styles.replyingText}>
+              <Ionicons name="arrow-undo-outline" size={14} color={colors.textSecondary} style={styles.replyIcon} />
+              <Text style={[styles.replyingText, { color: colors.textPrimary }]}>
                 Replying to @{replyingTo.username}
               </Text>
             </View>
             <TouchableOpacity onPress={handleCancelReply} style={styles.cancelReplyBtn}>
-              <Ionicons name="close" size={16} color="#8e8e8e" />
+              <Ionicons name="close" size={16} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
         )}
 
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.inputContainer}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.inputContainer, { borderTopColor: colors.borderLight, backgroundColor: colors.backgroundWhite }]}>
           {auth.currentUser?.photoURL && auth.currentUser.photoURL.trim() !== '' ? (
             <Image
               source={{ uri: auth.currentUser.photoURL }}
-              style={styles.inputAvatar}
+              style={[styles.inputAvatar, { backgroundColor: colors.backgroundGray }]}
             />
           ) : (
-            <View style={[styles.inputAvatar, styles.avatarPlaceholder]}>
+            <View style={[styles.inputAvatar, styles.avatarPlaceholder, { backgroundColor: colors.borderLight }]}>
               <Text style={styles.avatarText}>
                 {auth.currentUser?.displayName?.slice(0, 2).toUpperCase() || 
                  auth.currentUser?.email?.slice(0, 2).toUpperCase() || '??'}
@@ -366,8 +368,9 @@ export default function CommentsModal({ visible, postId, onClose }: CommentsModa
           <View style={styles.inputWrapper}>
             <MentionInput
               ref={inputRef}
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.backgroundGray, color: colors.textPrimary }]}
               placeholder={replyingTo ? `Reply to @${replyingTo.username}...` : "Add a comment..."}
+              placeholderTextColor={colors.textSecondary}
               value={commentText}
               onChangeText={setCommentText}
               multiline
@@ -375,7 +378,7 @@ export default function CommentsModal({ visible, postId, onClose }: CommentsModa
             />
           </View>
           <TouchableOpacity style={styles.cameraButton} onPress={handleCameraPress}>
-            <Ionicons name="image-outline" size={24} color="#8e8e8e" />
+            <Ionicons name="image-outline" size={24} color={colors.textSecondary} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={handleAddComment}
@@ -442,7 +445,6 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 22,
     fontWeight: "600",
-    color: "#262626",
     marginTop: 18,
     marginBottom: 9,
   },
@@ -497,7 +499,6 @@ const styles = StyleSheet.create({
   commentText: {
     fontSize: 15,
     lineHeight: 20,
-    color: "#262626",
   },
   commentLikes: {
     fontSize: 13,
@@ -569,7 +570,6 @@ const styles = StyleSheet.create({
   },
   replyingText: {
     fontSize: 14,
-    color: "#262626",
     fontWeight: "500",
   },
   cancelReplyBtn: {

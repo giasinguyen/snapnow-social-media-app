@@ -1,5 +1,6 @@
 import React, { ReactNode } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useTheme } from '../../contexts/ThemeContext';
 
 type Props = {
   title: string;
@@ -9,8 +10,10 @@ type Props = {
 };
 
 const HeaderBar: React.FC<Props> = ({ title, left, right, onPressLeft }) => {
+  const { colors } = useTheme();
+  
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, { borderBottomColor: colors.border }]}>
       <View style={styles.side}>
         {left ? (
           <TouchableOpacity onPress={onPressLeft} style={styles.iconBtn}>
@@ -20,7 +23,7 @@ const HeaderBar: React.FC<Props> = ({ title, left, right, onPressLeft }) => {
       </View>
 
       <View style={styles.center}>
-        <Text style={styles.title}>{title}</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
       </View>
 
       <View style={[styles.side, { alignItems: 'flex-end' }]}>
@@ -35,7 +38,7 @@ const HeaderBar: React.FC<Props> = ({ title, left, right, onPressLeft }) => {
 const styles = StyleSheet.create({
   header: {
     flexDirection: 'row', alignItems: 'center',
-    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#eee',
+    borderBottomWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 6, paddingVertical: 8,
   },
   side: { width: 84, justifyContent: 'center' },

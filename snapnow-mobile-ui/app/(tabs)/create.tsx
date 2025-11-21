@@ -3,25 +3,26 @@ import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    Keyboard,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "../../contexts/ThemeContext";
 
 import ActionBar from "../../components/create/ActionBar";
 import HeaderBar from "../../components/create/HeaderBar";
 import PrivacySheet, {
-    PrivacyOption,
+  PrivacyOption,
 } from "../../components/create/PrivacySheet";
 import SelectedImages from "../../components/create/SelectedImages";
 import UserComposer from "../../components/create/UserComposer";
@@ -39,6 +40,7 @@ const privacyOptions: PrivacyOption[] = [
 ];
 
 const CreateSnapScreen: React.FC = () => {
+  const { colors } = useTheme();
   const router = useRouter();
 
   const [snapContent, setSnapContent] = useState("");
@@ -205,21 +207,21 @@ const CreateSnapScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={["top", "left", "right"]}>
       <KeyboardAvoidingView
-        style={styles.container}
+        style={[styles.container, { backgroundColor: colors.background }]}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={80}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={styles.container}>
-            <HeaderBar
-              title="New snap"
-              left={<Ionicons name="close" size={26} color="#000" />}
+          <View style={[styles.container, { color: colors.textPrimary }]}>
+            <HeaderBar 
+              title={"New snap"} 
+              left={<Ionicons name="close" size={26} color={colors.textPrimary} />}
               right={
                 <>
-                  <Ionicons name="folder-open-outline" size={24} color="#000" />
-                  <Ionicons name="ellipsis-vertical" size={24} color="#000" />
+                  <Ionicons name="folder-open-outline" size={24} color={colors.textPrimary} />
+                  <Ionicons name="ellipsis-vertical" size={24} color={colors.textPrimary} />
                 </>
               }
               onPressLeft={() => {
@@ -229,7 +231,7 @@ const CreateSnapScreen: React.FC = () => {
             />
 
             <ScrollView
-              style={styles.body}
+              style={[styles.body, { backgroundColor: colors.background }]}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={{
@@ -257,15 +259,15 @@ const CreateSnapScreen: React.FC = () => {
               <ActionBar onPickImage={pickImage} />
             </ScrollView>
 
-            <View style={styles.footer}>
+            <View style={[styles.footer, { backgroundColor: colors.backgroundWhite, borderTopColor: colors.border }]}>
               <TouchableOpacity
                 onPress={() => setPrivacyOpen(true)}
                 style={styles.leftRow}
               >
-                <Text style={styles.footerText}>
+                <Text style={[styles.footerText, { color: colors.textSecondary }]}>
                   {privacy.label} can reply & quote
                 </Text>
-                <Ionicons name="chevron-down" size={12} color="#8e8e8e" />
+                <Ionicons name="chevron-down" size={12} color={colors.textSecondary} />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -302,8 +304,8 @@ const CreateSnapScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#fff" },
-  container: { flex: 1, backgroundColor: "#fff" },
+  safe: { flex: 1 },
+  container: { flex: 1 },
   body: { flex: 1, paddingHorizontal: 15, paddingTop: 10 },
 
   footer: {
@@ -313,12 +315,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#ddd",
-    backgroundColor: "#fff",
   },
 
   leftRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  footerText: { color: "#8e8e8e", fontSize: 13 },
+  footerText: { fontSize: 13 },
 
   postBtn: {
     backgroundColor: "#0095f6",

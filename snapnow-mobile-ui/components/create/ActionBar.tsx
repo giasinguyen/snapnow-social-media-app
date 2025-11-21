@@ -1,23 +1,26 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useTheme } from '../../contexts/ThemeContext';
 
 type Props = { onPickImage: () => void; };
 
 const ActionBar: React.FC<Props> = ({ onPickImage }) => {
+  const { colors } = useTheme();
+  
   return (
     <View style={styles.row}>
       <TouchableOpacity style={styles.btn} onPress={onPickImage}>
-        <Ionicons name="image-outline" size={24} color="#8e8e8e" />
+        <Ionicons name="image-outline" size={24} color={colors.textSecondary} />
       </TouchableOpacity>
       <TouchableOpacity style={styles.btn}>
-        <Ionicons name="git-compare-outline" size={24} color="#8e8e8e" />
+        <Ionicons name="git-compare-outline" size={24} color={colors.textSecondary} />
       </TouchableOpacity>
       <TouchableOpacity style={styles.btn}>
-        <Ionicons name="list-outline" size={24} color="#8e8e8e" />
+        <Ionicons name="list-outline" size={24} color={colors.textSecondary} />
       </TouchableOpacity>
       <TouchableOpacity style={styles.btn}>
-        <Ionicons name="ellipsis-horizontal" size={24} color="#8e8e8e" />
+        <Ionicons name="ellipsis-horizontal" size={24} color={colors.textSecondary} />
       </TouchableOpacity>
     </View>
   );

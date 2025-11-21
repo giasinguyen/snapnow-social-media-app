@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Notification } from '../../types';
 import { NotificationItem } from './NotificationItem';
 
@@ -14,11 +15,12 @@ export const NotificationSection: React.FC<NotificationSectionProps> = ({
   notifications,
   onNotificationPress,
 }) => {
+  const { colors } = useTheme();
   if (notifications.length === 0) return null;
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
+      <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
       {notifications.map((notification) => (
         <NotificationItem
           key={notification.id}
@@ -37,7 +39,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#262626',
     paddingHorizontal: 16,
     paddingVertical: 12,
   },

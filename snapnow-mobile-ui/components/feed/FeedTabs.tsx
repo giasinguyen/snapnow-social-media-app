@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useTheme } from '../../contexts/ThemeContext';
 import { COLORS, TYPOGRAPHY } from '../../src/constants/theme';
 
 export type FeedTab = 'for-you' | 'following';
@@ -10,14 +11,15 @@ interface FeedTabsProps {
 }
 
 const FeedTabs: React.FC<FeedTabsProps> = React.memo(({ activeTab, onTabChange }) => {
+  const { colors } = useTheme();
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.border }]}>
       <TouchableOpacity
         style={[styles.tab, activeTab === 'for-you' && styles.activeTab]}
         onPress={() => onTabChange('for-you')}
         activeOpacity={0.7}
       >
-        <Text style={[styles.tabText, activeTab === 'for-you' && styles.activeTabText]}>
+        <Text style={[styles.tabText, { color: colors.textSecondary }, activeTab === 'for-you' && { color: colors.textPrimary }]}>
           For You
         </Text>
       </TouchableOpacity>
@@ -26,7 +28,7 @@ const FeedTabs: React.FC<FeedTabsProps> = React.memo(({ activeTab, onTabChange }
         onPress={() => onTabChange('following')}
         activeOpacity={0.7}
       >
-        <Text style={[styles.tabText, activeTab === 'following' && styles.activeTabText]}>
+        <Text style={[styles.tabText, { color: colors.textSecondary }, activeTab === 'following' && { color: colors.textPrimary }]}>
           Following
         </Text>
       </TouchableOpacity>

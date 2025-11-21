@@ -6,17 +6,17 @@ import { useRouter } from 'expo-router';
 import { doc, onSnapshot } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  Image,
-  Modal,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    Image,
+    Modal,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AddPhotosToAlbumModal from '../../components/AddPhotosToAlbumModal';
@@ -24,6 +24,7 @@ import CreateAlbumModal from '../../components/CreateAlbumModal';
 import ShareProfileModal from '../../components/ShareProfileModal';
 import { CLOUDINARY_FOLDERS } from '../../config/cloudinary';
 import { db } from '../../config/firebase';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Album, createAlbum, fetchUserAlbums } from '../../services/albums';
 import { AuthService, UserProfile } from '../../services/authService';
 import { uploadToCloudinary } from '../../services/cloudinary';
@@ -40,6 +41,7 @@ const POST_SIZE = (width - 2) / 3; // 2px total gap, 1px between each
 type TabType = 'grid' | 'snaps' | 'albums' | 'tagged';
 
 export default function ProfileScreen() {
+  const { colors } = useTheme();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -259,7 +261,7 @@ export default function ProfileScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#0095F6" />
         </View>
@@ -269,32 +271,32 @@ export default function ProfileScreen() {
 
   if (!profile) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.center}>
-          <Ionicons name="person-circle-outline" size={80} color="#DBDBDB" />
-          <Text style={styles.placeholderText}>No profile found</Text>
-          <Text style={styles.subText}>Please login or register to see your profile.</Text>
+          <Ionicons name="person-circle-outline" size={80} color={colors.borderLight} />
+          <Text style={[styles.placeholderText, { color: colors.textPrimary }]}>No profile found</Text>
+          <Text style={[styles.subText, { color: colors.textSecondary }]}>Please login or register to see your profile.</Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Minimalist Threads-style Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.border }]}>
         <View style={styles.headerLeft}>
           { (profile as any)?.isPrivate ? (
-            <Ionicons name="lock-closed-outline" size={18} color="#8E8E8E" />
+            <Ionicons name="lock-closed-outline" size={18} color={colors.textSecondary} />
           ) : null }
-          <Text style={styles.headerUsername}>{profile.username}</Text>
+          <Text style={[styles.headerUsername, { color: colors.textPrimary }]}>{profile.username}</Text>
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.headerButton} onPress={handleSnapNow}>
-            <Ionicons name="camera-outline" size={24} color="#262626" />
+            <Ionicons name="camera-outline" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerButton} onPress={handleSettings}>
-            <Ionicons name="menu-outline" size={24} color="#262626" />
+            <Ionicons name="menu-outline" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -306,7 +308,7 @@ export default function ProfileScreen() {
         }
       >
         {/* Profile Header Section */}
-        <View style={styles.profileHeader}>
+        <View style={[styles.profileHeader, { backgroundColor: colors.backgroundWhite }]}>
           {/* Large Centered Avatar with Camera Overlay - SnapNow Focus */}
           <TouchableOpacity 
             style={styles.avatarContainer}
@@ -352,27 +354,27 @@ export default function ProfileScreen() {
 
           {/* Name and Bio */}
           <View style={styles.nameSection}>
-            <Text style={styles.displayName}>{profile.displayName || profile.username}</Text>
-            {profile.bio && <Text style={styles.bio}>{profile.bio}</Text>}
+            <Text style={[styles.displayName, { color: colors.textPrimary }]}>{profile.displayName || profile.username}</Text>
+            {profile.bio && <Text style={[styles.bio, { color: colors.textPrimary }]}>{profile.bio}</Text>}
             <Text style={styles.bioLink}>snapnow.app/{profile.username}</Text>
           </View>
 
           {/* Horizontal Stats - Threads Style */}
-          <View style={styles.statsRow}>
-            <View style={styles.statDivider} />
+          <View style={[styles.statsRow, { borderTopColor: colors.border, borderBottomColor: colors.border }]}>
+            <View style={[styles.statDivider, { backgroundColor: colors.borderLight }]} />
             <TouchableOpacity style={styles.statItem}>
-              <Text style={styles.statNumber}>{userPosts.length}</Text>
-              <Text style={styles.statLabel}>Posts</Text>
+              <Text style={[styles.statNumber, { color: colors.textPrimary }]}>{userPosts.length}</Text>
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Posts</Text>
             </TouchableOpacity>
-            <View style={styles.statDivider} />
+            <View style={[styles.statDivider, { backgroundColor: colors.borderLight }]} />
             <TouchableOpacity 
               style={styles.statItem}
               onPress={() => setActiveTab('snaps')}
             >
-              <Text style={styles.statNumber}>{snaps.length}</Text>
-              <Text style={styles.statLabel}>Snaps</Text>
+              <Text style={[styles.statNumber, { color: colors.textPrimary }]}>{snaps.length}</Text>
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Snaps</Text>
             </TouchableOpacity>
-            <View style={styles.statDivider} />
+            <View style={[styles.statDivider, { backgroundColor: colors.borderLight }]} />
             <TouchableOpacity 
               style={styles.statItem}
               onPress={() => {
@@ -380,10 +382,10 @@ export default function ProfileScreen() {
                 router.push(`/user/follow/followers?userId=${profile.id}`);
               }}
             >
-              <Text style={styles.statNumber}>{formatFollowers(profile.followersCount ?? 1234)}</Text>
-              <Text style={styles.statLabel}>Followers</Text>
+              <Text style={[styles.statNumber, { color: colors.textPrimary }]}>{formatFollowers(profile.followersCount ?? 1234)}</Text>
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Followers</Text>
             </TouchableOpacity>
-            <View style={styles.statDivider} />
+            <View style={[styles.statDivider, { backgroundColor: colors.borderLight }]} />
             <TouchableOpacity 
               style={styles.statItem}
               onPress={() => {
@@ -391,83 +393,83 @@ export default function ProfileScreen() {
                 router.push(`/user/follow/following?userId=${profile.id}`);
               }}
             >
-              <Text style={styles.statNumber}>{profile.followingCount ?? 567}</Text>
-              <Text style={styles.statLabel}>Following</Text>
+              <Text style={[styles.statNumber, { color: colors.textPrimary }]}>{profile.followingCount ?? 567}</Text>
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Following</Text>
             </TouchableOpacity>
-            <View style={styles.statDivider} />
+            <View style={[styles.statDivider, { backgroundColor: colors.borderLight }]} />
           </View>
 
           {/* Action Buttons - Clean Threads Style */}
           <View style={styles.actionButtons}>
               <TouchableOpacity
-                style={styles.primaryButton}
+                style={[styles.primaryButton, { backgroundColor: colors.textPrimary }]}
                 onPress={() => router.push({ pathname: '/(tabs)/edit-profile' })}
               >
-                <Text style={styles.primaryButtonText}>Edit Profile</Text>
+                <Text style={[styles.primaryButtonText, { color: colors.backgroundWhite }]}>Edit Profile</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.secondaryButton} onPress={handleShare}>
-                <Text style={styles.secondaryButtonText}>Share Profile</Text>
+              <TouchableOpacity style={[styles.secondaryButton, { backgroundColor: colors.borderLight }]} onPress={handleShare}>
+                <Text style={[styles.secondaryButtonText, { color: colors.textPrimary }]}>Share Profile</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.iconButton} onPress={handleSnapNow}>
-                <Ionicons name="camera" size={20} color="#262626" />
+              <TouchableOpacity style={[styles.iconButton, { backgroundColor: colors.borderLight }]} onPress={handleSnapNow}>
+                <Ionicons name="camera" size={20} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
         </View>
 
         {/* Tabs - Border Bottom Style (Threads) */}
-        <View style={styles.tabsContainer}>
+        <View style={[styles.tabsContainer, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.border }]}>
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'grid' && styles.activeTab]}
+            style={[styles.tab, activeTab === 'grid' && [styles.activeTab, { borderBottomColor: colors.textPrimary }]]}
             onPress={() => setActiveTab('grid')}
           >
             <Ionicons
               name="grid"
               size={22}
-              color={activeTab === 'grid' ? '#262626' : '#8E8E8E'}
+              color={activeTab === 'grid' ? colors.textPrimary : colors.textSecondary}
             />
-            <Text style={[styles.tabText, activeTab === 'grid' && styles.activeTabText]}>
+            <Text style={[styles.tabText, { color: colors.textSecondary }, activeTab === 'grid' && [styles.activeTabText, { color: colors.textPrimary }]]}>
               Post
             </Text>
           </TouchableOpacity>
           
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'snaps' && styles.activeTab]}
+            style={[styles.tab, activeTab === 'snaps' && [styles.activeTab, { borderBottomColor: colors.textPrimary }]]}
             onPress={() => setActiveTab('snaps')}
           >
             <Ionicons
               name="flash"
               size={22}
-              color={activeTab === 'snaps' ? '#262626' : '#8E8E8E'}
+              color={activeTab === 'snaps' ? colors.textPrimary : colors.textSecondary}
             />
-            <Text style={[styles.tabText, activeTab === 'snaps' && styles.activeTabText]}>
+            <Text style={[styles.tabText, { color: colors.textSecondary }, activeTab === 'snaps' && [styles.activeTabText, { color: colors.textPrimary }]]}>
               Snaps
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'albums' && styles.activeTab]}
+            style={[styles.tab, activeTab === 'albums' && [styles.activeTab, { borderBottomColor: colors.textPrimary }]]}
             onPress={() => setActiveTab('albums')}
           >
             <Ionicons
               name="albums"
               size={22}
-              color={activeTab === 'albums' ? '#262626' : '#8E8E8E'}
+              color={activeTab === 'albums' ? colors.textPrimary : colors.textSecondary}
             />
-            <Text style={[styles.tabText, activeTab === 'albums' && styles.activeTabText]}>
+            <Text style={[styles.tabText, { color: colors.textSecondary }, activeTab === 'albums' && [styles.activeTabText, { color: colors.textPrimary }]]}>
               Albums
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'tagged' && styles.activeTab]}
+            style={[styles.tab, activeTab === 'tagged' && [styles.activeTab, { borderBottomColor: colors.textPrimary }]]}
             onPress={() => setActiveTab('tagged')}
           >
             <Ionicons
               name="person-outline"
               size={22}
-              color={activeTab === 'tagged' ? '#262626' : '#8E8E8E'}
+              color={activeTab === 'tagged' ? colors.textPrimary : colors.textSecondary}
             />
-            <Text style={[styles.tabText, activeTab === 'tagged' && styles.activeTabText]}>
+            <Text style={[styles.tabText, { color: colors.textSecondary }, activeTab === 'tagged' && [styles.activeTabText, { color: colors.textPrimary }]]}>
               Tagged
             </Text>
           </TouchableOpacity>
@@ -475,7 +477,7 @@ export default function ProfileScreen() {
 
         {/* Grid Tab - Instagram Style */}
         {activeTab === 'grid' && (
-          <View style={styles.postsGrid}>
+          <View style={[styles.postsGrid, { backgroundColor: colors.backgroundWhite }]}>
             {loadingPosts ? (
               <View style={styles.center}>
                 <ActivityIndicator size="large" color="#0095F6" />
@@ -483,10 +485,10 @@ export default function ProfileScreen() {
             ) : userPosts.length === 0 ? (
               <View style={styles.emptyState}>
                 <View style={styles.emptyIconContainer}>
-                  <Ionicons name="camera-outline" size={64} color="#DBDBDB" />
+                  <Ionicons name="camera-outline" size={64} color={colors.borderLight} />
                 </View>
-                <Text style={styles.emptyTitle}>No posts yet</Text>
-                <Text style={styles.emptySubtitle}>
+                <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>No posts yet</Text>
+                <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
                   Share your first moment with the world
                 </Text>
               </View>
@@ -507,10 +509,10 @@ export default function ProfileScreen() {
 
         {/* Snaps Tab - SnapNow Unique Feature */}
         {activeTab === 'snaps' && (
-          <View style={styles.snapsContainer}>
+          <View style={[styles.snapsContainer, { backgroundColor: colors.backgroundWhite }]}>
             <View style={styles.snapsHeader}>
-              <Text style={styles.snapsTitle}>Quick Snaps</Text>
-              <Text style={styles.snapsSubtitle}>Disappear in 24 hours</Text>
+              <Text style={[styles.snapsTitle, { color: colors.textPrimary }]}>Quick Snaps</Text>
+              <Text style={[styles.snapsSubtitle, { color: colors.textSecondary }]}>Disappear in 24 hours</Text>
             </View>
             {loadingSnaps ? (
               <View style={styles.center}>
@@ -551,7 +553,7 @@ export default function ProfileScreen() {
 
                 {snaps.length === 0 && (
                   <View style={styles.emptySnapMessage}>
-                    <Text style={styles.emptySubtitle}>No snaps yet. Create your first snap!</Text>
+                    <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>No snaps yet. Create your first snap!</Text>
                   </View>
                 )}
               </View>
@@ -561,9 +563,9 @@ export default function ProfileScreen() {
 
         {/* Albums Tab - SnapNow Feature */}
         {activeTab === 'albums' && (
-          <View style={styles.albumsContainer}>
+          <View style={[styles.albumsContainer, { backgroundColor: colors.backgroundWhite }]}>
             <View style={styles.albumsHeader}>
-              <Text style={styles.albumsTitle}>Photo Albums</Text>
+              <Text style={[styles.albumsTitle, { color: colors.textPrimary }]}>Photo Albums</Text>
               <TouchableOpacity onPress={() => setShowCreateAlbumModal(true)}>
                 <Ionicons name="add-circle-outline" size={28} color="#0095F6" />
               </TouchableOpacity>
@@ -575,10 +577,10 @@ export default function ProfileScreen() {
             ) : albums.length === 0 ? (
               <View style={styles.emptyState}>
                 <View style={styles.emptyIconContainer}>
-                  <Ionicons name="albums-outline" size={64} color="#DBDBDB" />
+                  <Ionicons name="albums-outline" size={64} color={colors.borderLight} />
                 </View>
-                <Text style={styles.emptyTitle}>No albums yet</Text>
-                <Text style={styles.emptySubtitle}>
+                <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>No albums yet</Text>
+                <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
                   Create albums to organize your photos
                 </Text>
               </View>
@@ -596,15 +598,15 @@ export default function ProfileScreen() {
                     {album.coverPhoto ? (
                       <Image source={{ uri: album.coverPhoto }} style={styles.albumCover} />
                     ) : (
-                      <View style={[styles.albumCover, { backgroundColor: '#F0F0F0', justifyContent: 'center', alignItems: 'center' }]}>
-                        <Ionicons name="albums" size={40} color="#DBDBDB" />
+                      <View style={[styles.albumCover, { backgroundColor: colors.backgroundGray, justifyContent: 'center', alignItems: 'center' }]}>
+                        <Ionicons name="albums" size={40} color={colors.borderLight} />
                       </View>
                     )}
                     <View style={styles.albumInfo}>
-                      <Text style={styles.albumTitle}>{album.title}</Text>
-                      <Text style={styles.albumCount}>{album.postsCount} photos</Text>
+                      <Text style={[styles.albumTitle, { color: colors.textPrimary }]}>{album.title}</Text>
+                      <Text style={[styles.albumCount, { color: colors.textSecondary }]}>{album.postsCount} photos</Text>
                       {album.description && (
-                        <Text style={styles.albumDescription} numberOfLines={2}>
+                        <Text style={[styles.albumDescription, { color: colors.textSecondary }]} numberOfLines={2}>
                           {album.description}
                         </Text>
                       )}
@@ -618,7 +620,7 @@ export default function ProfileScreen() {
 
         {/* Tagged Tab */}
         {activeTab === 'tagged' && (
-          <View style={styles.postsGrid}>
+          <View style={[styles.postsGrid, { backgroundColor: colors.backgroundWhite }]}>
             {loadingTagged ? (
               <View style={styles.center}>
                 <ActivityIndicator size="large" color="#0095F6" />
@@ -626,10 +628,10 @@ export default function ProfileScreen() {
             ) : taggedPosts.length === 0 ? (
               <View style={styles.emptyState}>
                 <View style={styles.emptyIconContainer}>
-                  <Ionicons name="person-circle-outline" size={64} color="#DBDBDB" />
+                  <Ionicons name="person-circle-outline" size={64} color={colors.borderLight} />
                 </View>
-                <Text style={styles.emptyTitle}>Photos and videos of you</Text>
-                <Text style={styles.emptySubtitle}>
+                <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>Photos and videos of you</Text>
+                <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
                   When people tag you in photos and videos, they'll appear here.
                 </Text>
               </View>

@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { COLORS, SPACING, TYPOGRAPHY, SIZES } from '../../src/constants/theme';
-import { subscribeToUnreadCount } from '../../services/conversations';
 import { auth } from '../../config/firebase';
+import { useTheme } from '../../contexts/ThemeContext';
+import { subscribeToUnreadCount } from '../../services/conversations';
+import { COLORS, SIZES, SPACING, TYPOGRAPHY } from '../../src/constants/theme';
 
 interface FeedHeaderProps {
   onNotificationsPress?: () => void;
@@ -14,6 +15,7 @@ const FeedHeader: React.FC<FeedHeaderProps> = React.memo(({
   onNotificationsPress,
   onMessagesPress,
 }) => {
+  const { colors } = useTheme();
   const [unreadCount, setUnreadCount] = useState(0);
   const currentUserId = auth.currentUser?.uid;
 
@@ -30,9 +32,9 @@ const FeedHeader: React.FC<FeedHeaderProps> = React.memo(({
   }, [currentUserId]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.border }]}>
       <TouchableOpacity style={styles.logoContainer}>
-        <Text style={styles.logoText}>SnapNow</Text>
+        <Text style={[styles.logoText, { color: colors.textPrimary }]}>SnapNow</Text>
       </TouchableOpacity>
 
       <View style={styles.actions}>
@@ -41,7 +43,7 @@ const FeedHeader: React.FC<FeedHeaderProps> = React.memo(({
           onPress={onNotificationsPress}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="heart-outline" size={SIZES.icon.lg} color={COLORS.textPrimary} />
+          <Ionicons name="heart-outline" size={SIZES.icon.lg} color={colors.textPrimary} />
         </TouchableOpacity>
         
         <TouchableOpacity
@@ -50,7 +52,7 @@ const FeedHeader: React.FC<FeedHeaderProps> = React.memo(({
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <View>
-            <Ionicons name="chatbubble-outline" size={SIZES.icon.md} color={COLORS.textPrimary} />
+            <Ionicons name="chatbubble-outline" size={SIZES.icon.md} color={colors.textPrimary} />
             {unreadCount > 0 && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>

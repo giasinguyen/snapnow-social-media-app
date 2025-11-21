@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface SelectedImagesProps {
   imageUris: string[];
@@ -9,6 +10,8 @@ interface SelectedImagesProps {
 }
 
 const SelectedImages: React.FC<SelectedImagesProps> = ({ imageUris, onRemoveImage, onClearAll }) => {
+  const { colors } = useTheme();
+  
   if (imageUris.length === 0) return null;
 
   const renderImage = ({ item, index }: { item: string; index: number }) => (
@@ -29,10 +32,10 @@ const SelectedImages: React.FC<SelectedImagesProps> = ({ imageUris, onRemoveImag
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>
           {imageUris.length} image{imageUris.length > 1 ? 's' : ''} selected
         </Text>
-        <TouchableOpacity onPress={onClearAll} style={styles.clearButton}>
+        <TouchableOpacity onPress={onClearAll} style={[styles.clearButton, { backgroundColor: colors.backgroundGray }]}>
           <Text style={styles.clearText}>Clear all</Text>
         </TouchableOpacity>
       </View>
@@ -63,12 +66,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#262626',
   },
   clearButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: '#f0f0f0',
     borderRadius: 6,
   },
   clearText: {

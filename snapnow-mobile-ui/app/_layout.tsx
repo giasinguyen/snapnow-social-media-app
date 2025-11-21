@@ -8,6 +8,7 @@ import { PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { InAppNotification } from '../components/InAppNotification';
 import { auth, db } from '../config/firebase';
+import { ThemeProvider } from '../contexts/ThemeContext';
 import { updateOnlineStatus } from '../services/activityStatus';
 import { createAdminAccount } from '../services/authService';
 import { validateCloudinaryConfig } from '../services/cloudinaryValidator';
@@ -147,19 +148,21 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <PaperProvider>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          </Stack>
-          
-          {/* In-app notification banner */}
-          <InAppNotification />
-        </PaperProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <ThemeProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <PaperProvider>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="index" options={{ headerShown: false }} />
+              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            </Stack>
+            
+            {/* In-app notification banner */}
+            <InAppNotification />
+          </PaperProvider>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    </ThemeProvider>
   );
 }

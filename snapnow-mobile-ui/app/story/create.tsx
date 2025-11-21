@@ -1,23 +1,24 @@
 import { Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
 import { useRouter } from 'expo-router'
-import React, { useRef, useState, useEffect } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  BackHandler,
-  Dimensions,
-  Image,
-  PanResponder,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    BackHandler,
+    Dimensions,
+    Image,
+    PanResponder,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { CLOUDINARY_FOLDERS } from '../../config/cloudinary'
+import { useTheme } from '../../contexts/ThemeContext'
 import { uploadToCloudinary } from '../../services/cloudinary'
 import { createStory } from '../../services/stories'
 
@@ -28,6 +29,7 @@ const FONT_SIZES = [24, 32, 40, 48]
 const BG_COLORS = ['transparent', 'rgba(0,0,0,0.5)', 'rgba(255,255,255,0.5)', '#FF6B6B', '#4ECDC4', '#45B7D1']
 
 export default function CreateStoryScreen() {
+  const { colors } = useTheme()
   const router = useRouter()
   const [imageUri, setImageUri] = useState<string | null>(null)
   const [text, setText] = useState('')
@@ -245,18 +247,18 @@ export default function CreateStoryScreen() {
 
   if (!imageUri) {
     return (
-      <SafeAreaView style={styles.emptyStateContainer} edges={['top']}>
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.emptyStateContainer, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={[styles.header, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.border }]}>
           <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="close" size={28} color="#000" />
+            <Ionicons name="close" size={28} color={colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Create Story</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Create Story</Text>
           <View style={{ width: 28 }} />
         </View>
 
         <View style={styles.emptyContainer}>
-          <Ionicons name="images-outline" size={100} color="#DBDBDB" />
-          <Text style={styles.emptyText}>Select a photo or take one</Text>
+          <Ionicons name="images-outline" size={100} color={colors.borderLight} />
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Select a photo or take one</Text>
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.actionButton} onPress={pickImage}>

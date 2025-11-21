@@ -23,6 +23,7 @@ import {
 import { Swipeable } from 'react-native-gesture-handler';
 import { CLOUDINARY_FOLDERS } from '../../config/cloudinary';
 import { auth, db } from '../../config/firebase';
+import { useTheme } from '../../contexts/ThemeContext';
 import { formatLastActive, getUserActivityStatus } from '../../services/activityStatus';
 import { uploadToCloudinary } from '../../services/cloudinary';
 import {
@@ -41,6 +42,7 @@ import {
 } from '../../services/messages';
 
 export default function ChatScreen() {
+  const { colors } = useTheme();
   const params = useLocalSearchParams();
   const {
     conversationId: initialConversationId,
@@ -555,7 +557,7 @@ export default function ChatScreen() {
           paddingHorizontal: 20,
         }}>
           <View style={{
-            backgroundColor: '#f3f4f6',
+            backgroundColor: colors.backgroundGray,
             paddingHorizontal: 16,
             paddingVertical: 8,
             borderRadius: 16,
@@ -563,7 +565,7 @@ export default function ChatScreen() {
           }}>
             <Text style={{
               fontSize: 13,
-              color: '#6b7280',
+              color: colors.textSecondary,
               textAlign: 'center',
             }}>
               {item.text}
@@ -622,14 +624,14 @@ export default function ChatScreen() {
             marginVertical: 16,
           }}>
             <View style={{
-              backgroundColor: '#f3f4f6',
+              backgroundColor: colors.backgroundGray,
               paddingHorizontal: 16,
               paddingVertical: 6,
               borderRadius: 12,
             }}>
               <Text style={{
                 fontSize: 12,
-                color: '#6b7280',
+                color: colors.textSecondary,
                 fontWeight: '500',
               }}>
                 {formatDateSeparator(item.createdAt)}
@@ -670,7 +672,7 @@ export default function ChatScreen() {
               borderRadius: 20,
               paddingHorizontal: 16,
               paddingVertical: 12,
-              backgroundColor: isDeletedForEveryone ? '#f3f4f6' : (isMyMessage ? '#fc8727ff' : '#ffffff'),
+              backgroundColor: isDeletedForEveryone ? colors.backgroundGray : (isMyMessage ? '#fc8727ff' : colors.backgroundWhite),
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 1 },
               shadowOpacity: 0.08,
@@ -681,7 +683,7 @@ export default function ChatScreen() {
             {/* Reply Preview */}
             {item.replyTo && !isDeletedForEveryone && (
               <View style={{
-                backgroundColor: isMyMessage ? 'rgba(255,255,255,0.2)' : '#f3f4f6',
+                backgroundColor: isMyMessage ? 'rgba(255,255,255,0.2)' : colors.backgroundGray,
                 borderLeftWidth: 3,
                 borderLeftColor: isMyMessage ? 'rgba(255,255,255,0.5)' : '#fc8727ff',
                 paddingLeft: 8,
@@ -708,7 +710,7 @@ export default function ChatScreen() {
                   numberOfLines={2}
                   style={{
                     fontSize: 13,
-                    color: isMyMessage ? 'rgba(255,255,255,0.75)' : '#6b7280',
+                    color: isMyMessage ? 'rgba(255,255,255,0.75)' : colors.textSecondary,
                   }}
                 >
                   {item.replyTo.text || 'Image'}
@@ -759,7 +761,7 @@ export default function ChatScreen() {
               style={{
                 fontSize: 16,
                 lineHeight: 22,
-                color: isDeletedForEveryone ? '#9ca3af' : (isMyMessage ? '#ffffff' : '#1f2937'),
+                color: isDeletedForEveryone ? colors.textSecondary : (isMyMessage ? '#ffffff' : colors.textPrimary),
                 fontStyle: isDeletedForEveryone ? 'italic' : 'normal',
               }}
             >
@@ -808,8 +810,8 @@ export default function ChatScreen() {
 
   const renderEmptyState = () => (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
-      <Ionicons name="chatbubbles-outline" size={64} color="#d1d5db" />
-      <Text style={{ textAlign: 'center', color: '#6b7280', marginTop: 16, fontSize: 16 }}>
+      <Ionicons name="chatbubbles-outline" size={64} color={colors.borderLight} />
+      <Text style={{ textAlign: 'center', color: colors.textSecondary, marginTop: 16, fontSize: 16 }}>
         No messages yet. Say hi! 👋
       </Text>
     </View>
@@ -817,7 +819,7 @@ export default function ChatScreen() {
 
   if (loading && !conversationId) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f9fafb' }}>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}>
         <ActivityIndicator size="large" color="#fc8727ff" />
       </View>
     );
@@ -830,7 +832,7 @@ export default function ChatScreen() {
           headerShown: true,
           title: '',
           headerStyle: {
-            backgroundColor: '#ffffffff',
+            backgroundColor: colors.backgroundWhite,
           },
           headerShadowVisible: true,
           headerLeft: () => (
@@ -850,7 +852,7 @@ export default function ChatScreen() {
               style={{ flexDirection: 'row', alignItems: 'center', paddingRight: 16 }}
             >
               <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 12 }}>
-                <Ionicons name="arrow-back" size={24} color="#000" />
+                <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
               </TouchableOpacity>
               <View style={{ position: 'relative' }}>
                 <Image
@@ -859,7 +861,7 @@ export default function ChatScreen() {
                       ? (conversation.groupPhoto || 'https://via.placeholder.com/40?text=Group')
                       : (otherUserRealtime?.photoURL || (otherUserPhoto as string) || 'https://via.placeholder.com/40')
                   }}
-                  style={{ width: 36, height: 36, borderRadius: 18, marginRight: 10, backgroundColor: '#e5e7eb' }}
+                  style={{ width: 36, height: 36, borderRadius: 18, marginRight: 10, backgroundColor: colors.borderLight }}
                 />
                 {!conversation?.isGroupChat && isOnline && (
                   <View
@@ -878,13 +880,13 @@ export default function ChatScreen() {
                 )}
               </View>
               <View>
-                <Text style={{ fontWeight: '700', fontSize: 16, color: '#000' }} numberOfLines={1}>
+                <Text style={{ fontWeight: '700', fontSize: 16, color: colors.textPrimary }} numberOfLines={1}>
                   {conversation?.isGroupChat
                     ? (conversation.groupName || 'Group Chat')
                     : (nickname || otherUserRealtime?.displayName || (otherUserName as string) || 'Unknown User')}
                 </Text>
                 {conversation?.isGroupChat ? (
-                  <Text style={{ fontSize: 12, color: '#6b7280' }}>
+                  <Text style={{ fontSize: 12, color: colors.textSecondary }}>
                     {conversation.participants?.length || 0} members
                   </Text>
                 ) : isOnline ? (
@@ -892,11 +894,11 @@ export default function ChatScreen() {
                     Active now
                   </Text>
                 ) : lastActiveText ? (
-                  <Text style={{ fontSize: 12, color: '#6b7280' }}>
+                  <Text style={{ fontSize: 12, color: colors.textSecondary }}>
                     {lastActiveText}
                   </Text>
                 ) : (otherUserRealtime?.username || otherUserUsername) ? (
-                  <Text style={{ fontSize: 12, color: '#6b7280' }}>
+                  <Text style={{ fontSize: 12, color: colors.textSecondary }}>
                     @{otherUserRealtime?.username || otherUserUsername}
                   </Text>
                 ) : null}
@@ -906,7 +908,7 @@ export default function ChatScreen() {
           headerRight: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center', paddingRight: 16, gap: 16 }}>
               <TouchableOpacity onPress={() => setSearchVisible(!searchVisible)}>
-                <Ionicons name="search-outline" size={24} color="#000" />
+                <Ionicons name="search-outline" size={24} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
           ),
@@ -916,42 +918,42 @@ export default function ChatScreen() {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'position'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-        style={{ flex: 1, backgroundColor: '#f9fafb' }}
+        style={{ flex: 1, backgroundColor: colors.background }}
         contentContainerStyle={{ flex: 1 }}
       >
         {/* Search Bar */}
         {searchVisible && (
           <View style={{
-            backgroundColor: '#ffffff',
+            backgroundColor: colors.backgroundWhite,
             paddingHorizontal: 16,
             paddingVertical: 8,
             borderBottomWidth: 1,
-            borderBottomColor: '#e5e7eb',
+            borderBottomColor: colors.borderLight,
           }}>
             <View style={{
               flexDirection: 'row',
               alignItems: 'center',
-              backgroundColor: '#f3f4f6',
+              backgroundColor: colors.backgroundGray,
               borderRadius: 20,
               paddingHorizontal: 16,
               paddingVertical: 8,
             }}>
-              <Ionicons name="search" size={20} color="#9ca3af" style={{ marginRight: 8 }} />
+              <Ionicons name="search" size={20} color={colors.textSecondary} style={{ marginRight: 8 }} />
               <TextInput
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 placeholder="Search in conversation..."
-                placeholderTextColor="#9ca3af"
+                placeholderTextColor={colors.textSecondary}
                 autoFocus
                 style={{
                   flex: 1,
                   fontSize: 16,
-                  color: '#000',
+                  color: colors.textPrimary,
                 }}
               />
               {searchQuery && (
                 <TouchableOpacity onPress={() => setSearchQuery('')}>
-                  <Ionicons name="close-circle" size={20} color="#9ca3af" />
+                  <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
                 </TouchableOpacity>
               )}
             </View>
@@ -966,8 +968,8 @@ export default function ChatScreen() {
           renderItem={renderMessage}
           ListEmptyComponent={searchQuery ? (
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
-              <Ionicons name="search-outline" size={64} color="#d1d5db" />
-              <Text style={{ textAlign: 'center', color: '#6b7280', marginTop: 16, fontSize: 16 }}>
+              <Ionicons name="search-outline" size={64} color={colors.borderLight} />
+              <Text style={{ textAlign: 'center', color: colors.textSecondary, marginTop: 16, fontSize: 16 }}>
                 No messages found
               </Text>
             </View>
@@ -981,8 +983,8 @@ export default function ChatScreen() {
         <View
           style={{
             borderTopWidth: 1,
-            borderTopColor: '#e5e7eb',
-            backgroundColor: '#ffffff',
+            borderTopColor: colors.borderLight,
+            backgroundColor: colors.backgroundWhite,
             paddingBottom: Platform.OS === 'android' && keyboardVisible ? 0 : 0,
           }}
         >
@@ -1020,9 +1022,9 @@ export default function ChatScreen() {
               alignItems: 'center',
               paddingHorizontal: 16,
               paddingVertical: 8,
-              backgroundColor: '#f3f4f6',
+              backgroundColor: colors.backgroundGray,
               borderBottomWidth: 1,
-              borderBottomColor: '#e5e7eb',
+              borderBottomColor: colors.borderLight,
             }}>
               <View style={{
                 flex: 1,
@@ -1033,7 +1035,7 @@ export default function ChatScreen() {
                 <Text style={{ fontSize: 12, fontWeight: '600', color: '#fc8727ff', marginBottom: 2 }}>
                   Replying to {replyingTo.senderName}
                 </Text>
-                <Text style={{ fontSize: 14, color: '#6b7280' }} numberOfLines={1}>
+                <Text style={{ fontSize: 14, color: colors.textSecondary }} numberOfLines={1}>
                   {replyingTo.text || 'Image'}
                 </Text>
               </View>
@@ -1044,7 +1046,7 @@ export default function ChatScreen() {
                 }}
                 style={{ padding: 8 }}
               >
-                <Ionicons name="close" size={20} color="#6b7280" />
+                <Ionicons name="close" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
           )}
@@ -1087,7 +1089,7 @@ export default function ChatScreen() {
             <View
               style={{
                 flex: 1,
-                backgroundColor: '#f3f4f6',
+                backgroundColor: colors.backgroundGray,
                 borderRadius: 20,
                 paddingHorizontal: 16,
                 paddingVertical: 8,
@@ -1098,14 +1100,14 @@ export default function ChatScreen() {
                 value={messageText}
                 onChangeText={setMessageText}
                 placeholder="Message..."
-                placeholderTextColor="#9ca3af"
+                placeholderTextColor={colors.textSecondary}
                 multiline
                 maxLength={500}
                 editable={!sending}
                 style={{
                   fontSize: 16,
                   maxHeight: 100,
-                  color: '#000',
+                  color: colors.textPrimary,
                 }}
                 returnKeyType="default"
                 blurOnSubmit={false}
@@ -1149,7 +1151,7 @@ export default function ChatScreen() {
         >
           <Pressable 
             style={{
-              backgroundColor: '#fff',
+              backgroundColor: colors.backgroundWhite,
               borderTopLeftRadius: 24,
               borderTopRightRadius: 24,
               paddingBottom: Platform.OS === 'ios' ? 40 : 20,
@@ -1161,12 +1163,12 @@ export default function ChatScreen() {
               paddingVertical: 20,
               paddingHorizontal: 24,
               borderBottomWidth: 1,
-              borderBottomColor: '#f3f4f6',
+              borderBottomColor: colors.backgroundGray,
               alignItems: 'center',
             }}>
               <Text style={{
                 fontSize: 14,
-                color: '#6b7280',
+                color: colors.textSecondary,
                 fontWeight: '500',
               }}>
                 {selectedMessage ? formatDetailedTime(selectedMessage.createdAt) : ''}
@@ -1174,7 +1176,7 @@ export default function ChatScreen() {
               {selectedMessage?.text && (
                 <Text style={{
                   fontSize: 13,
-                  color: '#9ca3af',
+                  color: colors.textSecondary,
                   marginTop: 6,
                   textAlign: 'center',
                 }} numberOfLines={2}>
@@ -1200,7 +1202,7 @@ export default function ChatScreen() {
                     width: 40,
                     height: 40,
                     borderRadius: 20,
-                    backgroundColor: '#f3f4f6',
+                    backgroundColor: colors.backgroundGray,
                     alignItems: 'center',
                     justifyContent: 'center',
                     marginRight: 16,
@@ -1209,7 +1211,7 @@ export default function ChatScreen() {
                   </View>
                   <Text style={{
                     fontSize: 16,
-                    color: '#1f2937',
+                    color: colors.textPrimary,
                     fontWeight: '500',
                   }}>
                     Copy
@@ -1294,16 +1296,16 @@ export default function ChatScreen() {
                   width: 40,
                   height: 40,
                   borderRadius: 20,
-                  backgroundColor: '#f3f4f6',
+                  backgroundColor: colors.backgroundGray,
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginRight: 16,
                 }}>
-                  <Ionicons name="close-outline" size={24} color="#6b7280" />
+                  <Ionicons name="close-outline" size={24} color={colors.textSecondary} />
                 </View>
                 <Text style={{
                   fontSize: 16,
-                  color: '#6b7280',
+                  color: colors.textSecondary,
                   fontWeight: '500',
                 }}>
                   Cancel
