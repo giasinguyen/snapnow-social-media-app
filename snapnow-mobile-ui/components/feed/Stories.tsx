@@ -1,16 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { doc, getDoc } from 'firebase/firestore';
-import React, { useCallback, useEffect, useState } from 'react';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Image,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Image,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { auth, db } from '../../config/firebase';
 import { getFollowedUsersStories, hasViewedStory, type Story as StoryType } from '../../services/stories';
@@ -38,6 +38,8 @@ const Stories: React.FC<StoriesProps> = React.memo(({
   const [refreshing, setRefreshing] = useState(false);
   const currentUserId = auth.currentUser?.uid;
   const [userAvatar, setUserAvatar] = useState<string>('');
+  const [userRealTimeInfo, setUserRealTimeInfo] = useState<Map<string, { username: string; avatar: string }>>(new Map());
+  const userSubscriptions = useRef<Map<string, () => void>>(new Map());
 
   // Load user profile data
   useEffect(() => {
@@ -149,6 +151,85 @@ const Stories: React.FC<StoriesProps> = React.memo(({
     loadStories();
   }, [loadStories]);
 
+  // Subscribe to real-time profile updates for all users in stories
+  useEffect(() => {
+    if (stories.length === 0) return;
+
+    // Get unique user IDs from stories (exclude create button)
+    const userIds = new Set<string>();
+    stories.forEach(story => {
+      if (story.id !== 'create' && !story.isYourStory) {
+        // Extract userId from story - we need to get it from the original story data
+        // For now, we'll use username as a proxy, but we should store userId
+        userIds.add(story.username);
+      }
+    });
+
+    // Subscribe to each user's profile
+    userIds.forEach(username => {
+      // Skip if already subscribed
+      if (userSubscriptions.current.has(username)) return;
+
+      // We need to search for user by username to get their ID
+      // This is not ideal - we should store userId in Story interface
+      const searchAndSubscribe = async () => {
+        try {
+          const { UserService } = await import('../../services/user');
+          const user = await UserService.getUserByUsername(username);
+          if (!user) return;
+
+          const userDocRef = doc(db, 'users', user.id);
+          const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+              const userData = docSnap.data();
+              setUserRealTimeInfo(prev => {
+                const newMap = new Map(prev);
+                newMap.set(username, {
+                  username: userData.username || username,
+                  avatar: userData.profileImage || userData.photoURL || '',
+                });
+                return newMap;
+              });
+            }
+          });
+
+          userSubscriptions.current.set(username, unsubscribe);
+        } catch (error) {
+          console.error('Error subscribing to user profile:', username, error);
+        }
+      };
+
+      searchAndSubscribe();
+    });
+
+    // Cleanup subscriptions when component unmounts or stories change
+    return () => {
+      userSubscriptions.current.forEach(unsub => unsub());
+      userSubscriptions.current.clear();
+    };
+  }, [stories]);
+
+  // Subscribe to current user's profile for real-time avatar updates
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const userDocRef = doc(db, 'users', currentUserId);
+    const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const userData = docSnap.data();
+        const newAvatar = userData.profileImage || userData.photoURL || '';
+        setUserAvatar(newAvatar);
+        
+        // Update the create story avatar immediately
+        setStories(prev => prev.map(story => 
+          story.id === 'create' ? { ...story, avatar: newAvatar } : story
+        ));
+      }
+    });
+
+    return () => unsubscribe();
+  }, [currentUserId]);
+
   // Refresh stories
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -216,6 +297,11 @@ const Stories: React.FC<StoriesProps> = React.memo(({
           const isCreateButton = story.id === 'create';
           const hasUserAvatar = isCreateButton && story.avatar;
           
+          // Get real-time user info if available
+          const realtimeInfo = userRealTimeInfo.get(story.username);
+          const displayUsername = realtimeInfo?.username || story.username;
+          const displayAvatar = realtimeInfo?.avatar || story.avatar;
+          
           return (
             <TouchableOpacity
               key={story.id}
@@ -229,7 +315,7 @@ const Stories: React.FC<StoriesProps> = React.memo(({
                     // Show user avatar with + icon overlay
                     <View style={styles.yourStoryContainer}>
                       <Image
-                        source={{ uri: story.avatar }}
+                        source={{ uri: displayAvatar }}
                         style={styles.yourStoryAvatar}
                       />
                       <View style={styles.plusIconOverlay}>
@@ -251,7 +337,7 @@ const Stories: React.FC<StoriesProps> = React.memo(({
                     <View style={styles.viewedStoryBorder}>
                       <View style={styles.storyAvatarContainer}>
                         <Image
-                          source={{ uri: story.avatar }}
+                          source={{ uri: displayAvatar }}
                           style={styles.storyAvatar}
                         />
                       </View>
@@ -266,14 +352,14 @@ const Stories: React.FC<StoriesProps> = React.memo(({
                     >
                       <View style={styles.storyAvatarContainer}>
                         <Image
-                          source={{ uri: story.avatar }}
+                          source={{ uri: displayAvatar }}
                           style={styles.storyAvatar}
                         />
                       </View>
                     </LinearGradient>
                   )}
                   <Text style={styles.storyUsername} numberOfLines={1}>
-                    {story.username}
+                    {displayUsername}
                   </Text>
                 </>
               )}

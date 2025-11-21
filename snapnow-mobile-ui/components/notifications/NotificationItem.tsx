@@ -47,6 +47,8 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
       router.push('/user/follow-requests' as any);
     } else if (notification.type === 'follow_request_accepted') {
       router.push(`/user/${notification.fromUserId}`);
+    } else if (notification.type === 'story_reaction' && notification.storyId) {
+      router.push(`/story/${notification.storyId}` as any);
     } else if (notification.type === 'mention' && notification.postId) {
       router.push(`/post/${notification.postId}` as any);
     } else if (notification.postId) {

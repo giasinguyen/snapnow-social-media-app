@@ -27,7 +27,28 @@ export async function addComment(
   imageUrl?: string,
 ): Promise<string> {
   try {
-    const commentData = {
+    // Extract mentions and get their user IDs
+    const mentionRegex = /@([a-zA-Z0-9_]+)/g;
+    const mentionMatches = text.match(mentionRegex);
+    const mentions: { [username: string]: string } = {};
+    
+    if (mentionMatches && mentionMatches.length > 0) {
+      const { UserService } = await import('./user');
+      
+      for (const mention of mentionMatches) {
+        const mentionUsername = mention.substring(1); // Remove @
+        try {
+          const user = await UserService.getUserByUsername(mentionUsername);
+          if (user) {
+            mentions[mentionUsername] = user.id;
+          }
+        } catch (error) {
+          console.error(`Failed to find user ID for @${mentionUsername}:`, error);
+        }
+      }
+    }
+    
+    const commentData: any = {
       postId,
       userId,
       username,
@@ -37,6 +58,11 @@ export async function addComment(
       likesCount: 0,
       createdAt: serverTimestamp(),
       ...(parentCommentId && { parentCommentId }),
+    };
+    
+    // Add mentions if any were found
+    if (Object.keys(mentions).length > 0) {
+      commentData.mentions = mentions;
     }
 
     const docRef = await addDoc(collection(db, "comments"), commentData)
