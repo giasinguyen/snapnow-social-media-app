@@ -4,26 +4,26 @@ import { Stack } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  ScrollView,
-  Alert,
-  Image,
 } from 'react-native';
 import { auth } from '../../config/firebase';
 import {
-  sendMessageToAI,
-  getAIConversationHistory,
-  subscribeToAIConversation,
   AIMessage,
   clearAIConversation,
   generateImageWithAI,
+  getAIConversationHistory,
+  sendMessageToAI,
+  subscribeToAIConversation,
 } from '../../services/aiChat';
 
 export default function AIChatScreen() {
@@ -268,7 +268,7 @@ export default function AIChatScreen() {
               onPress={handleClearConversation}
               style={{ marginRight: 12 }}
             >
-              <Ionicons name="trash-outline" size={22} color="#667eea" />
+              <Ionicons name="trash-outline" size={22} color="#fc8727ff" />
             </TouchableOpacity>
           ),
         }}
@@ -283,7 +283,7 @@ export default function AIChatScreen() {
         {messages.length === 0 && (
           <View style={styles.emptyState}>
             <LinearGradient
-              colors={['#667eea', '#764ba2']}
+              colors={['#fc8727ff', '#764ba2']}
               style={styles.welcomeAvatar}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
@@ -319,7 +319,7 @@ export default function AIChatScreen() {
         <View style={styles.inputContainer}>
           {(sending || generatingImage) && (
             <View style={styles.loadingIndicator}>
-              <ActivityIndicator size="small" color="#667eea" />
+              <ActivityIndicator size="small" color="#fc8727ff" />
               <Text style={styles.loadingText}>
                 {generatingImage ? '🎨 Đang tạo ảnh với AI... (30-60 giây)' : '💬 AI đang trả lời...'}
               </Text>
@@ -339,7 +339,7 @@ export default function AIChatScreen() {
             />
             
             {(sending || generatingImage) ? (
-              <ActivityIndicator size="small" color="#667eea" />
+              <ActivityIndicator size="small" color="#fc8727ff" />
             ) : (
               <TouchableOpacity
                 onPress={handleSendMessage}
@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#667eea',
+    backgroundColor: '#fc8727ff',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#fc8727ff',
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 8,
@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   userBubble: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#fc8727ff',
   },
   aiBubble: {
     backgroundColor: '#f3f4f6',
@@ -515,7 +515,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 13,
-    color: '#667eea',
+    color: '#fc8727ff',
     fontWeight: '600',
   },
   inputWrapper: {
@@ -541,7 +541,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sendButtonActive: {
-    backgroundColor: '#667eea',
+    backgroundColor: '#fc8727ff',
   },
   sendButtonInactive: {
     backgroundColor: '#d1d5db',

@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { format, isToday, isYesterday } from 'date-fns';
+import { format, isSameDay, isToday, isYesterday } from 'date-fns';
 import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
@@ -12,7 +12,9 @@ import {
   Image,
   Keyboard,
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  Pressable,
   Text,
   TextInput,
   TouchableOpacity,
@@ -27,6 +29,7 @@ import {
   Conversation,
   createConversation,
   getConversation,
+  getNickname,
 } from '../../services/conversations';
 import {
   deleteMessage,
@@ -69,6 +72,9 @@ export default function ChatScreen() {
   const [senderInfo, setSenderInfo] = useState<Map<string, { displayName: string; photoURL: string }>>(new Map());
   const [otherUserRealtime, setOtherUserRealtime] = useState<{ displayName: string; photoURL: string; username: string } | null>(null);
   const senderSubscriptions = useRef<Map<string, () => void>>(new Map());
+  const [messageOptionsVisible, setMessageOptionsVisible] = useState(false);
+  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+  const [nickname, setNickname] = useState<string>('');
 
   const flatListRef = useRef<FlatList>(null);
   const currentUser = auth.currentUser;
@@ -135,6 +141,12 @@ export default function ChatScreen() {
         const conv = await getConversation(conversationId);
         if (conv) {
           setConversation(conv);
+          
+          // Load nickname for 1-on-1 chats
+          if (!conv.isGroupChat && otherUserId) {
+            const savedNickname = getNickname(conv, currentUserId, otherUserId as string);
+            setNickname(savedNickname);
+          }
         }
       } catch (error) {
         console.error('Error fetching conversation:', error);
@@ -149,6 +161,12 @@ export default function ChatScreen() {
       if (snapshot.exists()) {
         const updatedConv = { id: snapshot.id, ...snapshot.data() } as Conversation;
         setConversation(updatedConv);
+        
+        // Update nickname for 1-on-1 chats
+        if (!updatedConv.isGroupChat && otherUserId) {
+          const savedNickname = getNickname(updatedConv, currentUserId, otherUserId as string);
+          setNickname(savedNickname);
+        }
       }
     });
 
@@ -436,47 +454,86 @@ export default function ChatScreen() {
     }
   };
 
+  const formatDetailedTime = (timestamp: any) => {
+    if (!timestamp) return '';
+    
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      
+      if (isToday(date)) {
+        return 'Today at ' + format(date, 'HH:mm');
+      } else if (isYesterday(date)) {
+        return 'Yesterday at ' + format(date, 'HH:mm');
+      } else {
+        return format(date, 'MMMM dd, yyyy \\at HH:mm');
+      }
+    } catch (error) {
+      console.error('Error formatting timestamp:', error);
+      return '';
+    }
+  };
+
+  const formatDateSeparator = (timestamp: any) => {
+    if (!timestamp) return '';
+    
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      
+      if (isToday(date)) {
+        return 'Today';
+      } else if (isYesterday(date)) {
+        return 'Yesterday';
+      } else {
+        return format(date, 'MMMM dd, yyyy');
+      }
+    } catch (error) {
+      console.error('Error formatting date separator:', error);
+      return '';
+    }
+  };
+
   const handleLongPressMessage = (message: Message) => {
     // Don't show options for system messages
     if (message.type === 'system') return;
     
-    const isMyMessage = message.senderId === currentUserId;
-    
-    const options = ['Copy'];
-    
-    if (isMyMessage) {
-      options.push('Delete for Me');
-      options.push('Unsend for Everyone');
-    } else {
-      options.push('Delete for Me');
+    setSelectedMessage(message);
+    setMessageOptionsVisible(true);
+  };
+
+  const handleCopyMessage = async () => {
+    if (selectedMessage?.text) {
+      try {
+        await Clipboard.setStringAsync(selectedMessage.text);
+        setMessageOptionsVisible(false);
+        Alert.alert('Success', 'Message copied to clipboard');
+      } catch (error) {
+        console.error('Error copying message:', error);
+      }
     }
-    
-    options.push('Cancel');
-    
-    Alert.alert(
-      'Message Options',
-      message.text || 'Image message',
-      options.map((option) => ({
-        text: option,
-        style: option === 'Cancel' ? 'cancel' : option.includes('Unsend') || option.includes('Delete') ? 'destructive' : 'default',
-        onPress: async () => {
-          try {
-            if (option === 'Copy' && message.text) {
-              await Clipboard.setStringAsync(message.text);
-              Alert.alert('Success', 'Message copied to clipboard');
-            } else if (option === 'Delete for Me') {
-              await deleteMessage(conversationId, message.id, currentUserId);
-            } else if (option === 'Unsend for Everyone') {
-              await unsendMessage(conversationId, message.id, currentUserId);
-            }
-          } catch (error: any) {
-            console.error('Error handling message option:', error);
-            Alert.alert('Error', error.message || 'Failed to perform action');
-          }
-        },
-      })),
-      { cancelable: true }
-    );
+  };
+
+  const handleDeleteForMe = async () => {
+    if (selectedMessage) {
+      try {
+        setMessageOptionsVisible(false);
+        await deleteMessage(conversationId, selectedMessage.id, currentUserId);
+      } catch (error: any) {
+        console.error('Error deleting message:', error);
+        Alert.alert('Error', error.message || 'Failed to delete message');
+      }
+    }
+  };
+
+  const handleUnsendMessage = async () => {
+    if (selectedMessage) {
+      try {
+        setMessageOptionsVisible(false);
+        await unsendMessage(conversationId, selectedMessage.id, currentUserId);
+      } catch (error: any) {
+        console.error('Error unsending message:', error);
+        Alert.alert('Error', error.message || 'Failed to unsend message');
+      }
+    }
   };
 
   const renderMessage = ({ item, index }: { item: Message; index: number }) => {
@@ -519,7 +576,18 @@ export default function ChatScreen() {
     const isMyMessage = item.senderId === currentUserId;
     const prevMessage = index > 0 ? messages[index - 1] : null;
     const showAvatar = !prevMessage || prevMessage.senderId !== item.senderId;
-    const timestamp = formatMessageTime(item.createdAt);
+    
+    // Show date separator if this is the first message or if it's from a different day
+    let showDateSeparator = true;
+    if (prevMessage) {
+      try {
+        const prevDate = prevMessage.createdAt?.toDate ? prevMessage.createdAt.toDate() : new Date();
+        const currentDate = item.createdAt?.toDate ? item.createdAt.toDate() : new Date();
+        showDateSeparator = !isSameDay(prevDate, currentDate);
+      } catch {
+        showDateSeparator = false;
+      }
+    }
     
     // Get latest sender info from real-time map, fallback to stored message data
     const latestSenderInfo = senderInfo.get(item.senderId);
@@ -546,19 +614,43 @@ export default function ChatScreen() {
     };
 
     const messageContent = (
-      <TouchableOpacity
-        onLongPress={() => handleLongPressMessage(item)}
-        activeOpacity={0.8}
-      >
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'flex-end',
-            marginBottom: 12,
-            paddingHorizontal: 12,
-            justifyContent: isMyMessage ? 'flex-end' : 'flex-start',
-          }}
+      <>
+        {/* Date Separator */}
+        {showDateSeparator && (
+          <View style={{
+            alignItems: 'center',
+            marginVertical: 16,
+          }}>
+            <View style={{
+              backgroundColor: '#f3f4f6',
+              paddingHorizontal: 16,
+              paddingVertical: 6,
+              borderRadius: 12,
+            }}>
+              <Text style={{
+                fontSize: 12,
+                color: '#6b7280',
+                fontWeight: '500',
+              }}>
+                {formatDateSeparator(item.createdAt)}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        <TouchableOpacity
+          onLongPress={() => handleLongPressMessage(item)}
+          activeOpacity={0.8}
         >
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'flex-end',
+              marginBottom: 12,
+              paddingHorizontal: 12,
+              justifyContent: isMyMessage ? 'flex-end' : 'flex-start',
+            }}
+          >
           {/* Avatar for other user */}
           {!isMyMessage && (
             <View style={{ width: 32, height: 32, marginRight: 8 }}>
@@ -674,25 +766,20 @@ export default function ChatScreen() {
               {item.text}
             </Text>
             
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4 }}>
-              <Text
-                style={{
-                  fontSize: 11,
-                  color: isDeletedForEveryone ? '#9ca3af' : (isMyMessage ? 'rgba(255,255,255,0.75)' : '#9ca3af'),
-                }}
-              >
-                {timestamp}
-              </Text>
-              {isMyMessage && item.isRead && !isDeletedForEveryone && (
-                <Ionicons name="checkmark-done" size={14} color="rgba(255,255,255,0.75)" style={{ marginLeft: 4 }} />
-              )}
-              {isMyMessage && !item.isRead && !isDeletedForEveryone && (
-                <Ionicons name="checkmark" size={14} color="rgba(255,255,255,0.75)" style={{ marginLeft: 4 }} />
-              )}
-            </View>
+            {/* Read receipts only - no timestamp */}
+            {isMyMessage && !isDeletedForEveryone && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4 }}>
+                {item.isRead ? (
+                  <Ionicons name="checkmark-done" size={14} color="rgba(255,255,255,0.75)" />
+                ) : (
+                  <Ionicons name="checkmark" size={14} color="rgba(255,255,255,0.75)" />
+                )}
+              </View>
+            )}
           </View>
         </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      </>
     );
 
     // Allow swipe-to-reply on all messages
@@ -794,7 +881,7 @@ export default function ChatScreen() {
                 <Text style={{ fontWeight: '700', fontSize: 16, color: '#000' }} numberOfLines={1}>
                   {conversation?.isGroupChat
                     ? (conversation.groupName || 'Group Chat')
-                    : (otherUserRealtime?.displayName || (otherUserName as string) || 'Unknown User')}
+                    : (nickname || otherUserRealtime?.displayName || (otherUserName as string) || 'Unknown User')}
                 </Text>
                 {conversation?.isGroupChat ? (
                   <Text style={{ fontSize: 12, color: '#6b7280' }}>
@@ -820,12 +907,6 @@ export default function ChatScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center', paddingRight: 16, gap: 16 }}>
               <TouchableOpacity onPress={() => setSearchVisible(!searchVisible)}>
                 <Ionicons name="search-outline" size={24} color="#000" />
-              </TouchableOpacity>
-              <TouchableOpacity>
-                <Ionicons name="videocam-outline" size={26} color="#000" />
-              </TouchableOpacity>
-              <TouchableOpacity>
-                <Ionicons name="call-outline" size={24} color="#000" />
               </TouchableOpacity>
             </View>
           ),
@@ -1050,6 +1131,188 @@ export default function ChatScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Message Options Modal */}
+      <Modal
+        visible={messageOptionsVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMessageOptionsVisible(false)}
+      >
+        <Pressable 
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            justifyContent: 'flex-end',
+          }}
+          onPress={() => setMessageOptionsVisible(false)}
+        >
+          <Pressable 
+            style={{
+              backgroundColor: '#fff',
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+            }}
+            onPress={(e) => e.stopPropagation()}
+          >
+            {/* Timestamp Header */}
+            <View style={{
+              paddingVertical: 20,
+              paddingHorizontal: 24,
+              borderBottomWidth: 1,
+              borderBottomColor: '#f3f4f6',
+              alignItems: 'center',
+            }}>
+              <Text style={{
+                fontSize: 14,
+                color: '#6b7280',
+                fontWeight: '500',
+              }}>
+                {selectedMessage ? formatDetailedTime(selectedMessage.createdAt) : ''}
+              </Text>
+              {selectedMessage?.text && (
+                <Text style={{
+                  fontSize: 13,
+                  color: '#9ca3af',
+                  marginTop: 6,
+                  textAlign: 'center',
+                }} numberOfLines={2}>
+                  {selectedMessage.text}
+                </Text>
+              )}
+            </View>
+
+            {/* Options */}
+            <View style={{ paddingVertical: 8 }}>
+              {/* Copy */}
+              {selectedMessage?.text && (
+                <TouchableOpacity
+                  onPress={handleCopyMessage}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: 16,
+                    paddingHorizontal: 24,
+                  }}
+                >
+                  <View style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    backgroundColor: '#f3f4f6',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: 16,
+                  }}>
+                    <Ionicons name="copy-outline" size={20} color="#fc8727ff" />
+                  </View>
+                  <Text style={{
+                    fontSize: 16,
+                    color: '#1f2937',
+                    fontWeight: '500',
+                  }}>
+                    Copy
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Delete for Me */}
+              <TouchableOpacity
+                onPress={handleDeleteForMe}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingVertical: 16,
+                  paddingHorizontal: 24,
+                }}
+              >
+                <View style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: '#fef2f2',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 16,
+                }}>
+                  <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                </View>
+                <Text style={{
+                  fontSize: 16,
+                  color: '#ef4444',
+                  fontWeight: '500',
+                }}>
+                  Delete for Me
+                </Text>
+              </TouchableOpacity>
+
+              {/* Unsend for Everyone - only for my messages */}
+              {selectedMessage?.senderId === currentUserId && (
+                <TouchableOpacity
+                  onPress={handleUnsendMessage}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: 16,
+                    paddingHorizontal: 24,
+                  }}
+                >
+                  <View style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    backgroundColor: '#fef2f2',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: 16,
+                  }}>
+                    <Ionicons name="arrow-undo-outline" size={20} color="#ef4444" />
+                  </View>
+                  <Text style={{
+                    fontSize: 16,
+                    color: '#ef4444',
+                    fontWeight: '500',
+                  }}>
+                    Unsend for Everyone
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Cancel */}
+              <TouchableOpacity
+                onPress={() => setMessageOptionsVisible(false)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingVertical: 16,
+                  paddingHorizontal: 24,
+                  marginTop: 8,
+                }}
+              >
+                <View style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: '#f3f4f6',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 16,
+                }}>
+                  <Ionicons name="close-outline" size={24} color="#6b7280" />
+                </View>
+                <Text style={{
+                  fontSize: 16,
+                  color: '#6b7280',
+                  fontWeight: '500',
+                }}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </>
   );
 }

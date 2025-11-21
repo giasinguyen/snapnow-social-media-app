@@ -20,7 +20,7 @@ import {
 } from 'react-native';
 import { auth, db } from '../../config/firebase';
 import { uploadToCloudinary } from '../../services/cloudinary';
-import { Conversation, getConversation } from '../../services/conversations';
+import { Conversation, getConversation, getNickname, updateNickname } from '../../services/conversations';
 import { addParticipantToGroup, updateGroupDetails } from '../../services/groupChats';
 import { UserService } from '../../services/user';
 import { User } from '../../types';
@@ -128,6 +128,13 @@ export default function ConversationDetailsScreen() {
       const conv = await getConversation(conversationId as string);
       setConversation(conv);
       setIsGroupChat(conv?.isGroupChat || false);
+      
+      // Load nickname for 1-on-1 chats
+      if (!conv?.isGroupChat && otherUserId) {
+        const currentUserId = auth.currentUser?.uid || '';
+        const savedNickname = getNickname(conv, currentUserId, otherUserId as string);
+        setNickname(savedNickname);
+      }
       
       // If group chat, load all participants
       if (conv?.isGroupChat && conv.participants) {
@@ -288,15 +295,28 @@ export default function ConversationDetailsScreen() {
   };
 
   const handleChangeNickname = () => {
-    setNicknameInput('');
+    setNicknameInput(nickname);
     setShowNicknameModal(true);
   };
 
-  const saveNickname = () => {
-    if (nicknameInput.trim()) {
-      setNickname(nicknameInput);
+  const saveNickname = async () => {
+    if (!conversationId || !otherUserId) return;
+    
+    try {
+      const currentUserId = auth.currentUser?.uid || '';
+      await updateNickname(
+        conversationId as string,
+        currentUserId,
+        otherUserId as string,
+        nicknameInput.trim()
+      );
+      
+      setNickname(nicknameInput.trim());
       setShowNicknameModal(false);
       setNicknameInput('');
+    } catch (error) {
+      console.error('Error saving nickname:', error);
+      Alert.alert('Error', 'Failed to save nickname');
     }
   };
 
@@ -724,12 +744,16 @@ export default function ConversationDetailsScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Change Nickname</Text>
-            <Text style={styles.modalSubtitle}>Set a nickname for {otherUserName}</Text>
+            <Text style={styles.modalSubtitle}>
+              {nickname 
+                ? `Current nickname: ${nickname}` 
+                : `Set a nickname for ${otherUserRealtime?.displayName || otherUserName}`}
+            </Text>
             <TextInput
               style={styles.nicknameInput}
               value={nicknameInput}
               onChangeText={setNicknameInput}
-              placeholder={`Current: ${nickname || otherUserName}`}
+              placeholder="Enter nickname (leave empty to remove)"
               placeholderTextColor="#8E8E8E"
               autoFocus
             />
