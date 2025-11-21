@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, setDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import { DeviceEventEmitter } from 'react-native';
 import CreateGroupChatModal from '../../components/CreateGroupChatModal';
@@ -70,11 +70,26 @@ export default function ConversationDetailsScreen() {
 
   const applyTheme = async (theme: typeof chatTheme) => {
     try {
-      setChatTheme(theme);
+      // If theme is unchanged, do nothing (no system message)
+      if (theme === chatTheme) return;
+
       const key = conversationId ? `chat_theme_${conversationId}` : 'chat_theme_default';
+      // update local state and storage
+      setChatTheme(theme);
       await AsyncStorage.setItem(key, theme);
+      // persist to server so it's global for everyone
+      try {
+        if (conversationId) {
+          // Use setDoc with merge to avoid failures if the conversation doc doesn't exist yet
+          await setDoc(doc(db, 'conversations', conversationId as string), { theme }, { merge: true });
+        }
+      } catch (e) {
+        console.error('Error persisting theme to conversation doc', e);
+      }
+
       // notify other screens (chat) to update immediately
       DeviceEventEmitter.emit('chatThemeChanged', { conversationId, theme });
+
       // Create a small system message in the conversation to show that theme changed
       try {
         if (conversationId) {
@@ -354,6 +369,18 @@ export default function ConversationDetailsScreen() {
 
     loadTheme();
   }, [conversationId]);
+
+  // If conversation document has a theme field, prefer that (server-side setting)
+  useEffect(() => {
+    const serverTheme = (conversation as any)?.theme as typeof chatTheme | undefined;
+    if (serverTheme && serverTheme !== chatTheme) {
+      setChatTheme(serverTheme);
+      // keep local cache in sync
+      const key = conversationId ? `chat_theme_${conversationId}` : 'chat_theme_default';
+      AsyncStorage.setItem(key, serverTheme).catch(() => {});
+      DeviceEventEmitter.emit('chatThemeChanged', { conversationId, theme: serverTheme });
+    }
+  }, [conversation]);
 
   const handleChangeNickname = () => {
     setNicknameInput(nickname);
