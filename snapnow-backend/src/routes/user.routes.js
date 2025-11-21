@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/user.controller');
-const { verifyToken, requireAdmin } = require('../middleware/auth.middleware');
+const { verifyFirebaseToken, requireAdmin } = require('../middleware/auth.middleware');
 
 // All routes require authentication
-router.use(verifyToken);
+router.use(verifyFirebaseToken);
 router.use(requireAdmin);
 
 /**
@@ -21,26 +21,20 @@ router.get('/', userController.getUsers);
  */
 router.get('/stats', userController.getUserStats);
 
+// Specific routes MUST come before dynamic :userId routes
 /**
- * @route   GET /api/users/:userId
- * @desc    Get user by ID
+ * @route   PATCH /api/users/:userId/status
+ * @desc    Update user status (active/banned)
  * @access  Private/Admin
  */
-router.get('/:userId', userController.getUserById);
+router.patch('/:userId/status', userController.updateUserStatus);
 
 /**
- * @route   PUT /api/users/:userId
- * @desc    Update user
+ * @route   PATCH /api/users/:userId/role
+ * @desc    Update user role (user/admin)
  * @access  Private/Admin
  */
-router.put('/:userId', userController.updateUser);
-
-/**
- * @route   DELETE /api/users/:userId
- * @desc    Delete user
- * @access  Private/Admin
- */
-router.delete('/:userId', userController.deleteUser);
+router.patch('/:userId/role', userController.updateUserRole);
 
 /**
  * @route   PUT /api/users/:userId/ban
@@ -62,5 +56,26 @@ router.get('/:userId/posts', userController.getUserPosts);
  * @access  Private/Admin
  */
 router.get('/:userId/activity', userController.getUserActivity);
+
+/**
+ * @route   GET /api/users/:userId
+ * @desc    Get user by ID
+ * @access  Private/Admin
+ */
+router.get('/:userId', userController.getUserById);
+
+/**
+ * @route   PUT /api/users/:userId
+ * @desc    Update user
+ * @access  Private/Admin
+ */
+router.put('/:userId', userController.updateUser);
+
+/**
+ * @route   DELETE /api/users/:userId
+ * @desc    Delete user
+ * @access  Private/Admin
+ */
+router.delete('/:userId', userController.deleteUser);
 
 module.exports = router;

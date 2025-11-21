@@ -19,6 +19,7 @@ const userRoutes = require('./routes/user.routes');
 const postRoutes = require('./routes/post.routes');
 const analyticsRoutes = require('./routes/analytics.routes');
 const moderationRoutes = require('./routes/moderation.routes');
+const settingsRoutes = require('./routes/settings.routes');
 
 // Import middleware
 const { errorHandler, notFound } = require('./middleware/errorHandler');
@@ -76,6 +77,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/moderation', moderationRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Welcome route
 app.get('/', (req, res) => {
@@ -89,6 +91,7 @@ app.get('/', (req, res) => {
       posts: '/api/posts',
       analytics: '/api/analytics',
       moderation: '/api/moderation',
+      settings: '/api/settings',
     },
   });
 });
