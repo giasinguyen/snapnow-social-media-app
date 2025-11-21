@@ -4,6 +4,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { doc, onSnapshot } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
+import { DeviceEventEmitter } from 'react-native';
+import CreateGroupChatModal from '../../components/CreateGroupChatModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ActivityIndicator,
@@ -64,6 +66,30 @@ export default function ConversationDetailsScreen() {
   const [chatTheme, setChatTheme] = useState<'default' | 'purple' | 'blue' | 'dark'>('default');
 
   const THEME_KEY = conversationId ? `chat_theme_${conversationId}` : 'chat_theme_default';
+  const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
+
+  const applyTheme = async (theme: typeof chatTheme) => {
+    try {
+      setChatTheme(theme);
+      const key = conversationId ? `chat_theme_${conversationId}` : 'chat_theme_default';
+      await AsyncStorage.setItem(key, theme);
+      // notify other screens (chat) to update immediately
+      DeviceEventEmitter.emit('chatThemeChanged', { conversationId, theme });
+      // Create a small system message in the conversation to show that theme changed
+      try {
+        if (conversationId) {
+          const friendly = theme === 'default' ? 'Default' : theme === 'purple' ? 'Gradient Purple' : theme === 'blue' ? 'Gradient Blue' : 'Dark';
+          const { sendSystemMessage } = require('../../services/messages');
+          const actor = auth.currentUser?.displayName || 'Someone';
+          await sendSystemMessage(conversationId as string, `Chat theme changed to ${friendly} by ${actor}`);
+        }
+      } catch (e) {
+        console.error('Error sending theme change system message', e);
+      }
+    } catch (e) {
+      console.error('Error applying theme', e);
+    }
+  };
 
   useEffect(() => {
     loadConversationData();
@@ -297,10 +323,10 @@ export default function ConversationDetailsScreen() {
 
   const handleChangeTheme = () => {
     Alert.alert('Change Theme', 'Choose a chat background theme', [
-      { text: 'Default', onPress: async () => { setChatTheme('default'); await AsyncStorage.setItem(THEME_KEY, 'default'); } },
-      { text: 'Gradient Purple', onPress: async () => { setChatTheme('purple'); await AsyncStorage.setItem(THEME_KEY, 'purple'); } },
-      { text: 'Gradient Blue', onPress: async () => { setChatTheme('blue'); await AsyncStorage.setItem(THEME_KEY, 'blue'); } },
-      { text: 'Dark', onPress: async () => { setChatTheme('dark'); await AsyncStorage.setItem(THEME_KEY, 'dark'); } },
+      { text: 'Default', onPress: () => applyTheme('default') },
+      { text: 'Gradient Purple', onPress: () => applyTheme('purple') },
+      { text: 'Gradient Blue', onPress: () => applyTheme('blue') },
+      { text: 'Dark', onPress: () => applyTheme('dark') },
       { text: 'Cancel', style: 'cancel' },
     ]);
   };
@@ -670,7 +696,7 @@ export default function ConversationDetailsScreen() {
 
         {/* Create a group chat - only for 1-on-1 */}
         {!isGroupChat && (
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => setShowCreateGroupModal(true)}>
             <View style={styles.menuLeft}>
               <View style={styles.menuIconContainer}>
                 <Ionicons name="people-outline" size={24} color="#000000ff" />
@@ -1089,6 +1115,18 @@ export default function ConversationDetailsScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Create Group Modal (opened from menu) */}
+      <CreateGroupChatModal
+        visible={showCreateGroupModal}
+        onClose={() => setShowCreateGroupModal(false)}
+        onGroupCreated={(groupId) => {
+          setShowCreateGroupModal(false);
+          // navigate to the new group chat
+          router.push(`/group/${groupId}` as any);
+        }}
+        initialSelectedUserIds={otherUserId ? [otherUserId as string] : []}
+      />
     </View>
   );
 }

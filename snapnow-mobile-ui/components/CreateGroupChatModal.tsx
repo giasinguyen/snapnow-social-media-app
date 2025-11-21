@@ -30,12 +30,14 @@ interface CreateGroupChatModalProps {
   visible: boolean;
   onClose: () => void;
   onGroupCreated: (groupId: string) => void;
+  initialSelectedUserIds?: string[];
 }
 
 export default function CreateGroupChatModal({
   visible,
   onClose,
   onGroupCreated,
+  initialSelectedUserIds,
 }: CreateGroupChatModalProps) {
   const [step, setStep] = useState<'members' | 'details'>('members');
   const [groupName, setGroupName] = useState('');
@@ -73,6 +75,26 @@ export default function CreateGroupChatModal({
         const validUsers = usersData.filter((u): u is User => u !== null);
         setFollowingUsers(validUsers);
         setUsers(validUsers); // Show following users by default
+        // If caller provided initial selected IDs (e.g. preselect a user from Conversation Details), pre-select them
+        if (initialSelectedUserIds && initialSelectedUserIds.length > 0) {
+          // Find users from following list first
+          const selectedFromFollowing = validUsers.filter(u => initialSelectedUserIds.includes(u.id));
+          const missingIds = initialSelectedUserIds.filter(id => !selectedFromFollowing.some(u => u.id === id));
+          const missingPromises = missingIds.map(async (id) => {
+            try {
+              const userDoc = await getDoc(doc(db, 'users', id));
+              if (userDoc.exists()) {
+                return { id: userDoc.id, ...userDoc.data() } as User;
+              }
+            } catch (err) {
+              // ignore
+            }
+            return null;
+          });
+
+          const missingUsers = (await Promise.all(missingPromises)).filter((u): u is User => !!u);
+          setSelectedUsers([...selectedFromFollowing, ...missingUsers]);
+        }
       } catch (error) {
         console.error('Error loading following users:', error);
       } finally {

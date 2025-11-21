@@ -5,6 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { doc, onSnapshot } from 'firebase/firestore';
 import React, { useEffect, useRef, useState } from 'react';
+import { DeviceEventEmitter } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ActivityIndicator,
@@ -236,6 +237,19 @@ export default function ChatScreen() {
       };
 
       loadTheme();
+      // subscribe to theme change events for this conversation
+      const sub = DeviceEventEmitter.addListener('chatThemeChanged', (payload: any) => {
+        if (!payload) return;
+        // if event is for this conversation (or global), apply immediately
+        if (payload.conversationId === conversationId || !payload.conversationId) {
+          if (payload.theme === 'purple' || payload.theme === 'blue' || payload.theme === 'dark' || payload.theme === 'default') {
+            setChatTheme(payload.theme);
+          }
+        }
+      });
+      return () => {
+        sub.remove();
+      };
     }, [conversationId]);
   useEffect(() => {
     if (searchQuery.trim()) {
