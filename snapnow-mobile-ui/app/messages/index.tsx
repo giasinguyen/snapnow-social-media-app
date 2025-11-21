@@ -20,6 +20,7 @@ import { auth, db } from '../../config/firebase';
 import {
   archiveConversation,
   Conversation,
+  getNickname,
   getOtherParticipant,
   subscribeToConversations,
   unarchiveConversation,
@@ -267,9 +268,10 @@ export default function MessagesScreen() {
       const otherUser = getOtherParticipant(item, currentUserId);
       if (!otherUser) return null;
       
-      // Get real-time user info if available, otherwise use stored data
+      // Check for nickname first, then use real-time info, otherwise use stored data
+      const savedNickname = getNickname(item, currentUserId, otherUser.id);
       const realtimeInfo = userInfoMap.get(otherUser.id);
-      displayName = realtimeInfo?.displayName || otherUser.displayName || otherUser.username || 'Unknown User';
+      displayName = savedNickname || realtimeInfo?.displayName || otherUser.displayName || otherUser.username || 'Unknown User';
       avatarUri = realtimeInfo?.photoURL || otherUser.photoURL || 'https://via.placeholder.com/50';
     }
     
@@ -376,7 +378,7 @@ export default function MessagesScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#3b82f6" />
+          <ActivityIndicator size="large" color="#fc8727ff" />
         </View>
       </View>
     );
@@ -461,7 +463,7 @@ export default function MessagesScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor="#3b82f6"
+            tintColor="#fc8727ff"
           />
         }
         contentContainerStyle={filteredConversations.length === 0 ? styles.emptyListContent : undefined}
@@ -704,7 +706,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#667eea',
+    backgroundColor: '#fc8727ff',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -713,7 +715,7 @@ const styles = StyleSheet.create({
     color: '#1e293b',
   },
   aiBadge: {
-    backgroundColor: '#667eea',
+    backgroundColor: '#fc8727ff',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,

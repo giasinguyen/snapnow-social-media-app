@@ -44,6 +44,9 @@ export interface Conversation {
   groupPhoto?: string; // Photo for group chats
   admins?: string[]; // Array of admin user IDs for group chats
   createdBy?: string; // Creator user ID for group chats
+  nicknames?: {
+    [userId: string]: string; // Nicknames set by each user for other participants
+  };
 }
 
 export interface ConversationInput {
@@ -618,6 +621,60 @@ export const joinGroupViaInvite = async (
   }
 };
 
+/**
+ * Update nickname for a participant in a conversation
+ * @param conversationId The conversation ID
+ * @param currentUserId The user setting the nickname
+ * @param targetUserId The user whose nickname is being set
+ * @param nickname The nickname to set (empty string to remove)
+ */
+export const updateNickname = async (
+  conversationId: string,
+  currentUserId: string,
+  targetUserId: string,
+  nickname: string
+): Promise<void> => {
+  try {
+    const conversationRef = doc(db, 'conversations', conversationId);
+    const nicknameKey = `nicknames.${currentUserId}_${targetUserId}`;
+    
+    if (nickname.trim()) {
+      await updateDoc(conversationRef, {
+        [nicknameKey]: nickname.trim(),
+        updatedAt: serverTimestamp(),
+      });
+    } else {
+      // Remove nickname if empty
+      await updateDoc(conversationRef, {
+        [nicknameKey]: null,
+        updatedAt: serverTimestamp(),
+      });
+    }
+    
+    console.log('✅ Nickname updated successfully');
+  } catch (error) {
+    console.error('Error updating nickname:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get nickname for a user in a conversation
+ * @param conversation The conversation object
+ * @param currentUserId The user who set the nickname
+ * @param targetUserId The user whose nickname to get
+ * @returns The nickname or empty string if not set
+ */
+export const getNickname = (
+  conversation: Conversation | null,
+  currentUserId: string,
+  targetUserId: string
+): string => {
+  if (!conversation?.nicknames) return '';
+  const nicknameKey = `${currentUserId}_${targetUserId}`;
+  return conversation.nicknames[nicknameKey] || '';
+};
+
 export default {
   generateConversationId,
   createConversation,
@@ -637,4 +694,6 @@ export default {
   addGroupMember,
   removeGroupMember,
   joinGroupViaInvite,
+  updateNickname,
+  getNickname,
 };

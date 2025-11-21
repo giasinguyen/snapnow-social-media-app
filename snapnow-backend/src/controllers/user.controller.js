@@ -318,3 +318,88 @@ exports.getUserActivity = asyncHandler(async (req, res) => {
     message: 'Activity logging not yet implemented',
   });
 });
+
+/**
+ * @desc    Update user status (active/banned)
+ * @route   PATCH /api/users/:userId/status
+ * @access  Private/Admin
+ */
+exports.updateUserStatus = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const { status, reason } = req.body;
+
+  if (!['active', 'banned'].includes(status)) {
+    const error = new Error('Invalid status. Must be "active" or "banned"');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const userRef = db.collection('users').doc(userId);
+  const userDoc = await userRef.get();
+
+  if (!userDoc.exists) {
+    const error = new Error('User not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const updateData = {
+    status,
+    updatedAt: new Date(),
+  };
+
+  if (status === 'banned') {
+    updateData.banned = true;
+    updateData.banReason = reason || 'No reason provided';
+    updateData.bannedAt = new Date();
+  } else {
+    updateData.banned = false;
+    updateData.banReason = null;
+    updateData.bannedAt = null;
+  }
+
+  await userRef.update(updateData);
+
+  res.status(200).json({
+    success: true,
+    message: `User status updated to ${status}`,
+    data: { userId, status },
+  });
+});
+
+/**
+ * @desc    Update user role
+ * @route   PATCH /api/users/:userId/role
+ * @access  Private/Admin
+ */
+exports.updateUserRole = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const { role } = req.body;
+
+  if (!['user', 'admin'].includes(role)) {
+    const error = new Error('Invalid role. Must be "user" or "admin"');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const userRef = db.collection('users').doc(userId);
+  const userDoc = await userRef.get();
+
+  if (!userDoc.exists) {
+    const error = new Error('User not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  await userRef.update({
+    role,
+    isAdmin: role === 'admin',
+    updatedAt: new Date(),
+  });
+
+  res.status(200).json({
+    success: true,
+    message: `User role updated to ${role}`,
+    data: { userId, role },
+  });
+});
