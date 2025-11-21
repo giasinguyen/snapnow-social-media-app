@@ -183,16 +183,16 @@ const Posts = () => {
 
       {/* Post Details Modal */}
       {showPostModal && selectedPost && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50 modal-backdrop" onClick={() => setShowPostModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-gray-900">Post Details</h2>
                 <button
                   onClick={() => setShowPostModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  ✕
+                  <span className="text-xl">×</span>
                 </button>
               </div>
             </div>

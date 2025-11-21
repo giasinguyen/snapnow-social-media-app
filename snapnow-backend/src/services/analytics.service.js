@@ -433,15 +433,22 @@ class AnalyticsService {
       const likesSnapshot = await this.db.collection('likes').where('postId', '==', postId).count().get();
       const likesCount = likesSnapshot.data().count;
 
-      // Get recent comments
+      // Get recent comments (without orderBy to avoid index requirement)
       const recentCommentsSnapshot = await this.db.collection('comments')
         .where('postId', '==', postId)
-        .orderBy('createdAt', 'desc')
-        .limit(5)
+        .limit(10)
         .get();
 
       const comments = [];
-      for (const doc of recentCommentsSnapshot.docs) {
+      const commentDocs = recentCommentsSnapshot.docs
+        .sort((a, b) => {
+          const timeA = a.data().createdAt?.toMillis() || 0;
+          const timeB = b.data().createdAt?.toMillis() || 0;
+          return timeB - timeA; // Sort descending
+        })
+        .slice(0, 5); // Take only 5 most recent
+
+      for (const doc of commentDocs) {
         const commentData = doc.data();
         const commentUserDoc = await this.db.collection('users').doc(commentData.userId).get();
         const commentUserData = commentUserDoc.exists ? commentUserDoc.data() : null;

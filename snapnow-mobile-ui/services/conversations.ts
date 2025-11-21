@@ -47,6 +47,7 @@ export interface Conversation {
   nicknames?: {
     [userId: string]: string; // Nicknames set by each user for other participants
   };
+  theme?: 'default' | 'purple' | 'blue' | 'dark'; // Optional theme for the conversation
 }
 
 export interface ConversationInput {

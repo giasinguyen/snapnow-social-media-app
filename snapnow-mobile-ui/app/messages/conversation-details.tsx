@@ -1,13 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
-  FlatList,
+  Alert, DeviceEventEmitter, FlatList,
   Image,
   Modal,
   ScrollView,
@@ -16,8 +16,9 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
+import CreateGroupChatModal from '../../components/CreateGroupChatModal';
 import { auth, db } from '../../config/firebase';
 import { useTheme } from '../../contexts/ThemeContext';
 import { uploadToCloudinary } from '../../services/cloudinary';
@@ -62,6 +63,48 @@ export default function ConversationDetailsScreen() {
   const [otherUserRealtime, setOtherUserRealtime] = useState<{ displayName: string; photoURL: string; username: string } | null>(null);
   const [participantsInfo, setParticipantsInfo] = useState<Map<string, { displayName: string; username: string; photoURL: string }>>(new Map());
   const participantSubscriptions = React.useRef<Map<string, () => void>>(new Map());
+  const [chatTheme, setChatTheme] = useState<'default' | 'purple' | 'blue' | 'dark'>('default');
+
+  const THEME_KEY = conversationId ? `chat_theme_${conversationId}` : 'chat_theme_default';
+  const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
+
+  const applyTheme = async (theme: typeof chatTheme) => {
+    try {
+      // If theme is unchanged, do nothing (no system message)
+      if (theme === chatTheme) return;
+
+      const key = conversationId ? `chat_theme_${conversationId}` : 'chat_theme_default';
+      // update local state and storage
+      setChatTheme(theme);
+      await AsyncStorage.setItem(key, theme);
+      // persist to server so it's global for everyone
+      try {
+        if (conversationId) {
+          // Use setDoc with merge to avoid failures if the conversation doc doesn't exist yet
+          await setDoc(doc(db, 'conversations', conversationId as string), { theme }, { merge: true });
+        }
+      } catch (e) {
+        console.error('Error persisting theme to conversation doc', e);
+      }
+
+      // notify other screens (chat) to update immediately
+      DeviceEventEmitter.emit('chatThemeChanged', { conversationId, theme });
+
+      // Create a small system message in the conversation to show that theme changed
+      try {
+        if (conversationId) {
+          const friendly = theme === 'default' ? 'Default' : theme === 'purple' ? 'Gradient Purple' : theme === 'blue' ? 'Gradient Blue' : 'Dark';
+          const { sendSystemMessage } = require('../../services/messages');
+          const actor = auth.currentUser?.displayName || 'Someone';
+          await sendSystemMessage(conversationId as string, `Chat theme changed to ${friendly} by ${actor}`);
+        }
+      } catch (e) {
+        console.error('Error sending theme change system message', e);
+      }
+    } catch (e) {
+      console.error('Error applying theme', e);
+    }
+  };
 
   useEffect(() => {
     loadConversationData();
@@ -215,6 +258,20 @@ export default function ConversationDetailsScreen() {
     setShowMediaModal(true);
   };
 
+  // Map theme to colors used in this screen
+  const getThemeColors = (theme: typeof chatTheme) => {
+    switch (theme) {
+      case 'purple':
+        return { containerBg: '#F7F3FF', headerBg: '#efe7ff', accent: '#7C4DFF', text: '#1f1f1f' };
+      case 'blue':
+        return { containerBg: '#F0F7FF', headerBg: '#eaf6ff', accent: '#3B82F6', text: '#1f1f1f' };
+      case 'dark':
+        return { containerBg: '#111214', headerBg: '#0b0c0d', accent: '#9CA3AF', text: '#ffffff' };
+      default:
+        return { containerBg: '#ffffff', headerBg: '#ffffff', accent: '#7C4DFF', text: '#000000' };
+    }
+  };
+
   const handleOptions = () => {
     setShowOptionsModal(true);
   };
@@ -288,13 +345,42 @@ export default function ConversationDetailsScreen() {
 
   const handleChangeTheme = () => {
     Alert.alert('Change Theme', 'Choose a chat background theme', [
-      { text: 'Default', onPress: () => {} },
-      { text: 'Gradient Purple', onPress: () => {} },
-      { text: 'Gradient Blue', onPress: () => {} },
-      { text: 'Dark', onPress: () => {} },
+      { text: 'Default', onPress: () => applyTheme('default') },
+      { text: 'Gradient Purple', onPress: () => applyTheme('purple') },
+      { text: 'Gradient Blue', onPress: () => applyTheme('blue') },
+      { text: 'Dark', onPress: () => applyTheme('dark') },
       { text: 'Cancel', style: 'cancel' },
     ]);
   };
+
+  // Load stored theme for this conversation (or default)
+  useEffect(() => {
+    const loadTheme = async () => {
+      try {
+        const key = conversationId ? `chat_theme_${conversationId}` : 'chat_theme_default';
+        const stored = await AsyncStorage.getItem(key);
+        if (stored === 'purple' || stored === 'blue' || stored === 'dark' || stored === 'default') {
+          setChatTheme(stored as any);
+        }
+      } catch (error) {
+        // ignore
+      }
+    };
+
+    loadTheme();
+  }, [conversationId]);
+
+  // If conversation document has a theme field, prefer that (server-side setting)
+  useEffect(() => {
+    const serverTheme = (conversation as any)?.theme as typeof chatTheme | undefined;
+    if (serverTheme && serverTheme !== chatTheme) {
+      setChatTheme(serverTheme);
+      // keep local cache in sync
+      const key = conversationId ? `chat_theme_${conversationId}` : 'chat_theme_default';
+      AsyncStorage.setItem(key, serverTheme).catch(() => {});
+      DeviceEventEmitter.emit('chatThemeChanged', { conversationId, theme: serverTheme });
+    }
+  }, [conversation]);
 
   const handleChangeNickname = () => {
     setNicknameInput(nickname);
@@ -486,12 +572,15 @@ export default function ConversationDetailsScreen() {
     );
   };
 
+  const themeColors = getThemeColors(chatTheme);
+
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={colors.background === '#000000' ? 'light-content' : 'dark-content'} backgroundColor={colors.backgroundWhite} />
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+
+    <View style={[styles.container, { backgroundColor: themeColors.containerBg }]}>
+      <StatusBar barStyle={chatTheme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={themeColors.headerBg} />
+      <ScrollView style={[styles.content, { backgroundColor: themeColors.containerBg }]} showsVerticalScrollIndicator={false}>
         {/* User/Group Info */}
-        <View style={styles.userSection}>
+        <View style={[styles.userSection, { backgroundColor: themeColors.headerBg }]}>
           {isGroupChat ? (
             // Group chat header
             <>
@@ -573,12 +662,14 @@ export default function ConversationDetailsScreen() {
         {/* Theme */}
         <TouchableOpacity style={styles.menuItem} onPress={handleChangeTheme}>
           <View style={styles.menuLeft}>
-            <View style={[styles.menuIcon, { backgroundColor: '#7C4DFF' }]}>
+            <View style={[styles.menuIcon, { backgroundColor: themeColors.accent }]}>
               <View style={styles.themeCircle} />
             </View>
             <View style={styles.menuTextContainer}>
-              <Text style={[styles.menuText, { color: colors.textPrimary }]}>Theme</Text>
-              <Text style={[styles.menuSubtext, { color: colors.textSecondary }]}>Default</Text>
+              <Text style={[styles.menuText, { color: themeColors.text }]}>Theme</Text>
+              <Text style={[styles.menuSubtext, { color: themeColors.text }]}>
+                {chatTheme === 'default' ? 'Default' : chatTheme === 'purple' ? 'Gradient Purple' : chatTheme === 'blue' ? 'Gradient Blue' : 'Dark'}
+              </Text>
             </View>
           </View>
         </TouchableOpacity>
@@ -653,7 +744,7 @@ export default function ConversationDetailsScreen() {
 
         {/* Create a group chat - only for 1-on-1 */}
         {!isGroupChat && (
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => setShowCreateGroupModal(true)}>
             <View style={styles.menuLeft}>
               <View style={styles.menuIconContainer}>
                 <Ionicons name="people-outline" size={24} color={colors.textPrimary} />
@@ -1076,6 +1167,18 @@ export default function ConversationDetailsScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Create Group Modal (opened from menu) */}
+      <CreateGroupChatModal
+        visible={showCreateGroupModal}
+        onClose={() => setShowCreateGroupModal(false)}
+        onGroupCreated={(groupId) => {
+          setShowCreateGroupModal(false);
+          // navigate to the new group chat
+          router.push(`/group/${groupId}` as any);
+        }}
+        initialSelectedUserIds={otherUserId ? [otherUserId as string] : []}
+      />
     </View>
   );
 }

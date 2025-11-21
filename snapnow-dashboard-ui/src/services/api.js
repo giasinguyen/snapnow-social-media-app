@@ -31,8 +31,8 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Redirect to login if unauthorized
-      window.location.href = '/login';
+      // Log unauthorized error but don't auto-redirect
+      console.error('Unauthorized request:', error.response?.data?.message);
     }
     return Promise.reject(error);
   }
