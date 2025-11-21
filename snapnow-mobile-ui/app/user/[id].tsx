@@ -85,13 +85,8 @@ export default function UserProfileScreen() {
 
               
       // Fetch follower and following counts
-      const [userCountFollower, userCountFollowing] = await Promise.all([
-        (await getFollowers(userData.id)).length,
-        (await getFollowing(userData.id)).length
-        ]);
-        setCountFollowers(userCountFollower);
-        setCountFollowing(userCountFollowing);
-
+        setCountFollowers((await getFollowers(userData.id)).length);
+        setCountFollowing((await getFollowing(userData.id)).length);
       }
       
       // Check if current user is following this user

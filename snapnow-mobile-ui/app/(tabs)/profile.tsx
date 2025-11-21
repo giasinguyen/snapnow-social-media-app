@@ -103,12 +103,8 @@ export default function ProfileScreen() {
         setTaggedPosts(tagged);
         setLoadingTagged(false);
 
-           const [userCountFollower, userCountFollowing] = await Promise.all([
-                (await getFollowers(currentUser.id)).length,
-                (await getFollowing(currentUser.id)).length
-              ]);
-              setCountFollowers(userCountFollower);
-              setCountFollowing(userCountFollowing);
+        setCountFollowers((await getFollowers(currentUser.id)).length);
+        setCountFollowing((await getFollowing(currentUser.id)).length);
               
       }
     } catch (err) {

@@ -25,8 +25,8 @@ import { User } from '../../../types';
 export default function UserFollowScreen() {
   const { type, userId } = useLocalSearchParams<{ type: 'followers' | 'following'; userId?: string }>();
   const [activeTab, setActiveTab] = useState<'followers' | 'following'>(type || 'followers');
-  const [followers, setFollowers] = useState<User[]>([]);
-  const [following, setFollowing] = useState<User[]>([]);
+  const [followers, setFollowers] = useState<User[]>([]);   // 
+  const [following, setFollowing] = useState<User[]>([]);    //
   const [filteredFollowers, setFilteredFollowers] = useState<User[]>([]);
   const [filteredFollowing, setFilteredFollowing] = useState<User[]>([]);
   const [targetUserId, setTargetUserId] = useState<string>('');
@@ -317,8 +317,11 @@ export default function UserFollowScreen() {
     setActiveTab(newTab);
     
     // Update the URL to reflect the current tab
-    const newPath = `/user/follow/${newTab}${userId ? `?userId=${userId}` : ''}`;
-    router.replace(newPath as any);
+    // const newPath = `/user/follow/${newTab}${userId ? `?userId=${userId}` : ''}`;
+    // router.replace(newPath as any);
+     // Do not trigger a router navigation here to avoid remounting/reloading the screen.
+    // We intentionally keep URL sync out-of-band to prevent expensive reloads when switching tabs.
+
   };
 
   const renderUserItem = ({ item }: { item: User }) => (
