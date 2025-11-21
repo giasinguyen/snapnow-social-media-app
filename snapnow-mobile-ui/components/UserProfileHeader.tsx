@@ -1,5 +1,3 @@
-"use client"
-
 import { useEffect, useState } from "react"
 import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { Ionicons } from '@expo/vector-icons';

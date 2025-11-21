@@ -33,7 +33,10 @@ import { fetchUserPosts } from '../../services/posts';
 import { cleanupExpiredSnaps, createSnap, fetchUserSnaps, Snap } from '../../services/snaps';
 import { getUserStories, Story } from '../../services/stories';
 import { fetchTaggedPosts } from '../../services/tagged';
+//
 import { Post } from '../../types';
+import { getFollowers, getFollowing } from '../../services/follow';
+//
 
 const { width } = Dimensions.get('window');
 const POST_SIZE = (width - 2) / 3; // 2px total gap, 1px between each
@@ -60,6 +63,10 @@ export default function ProfileScreen() {
   const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(null);
   const [userStories, setUserStories] = useState<Story[]>([]);
   const [showAvatarViewer, setShowAvatarViewer] = useState(false);
+
+  const [counFtollowers, setCountFollowers] = useState(0);   // 
+  const [countFollowing, setCountFollowing] = useState(0);   //
+
   const router = useRouter();
 
   const loadProfile = async () => {
@@ -95,6 +102,14 @@ export default function ProfileScreen() {
         const tagged = await fetchTaggedPosts(currentUser.username);
         setTaggedPosts(tagged);
         setLoadingTagged(false);
+
+           const [userCountFollower, userCountFollowing] = await Promise.all([
+                (await getFollowers(currentUser.id)).length,
+                (await getFollowing(currentUser.id)).length
+              ]);
+              setCountFollowers(userCountFollower);
+              setCountFollowing(userCountFollowing);
+              
       }
     } catch (err) {
       console.error('Failed to load profile', err);
@@ -375,6 +390,8 @@ export default function ProfileScreen() {
               <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Snaps</Text>
             </TouchableOpacity>
             <View style={[styles.statDivider, { backgroundColor: colors.borderLight }]} />
+
+              //Fix load followers/following count real-time update issue
             <TouchableOpacity 
               style={styles.statItem}
               onPress={() => {
@@ -382,7 +399,8 @@ export default function ProfileScreen() {
                 router.push(`/user/follow/followers?userId=${profile.id}`);
               }}
             >
-              <Text style={[styles.statNumber, { color: colors.textPrimary }]}>{formatFollowers(profile.followersCount ?? 1234)}</Text>
+              {/* <Text style={[styles.statNumber, { color: colors.textPrimary }]}>{formatFollowers(profile.followersCount ?? 1234)}</Text> */}
+              <Text style={[styles.statNumber, { color: colors.textPrimary }]}>{formatFollowers(counFtollowers ?? 1234)}</Text>
               <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Followers</Text>
             </TouchableOpacity>
             <View style={[styles.statDivider, { backgroundColor: colors.borderLight }]} />
@@ -393,9 +411,12 @@ export default function ProfileScreen() {
                 router.push(`/user/follow/following?userId=${profile.id}`);
               }}
             >
-              <Text style={[styles.statNumber, { color: colors.textPrimary }]}>{profile.followingCount ?? 567}</Text>
+              {/* <Text style={[styles.statNumber, { color: colors.textPrimary }]}>{profile.followingCount ?? 567}</Text> */}
+              <Text style={[styles.statNumber, { color: colors.textPrimary }]}>{countFollowing ?? 567}</Text>
               <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Following</Text>
             </TouchableOpacity>
+
+
             <View style={[styles.statDivider, { backgroundColor: colors.borderLight }]} />
           </View>
 
