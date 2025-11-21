@@ -22,6 +22,7 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log('Auth state changed:', user ? 'User logged in' : 'No user');
       setUser(user);
       setLoading(false);
     });
@@ -32,8 +33,10 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
+      console.log('Login successful:', result.user.email);
       return result;
     } catch (error) {
+      console.error('Login error:', error);
       throw error;
     }
   };
@@ -41,7 +44,9 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       await signOut(auth);
+      console.log('Logout successful');
     } catch (error) {
+      console.error('Logout error:', error);
       throw error;
     }
   };

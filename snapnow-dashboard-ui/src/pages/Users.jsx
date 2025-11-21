@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Search, UserCheck, UserX, Eye, MoreVertical, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, UserCheck, UserX, Eye, MoreVertical, ChevronLeft, ChevronRight, Ban, Shield, ShieldCheck, CheckCircle } from 'lucide-react';
 import analyticsService from '../services/analyticsService';
+import userService from '../services/userService';
 
 const Users = () => {
   const [users, setUsers] = useState([]);
@@ -11,6 +12,9 @@ const Users = () => {
   const [pagination, setPagination] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [showUserModal, setShowUserModal] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [showBanModal, setShowBanModal] = useState(false);
+  const [banReason, setBanReason] = useState('');
 
   useEffect(() => {
     loadUsers();
@@ -51,6 +55,72 @@ const Users = () => {
       month: 'short', 
       day: 'numeric' 
     });
+  };
+
+  const handleBanUser = async () => {
+    if (!banReason.trim()) {
+      alert('Please provide a reason for banning this user');
+      return;
+    }
+    
+    try {
+      setActionLoading(true);
+      await userService.updateUserStatus(selectedUser.id, 'banned', banReason);
+      
+      // Update local state
+      setSelectedUser({ ...selectedUser, status: 'banned', banReason });
+      setUsers(users.map(u => u.id === selectedUser.id ? { ...u, status: 'banned' } : u));
+      
+      setShowBanModal(false);
+      setBanReason('');
+      alert('User banned successfully');
+    } catch (err) {
+      console.error('Error banning user:', err);
+      alert('Failed to ban user: ' + err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUnbanUser = async () => {
+    if (!confirm('Are you sure you want to unban this user?')) return;
+    
+    try {
+      setActionLoading(true);
+      await userService.updateUserStatus(selectedUser.id, 'active');
+      
+      // Update local state
+      setSelectedUser({ ...selectedUser, status: 'active', banReason: null });
+      setUsers(users.map(u => u.id === selectedUser.id ? { ...u, status: 'active' } : u));
+      
+      alert('User unbanned successfully');
+    } catch (err) {
+      console.error('Error unbanning user:', err);
+      alert('Failed to unban user: ' + err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUpdateRole = async (newRole) => {
+    const roleAction = newRole === 'admin' ? 'promote to Admin' : 'demote to User';
+    if (!confirm(`Are you sure you want to ${roleAction}?`)) return;
+    
+    try {
+      setActionLoading(true);
+      await userService.updateUserRole(selectedUser.id, newRole);
+      
+      // Update local state
+      setSelectedUser({ ...selectedUser, role: newRole, isAdmin: newRole === 'admin' });
+      setUsers(users.map(u => u.id === selectedUser.id ? { ...u, role: newRole } : u));
+      
+      alert(`User role updated to ${newRole} successfully`);
+    } catch (err) {
+      console.error('Error updating role:', err);
+      alert('Failed to update role: ' + err.message);
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   if (loading && users.length === 0) {
@@ -230,16 +300,16 @@ const Users = () => {
 
       {/* User Details Modal */}
       {showUserModal && selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50 modal-backdrop" onClick={() => setShowUserModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-gray-900">User Details</h2>
                 <button
                   onClick={() => setShowUserModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  ✕
+                  <span className="text-xl">×</span>
                 </button>
               </div>
             </div>
@@ -252,10 +322,75 @@ const Users = () => {
                   className="w-20 h-20 rounded-full object-cover"
                 />
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-900">{selectedUser.username}</h3>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-xl font-bold text-gray-900">{selectedUser.username}</h3>
+                    {selectedUser.role === 'admin' && (
+                      <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded">
+                        Admin
+                      </span>
+                    )}
+                    <span className={`px-2 py-0.5 text-xs font-medium rounded ${
+                      selectedUser.status === 'banned' 
+                        ? 'bg-red-100 text-red-700' 
+                        : 'bg-green-100 text-green-700'
+                    }`}>
+                      {selectedUser.status === 'banned' ? 'Banned' : 'Active'}
+                    </span>
+                  </div>
                   <p className="text-gray-600">{selectedUser.fullName || 'No name'}</p>
                   <p className="text-gray-500 text-sm mt-1">{selectedUser.email || 'No email'}</p>
                 </div>
+              </div>
+
+              {/* Ban Reason */}
+              {selectedUser.status === 'banned' && selectedUser.banReason && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <h4 className="font-semibold text-red-900 mb-1 text-sm">Ban Reason</h4>
+                  <p className="text-red-700 text-sm">{selectedUser.banReason}</p>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-3 pt-2 border-t border-gray-200">
+                {selectedUser.status === 'active' ? (
+                  <button
+                    onClick={() => setShowBanModal(true)}
+                    disabled={actionLoading}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Ban className="w-4 h-4" />
+                    Ban User
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleUnbanUser}
+                    disabled={actionLoading}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    Unban User
+                  </button>
+                )}
+
+                {selectedUser.role !== 'admin' ? (
+                  <button
+                    onClick={() => handleUpdateRole('admin')}
+                    disabled={actionLoading}
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ShieldCheck className="w-4 h-4" />
+                    Make Admin
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleUpdateRole('user')}
+                    disabled={actionLoading}
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Shield className="w-4 h-4" />
+                    Remove Admin
+                  </button>
+                )}
               </div>
 
               {/* Stats */}
@@ -300,6 +435,57 @@ const Users = () => {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Ban User Modal */}
+      {showBanModal && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-60 modal-backdrop" onClick={() => setShowBanModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">Ban User</h2>
+                <button
+                  onClick={() => setShowBanModal(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <span className="text-xl">×</span>
+                </button>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-gray-600">
+                You are about to ban <span className="font-semibold">{selectedUser?.username}</span>. 
+                Please provide a reason:
+              </p>
+              <textarea
+                value={banReason}
+                onChange={(e) => setBanReason(e.target.value)}
+                placeholder="Enter ban reason (e.g., spam, inappropriate content, harassment)"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+                rows="4"
+              />
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleBanUser}
+                  disabled={actionLoading || !banReason.trim()}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {actionLoading ? 'Banning...' : 'Confirm Ban'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowBanModal(false);
+                    setBanReason('');
+                  }}
+                  disabled={actionLoading}
+                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         </div>
