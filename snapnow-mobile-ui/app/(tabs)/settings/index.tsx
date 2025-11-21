@@ -2,19 +2,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { showInAppNotification } from '../../../components/InAppNotification';
+import ThemeSelector from '../../../components/ThemeSelector';
+import { useTheme } from '../../../contexts/ThemeContext';
 import { AuthService } from '../../../services/authService';
 import { checkNotificationPermissions } from '../../../services/notificationPermissions';
-import { showMessageNotification } from '../../../services/pushNotifications';
 
 interface SettingItemProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -39,38 +39,40 @@ function SettingItem({
   isSwitch = false,
   isDanger = false,
 }: SettingItemProps) {
+  const { colors } = useTheme();
+  
   return (
     <TouchableOpacity
-      style={styles.settingItem}
+      style={[styles.settingItem, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.borderLight }]}
       onPress={onPress}
       disabled={isSwitch}
       activeOpacity={0.6}
     >
       <View style={styles.settingLeft}>
-        <View style={[styles.iconContainer, isDanger && styles.iconDanger]}>
+        <View style={[styles.iconContainer, isDanger && styles.iconDanger, { backgroundColor: colors.backgroundGray }]}>
           <Ionicons
             name={icon}
             size={22}
-            color={isDanger ? '#ED4956' : '#262626'}
+            color={isDanger ? '#ED4956' : colors.textPrimary}
           />
         </View>
         <View style={styles.settingTextContainer}>
-          <Text style={[styles.settingTitle, isDanger && styles.dangerText]}>
+          <Text style={[styles.settingTitle, isDanger && styles.dangerText, { color: colors.textPrimary }]}>
             {title}
           </Text>
-          {subtitle && <Text style={styles.settingSubtitle}>{subtitle}</Text>}
+          {subtitle && <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>{subtitle}</Text>}
         </View>
       </View>
       {isSwitch ? (
         <Switch
           value={value}
           onValueChange={onValueChange}
-          trackColor={{ false: '#DBDBDB', true: '#0095F6' }}
+          trackColor={{ false: colors.border, true: '#0095F6' }}
           thumbColor="#fff"
         />
       ) : (
         showArrow && (
-          <Ionicons name="chevron-forward" size={20} color="#8E8E8E" />
+          <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
         )
       )}
     </TouchableOpacity>
@@ -83,10 +85,12 @@ interface SettingSectionProps {
 }
 
 function SettingSection({ title, children }: SettingSectionProps) {
+  const { colors } = useTheme();
+  
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <View style={styles.sectionContent}>{children}</View>
+      <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{title}</Text>
+      <View style={[styles.sectionContent, { backgroundColor: colors.backgroundWhite, borderColor: colors.borderLight }]}>{children}</View>
     </View>
   );
 }
@@ -94,6 +98,14 @@ function SettingSection({ title, children }: SettingSectionProps) {
 export default function SettingsScreen() {
   const router = useRouter();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [showThemeSelector, setShowThemeSelector] = useState(false);
+  const { isDark, themeMode, colors } = useTheme();
+
+  const getThemeLabel = () => {
+    if (themeMode === 'light') return 'Light';
+    if (themeMode === 'dark') return 'Dark';
+    return 'Auto (System)';
+  };
 
   const handleLogout = async () => {
     Alert.alert(
@@ -144,17 +156,27 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#262626" />
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Settings</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Settings</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Appearance */}
+        <SettingSection title="Appearance">
+          <SettingItem
+            icon="color-palette-outline"
+            title="Theme"
+            subtitle={getThemeLabel()}
+            onPress={() => setShowThemeSelector(true)}
+          />
+        </SettingSection>
+
         {/* Account Settings */}
         <SettingSection title="Account">
           <SettingItem
@@ -203,35 +225,6 @@ export default function SettingsScreen() {
                 'Permissions Check',
                 'Check console logs for detailed permission status'
               );
-            }}
-          />
-          <SettingItem
-            icon="flask-outline"
-            title="Test In-App Notification"
-            subtitle="Test notification banner in app"
-            onPress={() => {
-              showInAppNotification({
-                title: 'Test User',
-                message: 'This is a test notification!',
-                conversationId: 'test-conversation',
-              });
-            }}
-          />
-          <SettingItem
-            icon="flash-outline"
-            title="Test System Notification"
-            subtitle="Test system notification (background)"
-            onPress={async () => {
-              try {
-                await showMessageNotification(
-                  'Test User',
-                  'This is a test system notification!',
-                  'test-conversation'
-                );
-                Alert.alert('Success', 'Notification sent! (Check if app is in background)');
-              } catch {
-                Alert.alert('Error', 'Failed to send notification');
-              }
             }}
           />
           <SettingItem
@@ -329,6 +322,11 @@ export default function SettingsScreen() {
           </Text>
         </View>
       </ScrollView>
+
+      <ThemeSelector
+        visible={showThemeSelector}
+        onClose={() => setShowThemeSelector(false)}
+      />
     </SafeAreaView>
   );
 }

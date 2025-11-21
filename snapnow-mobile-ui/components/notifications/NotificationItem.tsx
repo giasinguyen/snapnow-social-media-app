@@ -3,6 +3,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Notification } from '../../types';
 
 interface NotificationItemProps {
@@ -11,6 +12,7 @@ interface NotificationItemProps {
 }
 
 export const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onPress }) => {
+  const { colors } = useTheme();
   const router = useRouter();
 
   const getIcon = () => {
@@ -100,18 +102,22 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
 
   return (
     <TouchableOpacity
-      style={[styles.container, !notification.isRead && styles.unread]}
+      style={[
+        styles.container,
+        { backgroundColor: colors.backgroundWhite },
+        !notification.isRead && { backgroundColor: colors.backgroundGray }
+      ]}
       onPress={handlePress}
       activeOpacity={0.7}
     >
       <View style={styles.leftContent}>
         {renderAvatar()}
         <View style={styles.textContainer}>
-          <Text style={styles.message} numberOfLines={2}>
-            <Text style={styles.username}>{notification.fromUsername}</Text>
-            <Text style={styles.messageText}> {notification.message}</Text>
+          <Text style={[styles.message, { color: colors.textPrimary }]} numberOfLines={2}>
+            <Text style={[styles.username, { color: colors.textPrimary }]}>{notification.fromUsername}</Text>
+            <Text style={[styles.messageText, { color: colors.textSecondary }]}> {notification.message}</Text>
           </Text>
-          <Text style={styles.time}>{formatTime(notification.createdAt)}</Text>
+          <Text style={[styles.time, { color: colors.textSecondary }]}>{formatTime(notification.createdAt)}</Text>
         </View>
       </View>
       {renderPostImage()}
@@ -126,10 +132,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
   },
   unread: {
-    backgroundColor: '#F0F8FF',
+    // Removed - using dynamic colors
   },
   leftContent: {
     flexDirection: 'row',
@@ -175,19 +180,15 @@ const styles = StyleSheet.create({
   message: {
     fontSize: 13,
     lineHeight: 17,
-    color: '#262626',
   },
   username: {
     fontWeight: '600',
-    color: '#262626',
   },
   messageText: {
     fontWeight: '400',
-    color: '#262626',
   },
   time: {
     fontSize: 11,
-    color: '#8E8E8E',
     marginTop: 3,
   },
   postImage: {

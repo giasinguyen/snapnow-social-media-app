@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import CreateGroupChatModal from '../../components/CreateGroupChatModal';
 import { auth, db } from '../../config/firebase';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   archiveConversation,
   Conversation,
@@ -27,6 +28,7 @@ import {
 } from '../../services/conversations';
 
 export default function MessagesScreen() {
+  const { colors } = useTheme();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -295,14 +297,14 @@ export default function MessagesScreen() {
       <TouchableOpacity
         onPress={() => handleConversationPress(item)}
         onLongPress={() => showConversationOptions(item)}
-        style={styles.conversationItem}
+        style={[styles.conversationItem, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.backgroundGray }]}
         activeOpacity={0.7}
       >
         {/* Avatar with online indicator */}
         <View style={styles.avatarContainer}>
           <Image
             source={{ uri: avatarUri }}
-            style={styles.avatar}
+            style={[styles.avatar, { backgroundColor: colors.borderLight }]}
           />
           {item.isGroupChat && (
             <View style={styles.groupBadge}>
@@ -314,17 +316,17 @@ export default function MessagesScreen() {
         {/* Message Info */}
         <View style={styles.messageInfo}>
           <View style={styles.nameRow}>
-            <Text style={[styles.username, isUnread && styles.usernameUnread]} numberOfLines={1}>
+            <Text style={[styles.username, { color: colors.textPrimary }, isUnread && styles.usernameUnread]} numberOfLines={1}>
               {displayName}
             </Text>
             {timeText && (
-              <Text style={styles.timestamp}>{timeText}</Text>
+              <Text style={[styles.timestamp, { color: colors.textSecondary }]}>{timeText}</Text>
             )}
           </View>
 
           <View style={styles.messageRow}>
             <Text
-              style={[styles.lastMessage, isUnread && styles.lastMessageUnread]}
+              style={[styles.lastMessage, { color: colors.textSecondary }, isUnread && [styles.lastMessageUnread, { color: colors.textPrimary }]]}
               numberOfLines={2}
             >
               {lastMessageText || 'No messages yet'}
@@ -345,8 +347,8 @@ export default function MessagesScreen() {
       return (
         <View style={styles.emptyState}>
           <Ionicons name="alert-circle-outline" size={80} color="#ef4444" />
-          <Text style={styles.emptyTitle}>Error Loading Messages</Text>
-          <Text style={styles.emptySubtitle}>{error}</Text>
+          <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>Error Loading Messages</Text>
+          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>{error}</Text>
           <TouchableOpacity
             onPress={handleRefresh}
             style={{
@@ -365,9 +367,9 @@ export default function MessagesScreen() {
 
     return (
       <View style={styles.emptyState}>
-        <Ionicons name="chatbubbles-outline" size={80} color="#d1d5db" />
-        <Text style={styles.emptyTitle}>No Messages Yet</Text>
-        <Text style={styles.emptySubtitle}>
+        <Ionicons name="chatbubbles-outline" size={80} color={colors.borderLight} />
+        <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>No Messages Yet</Text>
+        <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
           Start a conversation by visiting someone&apos;s profile
         </Text>
       </View>
@@ -376,7 +378,7 @@ export default function MessagesScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#fc8727ff" />
         </View>
@@ -385,42 +387,42 @@ export default function MessagesScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header with Archive Toggle */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.backgroundGray }]}>
         {/* Archive Toggle */}
-        <View style={styles.tabContainer}>
+        <View style={[styles.tabContainer, { backgroundColor: colors.backgroundGray }]}>
           <TouchableOpacity
             onPress={() => setShowArchived(false)}
-            style={[styles.tab, !showArchived && styles.activeTab]}
+            style={[styles.tab, !showArchived && [styles.activeTab, { backgroundColor: colors.backgroundWhite }]]}
           >
-            <Text style={[styles.tabText, !showArchived && styles.activeTabText]}>
+            <Text style={[styles.tabText, { color: colors.textSecondary }, !showArchived && [styles.activeTabText, { color: colors.textPrimary }]]}>
               Messages
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setShowArchived(true)}
-            style={[styles.tab, showArchived && styles.activeTab]}
+            style={[styles.tab, showArchived && [styles.activeTab, { backgroundColor: colors.backgroundWhite }]]}
           >
-            <Text style={[styles.tabText, showArchived && styles.activeTabText]}>
+            <Text style={[styles.tabText, { color: colors.textSecondary }, showArchived && [styles.activeTabText, { color: colors.textPrimary }]]}>
               Archived
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#9ca3af" style={styles.searchIcon} />
+        <View style={[styles.searchContainer, { backgroundColor: colors.backgroundGray }]}>
+          <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
           <TextInput
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholder="Search messages..."
-            placeholderTextColor="#9ca3af"
-            style={styles.searchInput}
+            placeholderTextColor={colors.textSecondary}
+            style={[styles.searchInput, { color: colors.textPrimary }]}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')} style={{ padding: 4 }}>
-              <Ionicons name="close-circle" size={20} color="#9ca3af" />
+              <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
@@ -430,7 +432,7 @@ export default function MessagesScreen() {
       {!showArchived && (
         <TouchableOpacity
           onPress={() => router.push('/messages/ai-chat')}
-          style={[styles.conversationItem, styles.aiChatItem]}
+          style={[styles.conversationItem, styles.aiChatItem, { backgroundColor: colors.backgroundGray, borderBottomColor: colors.borderLight }]}
           activeOpacity={0.7}
         >
           <View style={styles.avatarContainer}>
@@ -440,14 +442,14 @@ export default function MessagesScreen() {
           </View>
           <View style={styles.messageInfo}>
             <View style={styles.nameRow}>
-              <Text style={[styles.username, styles.aiChatUsername]}>
+              <Text style={[styles.username, styles.aiChatUsername, { color: colors.textPrimary }]}>
                 SnapNow AI
               </Text>
               <View style={styles.aiBadge}>
                 <Text style={styles.aiBadgeText}>AI</Text>
               </View>
             </View>
-            <Text style={styles.lastMessage} numberOfLines={1}>
+            <Text style={[styles.lastMessage, { color: colors.textSecondary }]} numberOfLines={1}>
               Hỏi tôi bất cứ điều gì về chụp ảnh, caption, ý tưởng... ✨
             </Text>
           </View>

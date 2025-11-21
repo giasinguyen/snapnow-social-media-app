@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Dimensions, Modal, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 import { BarChart } from "react-native-chart-kit";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from '../../../contexts/ThemeContext';
 import {
     forceUpdateSession,
     getDailyLimit,
@@ -19,6 +20,7 @@ import {
 const screenWidth = Dimensions.get("window").width;
 
 export default function TimeSpentScreen() {
+    const { colors } = useTheme();
     const [showLimitModal, setShowLimitModal] = useState(false);
     const [dailyLimit, setDailyLimit] = useState<number | null>(null);
     const [showSleepModal, setShowSleepModal] = useState(false);
@@ -107,14 +109,14 @@ export default function TimeSpentScreen() {
     };
 
     return (
-        <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+        <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={["top", "bottom"]}>
             {/* Header */}
-            <View style={styles.header}>
+            <View style={[styles.header, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.borderLight }]}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                    <Ionicons name="arrow-back" size={24} color="#000" />
+                    <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Time Management</Text>
-                <Ionicons name="information-circle-outline" size={22} color="#555" />
+                <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Time Management</Text>
+                <Ionicons name="information-circle-outline" size={22} color={colors.textSecondary} />
             </View>
 
             {/* Content */}

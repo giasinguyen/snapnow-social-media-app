@@ -2,21 +2,22 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  FlatList,
-  Image,
-  Modal,
-  PanResponder,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    FlatList,
+    Image,
+    Modal,
+    PanResponder,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '../../../contexts/ThemeContext';
 import { getFollowers, getFollowing, removeFollower, unfollowUser } from '../../../services/follow';
 import { UserService } from '../../../services/user';
 import { User } from '../../../types';
@@ -38,6 +39,7 @@ export default function UserFollowScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const { width: screenWidth } = Dimensions.get('window');
   const router = useRouter();
+  const { colors } = useTheme();
 
   // Pan responder for swipe gestures
   const panResponder = useRef(
@@ -320,7 +322,7 @@ export default function UserFollowScreen() {
   };
 
   const renderUserItem = ({ item }: { item: User }) => (
-    <View style={styles.userItem}>
+    <View style={[styles.userItem, { backgroundColor: colors.background }]}>
       <TouchableOpacity 
         style={styles.userTouchable} 
         onPress={() => handleUserPress(item.id)}
@@ -328,8 +330,8 @@ export default function UserFollowScreen() {
         {item.profileImage ? (
           <Image source={{ uri: item.profileImage }} style={styles.avatar} />
         ) : (
-          <View style={[styles.avatar, styles.avatarPlaceholder]}>
-            <Text style={styles.avatarText}>
+          <View style={[styles.avatar, styles.avatarPlaceholder, { backgroundColor: colors.backgroundGray }]}>
+            <Text style={[styles.avatarText, { color: colors.textSecondary }]}>
               {item.displayName?.charAt(0).toUpperCase() || item.username?.charAt(0).toUpperCase() || '?'}
             </Text>
           </View>
@@ -344,10 +346,10 @@ export default function UserFollowScreen() {
       {isOwnProfile && (
         <View style={styles.actionContainer}>
           <TouchableOpacity 
-            style={styles.actionButton}
+            style={[styles.actionButton, { backgroundColor: colors.backgroundGray }]}
             onPress={() => handleMessage(item.id, item)}
           >
-            <Text style={styles.actionButtonText}>Message</Text>
+            <Text style={[styles.actionButtonText, { color: colors.textPrimary }]}>Message</Text>
           </TouchableOpacity>
           
           {activeTab === 'followers' ? (
@@ -355,7 +357,7 @@ export default function UserFollowScreen() {
               style={styles.deleteButton}
               onPress={() => handleRemoveFollower(item.id, item.username)}
             >
-              <Ionicons name="close" size={20} color="#8E8E8E" />
+              <Ionicons name="close" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           ) : (
             <TouchableOpacity 
@@ -365,7 +367,7 @@ export default function UserFollowScreen() {
                 setShowDropdown(showDropdown === item.id ? null : item.id);
               }}
             >
-              <Ionicons name="ellipsis-vertical" size={20} color="#8E8E8E" />
+              <Ionicons name="ellipsis-vertical" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
@@ -378,12 +380,12 @@ export default function UserFollowScreen() {
       <Ionicons 
         name={activeTab === 'followers' ? 'people-outline' : 'person-add-outline'} 
         size={64} 
-        color="#DBDBDB" 
+        color={colors.textSecondary} 
       />
-      <Text style={styles.emptyTitle}>
+      <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
         {activeTab === 'followers' ? 'No Followers Yet' : 'Not Following Anyone'}
       </Text>
-      <Text style={styles.emptySubtitle}>
+      <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
         {activeTab === 'followers' 
           ? 'When people follow this account, they\'ll appear here.'
           : 'When this account follows people, they\'ll appear here.'
@@ -395,13 +397,13 @@ export default function UserFollowScreen() {
   const currentList = activeTab === 'followers' ? filteredFollowers : filteredFollowing;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#000000" />
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
           {targetUser ? targetUser.username : 'Your Profile'}
         </Text>
         
@@ -409,17 +411,18 @@ export default function UserFollowScreen() {
       </View>
 
       {/* Tab Navigation */}
-      <View style={styles.tabContainer}>
+      <View style={[styles.tabContainer, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
         <TouchableOpacity
           style={[
             styles.tab,
-            activeTab === 'followers' && styles.activeTab
+            activeTab === 'followers' && { borderBottomColor: colors.textPrimary }
           ]}
           onPress={() => handleTabChange('followers')}
         >
           <Text style={[
             styles.tabText,
-            activeTab === 'followers' && styles.activeTabText
+            { color: activeTab === 'followers' ? colors.textPrimary : colors.textSecondary },
+            activeTab === 'followers' && { fontWeight: '600' }
           ]}>
             {followers.length} followers
           </Text>
@@ -428,13 +431,14 @@ export default function UserFollowScreen() {
         <TouchableOpacity
           style={[
             styles.tab,
-            activeTab === 'following' && styles.activeTab
+            activeTab === 'following' && { borderBottomColor: colors.textPrimary }
           ]}
           onPress={() => handleTabChange('following')}
         >
           <Text style={[
             styles.tabText,
-            activeTab === 'following' && styles.activeTabText
+            { color: activeTab === 'following' ? colors.textPrimary : colors.textSecondary },
+            activeTab === 'following' && { fontWeight: '600' }
           ]}>
             {following.length} following
           </Text>
@@ -442,13 +446,13 @@ export default function UserFollowScreen() {
       </View>
 
       {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchInputContainer}>
-          <Ionicons name="search" size={16} color="#8E8E8E" style={styles.searchIcon} />
+      <View style={[styles.searchContainer, { backgroundColor: colors.background }]}>
+        <View style={[styles.searchInputContainer, { backgroundColor: colors.backgroundGray }]}>
+          <Ionicons name="search" size={16} color={colors.textSecondary} style={styles.searchIcon} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.textPrimary }]}
             placeholder="Search"
-            placeholderTextColor="#8E8E8E"
+            placeholderTextColor={colors.textSecondary}
             value={searchQuery}
             onChangeText={handleSearch}
           />
@@ -456,10 +460,10 @@ export default function UserFollowScreen() {
       </View>
 
       {/* Content */}
-      <View style={styles.contentContainer} {...panResponder.panHandlers}>
+      <View style={[styles.contentContainer, { backgroundColor: colors.background }]} {...panResponder.panHandlers}>
         {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#0095F6" />
+          <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+            <ActivityIndicator size="large" color={colors.blue} />
           </View>
         ) : (
           <FlatList
@@ -490,7 +494,7 @@ export default function UserFollowScreen() {
             }}
           >
             <View style={styles.dropdownContainer}>
-              <View style={styles.dropdown}>
+              <View style={[styles.dropdown, { backgroundColor: colors.backgroundWhite }]}>
                 <TouchableOpacity 
                   style={styles.dropdownItem}
                   onPress={() => {
@@ -512,7 +516,7 @@ export default function UserFollowScreen() {
                     }
                   }}
                 >
-                  <Text style={styles.dropdownText}>Mute</Text>
+                  <Text style={[styles.dropdownText, { color: colors.textPrimary }]}>Mute</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -526,7 +530,6 @@ export default function UserFollowScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
@@ -534,7 +537,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
   },
   backButton: {
     padding: 4,
@@ -542,16 +544,13 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
   },
   headerSpacer: {
     width: 32,
   },
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
     borderBottomWidth: 0.5,
-    borderBottomColor: '#DBDBDB',
   },
   tab: {
     flex: 1,
@@ -560,27 +559,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'transparent',
   },
-  activeTab: {
-    borderBottomColor: '#000000',
-  },
   tabText: {
     fontSize: 15,
     fontWeight: '400',
-    color: '#8E8E8E',
-  },
-  activeTabText: {
-    color: '#000000',
-    fontWeight: '600',
   },
   searchContainer: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
   },
   searchInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0F0F0',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -591,33 +580,27 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: '#000000',
   },
   contentContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
   },
   listContainer: {
-    backgroundColor: '#FFFFFF',
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
   },
   userItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
     position: 'relative',
   },
   userTouchable: {
@@ -632,14 +615,12 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   avatarPlaceholder: {
-    backgroundColor: '#F0F0F0',
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#8E8E8E',
   },
   userInfo: {
     flex: 1,
@@ -647,12 +628,10 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#000000',
     marginBottom: 2,
   },
   displayName: {
     fontSize: 14,
-    color: '#8E8E8E',
   },
   actionContainer: {
     flexDirection: 'row',
@@ -660,7 +639,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   actionButton: {
-    backgroundColor: '#EFEFEF',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -668,7 +646,6 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#000000',
   },
   deleteButton: {
     padding: 8,
@@ -680,7 +657,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 16,
     top: 60,
-    backgroundColor: '#FFFFFF',
     borderRadius: 8,
     shadowColor: '#000',
     shadowOffset: {
@@ -699,7 +675,6 @@ const styles = StyleSheet.create({
   },
   dropdownText: {
     fontSize: 14,
-    color: '#000000',
   },
   dropdownTextRed: {
     fontSize: 14,
@@ -722,13 +697,11 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 22,
     fontWeight: '600',
-    color: '#000000',
     marginTop: 16,
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#8E8E8E',
     textAlign: 'center',
     lineHeight: 20,
   },

@@ -4,27 +4,28 @@ import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    Dimensions,
-    Image,
-    Keyboard,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import CommentItem from '../../components/CommentItem';
 import MentionInput from '../../components/MentionInput';
 import MultiImageViewer from '../../components/MultiImageViewer';
+import { useTheme } from '../../contexts/ThemeContext';
 import { AuthService } from '../../services/authService';
 import { addComment, deleteComment, getPostComments } from '../../services/comments';
 import { likePost, unlikePost } from '../../services/likes';
@@ -35,6 +36,7 @@ import { Comment, Post } from '../../types';
 export default function PostDetailScreen() {
   const { id, imageIndex } = useLocalSearchParams<{ id: string; imageIndex?: string }>();
   const router = useRouter();
+  const { colors } = useTheme();
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -474,14 +476,14 @@ export default function PostDetailScreen() {
     const parts = text.split(/(@\w+)/g);
     
     return (
-      <Text style={styles.captionText}>
+      <Text style={[styles.captionText, { color: colors.textPrimary }]}>
         {parts.map((part, index) => {
           if (part.startsWith('@')) {
             const username = part.substring(1);
             return (
               <Text
                 key={index}
-                style={{ fontWeight: '700' }}
+                style={{ fontWeight: '700', color: colors.textPrimary }}
                 onPress={async () => {
                   try {
                     const user = await UserService.getUserByUsername(username);
@@ -508,12 +510,12 @@ export default function PostDetailScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.borderLight }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#262626" />
+            <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Post</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Post</Text>
           <View style={{ width: 24 }} />
         </View>
         <View style={styles.loadingContainer}>
@@ -525,41 +527,41 @@ export default function PostDetailScreen() {
 
   if (!post) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.borderLight }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#262626" />
+            <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Post</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Post</Text>
           <View style={{ width: 24 }} />
         </View>
         <View style={styles.emptyContainer}>
           <Ionicons name="image-outline" size={64} color="#DBDBDB" />
-          <Text style={styles.emptyText}>Post not found</Text>
+          <Text style={[styles.emptyText, { color: colors.textPrimary }]}>Post not found</Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        style={{ flex: 1, backgroundColor: colors.background }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={0}
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.borderLight }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#262626" />
+            <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Post</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Post</Text>
           <TouchableOpacity style={styles.moreButton} onPress={() => setOptionsVisible(true)}>
-            <Ionicons name="ellipsis-horizontal" size={24} color="#262626" />
+            <Ionicons name="ellipsis-horizontal" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView style={[styles.content, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
           {/* Post Header */}
           <View style={styles.postHeader}>
             <TouchableOpacity style={styles.userInfo} onPress={handleUserPress}>
@@ -570,7 +572,7 @@ export default function PostDetailScreen() {
                 style={styles.avatar}
               />
               <View style={styles.userDetails}>
-                <Text style={styles.username}>{displayUsername || 'Anonymous'}</Text>
+                <Text style={[styles.username, { color: colors.textPrimary }]}>{displayUsername || 'Anonymous'}</Text>
                 <Text style={styles.timestamp}>{formatDate(post.createdAt)}</Text>
               </View>
             </TouchableOpacity>
@@ -618,31 +620,31 @@ export default function PostDetailScreen() {
                 <Ionicons
                   name={post.isLiked ? 'heart' : 'heart-outline'}
                   size={28}
-                  color={post.isLiked ? '#FF3B30' : '#262626'}
+                  color={post.isLiked ? '#FF3B30' : colors.textPrimary}
                 />
               </TouchableOpacity>
               <TouchableOpacity 
                 onPress={() => scrollViewRef.current?.scrollToEnd({ animated: true })} 
                 style={styles.actionButton}
               >
-                <Ionicons name="chatbubble-outline" size={26} color="#262626" />
+                <Ionicons name="chatbubble-outline" size={26} color={colors.textPrimary} />
               </TouchableOpacity>
               <TouchableOpacity style={styles.actionButton}>
-                <Ionicons name="paper-plane-outline" size={26} color="#262626" />
+                <Ionicons name="paper-plane-outline" size={26} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
             <TouchableOpacity onPress={handleBookmark} style={styles.actionButton}>
               <Ionicons 
                 name={bookmarked ? 'bookmark' : 'bookmark-outline'} 
                 size={26} 
-                color="#262626" 
+                color={colors.textPrimary} 
               />
             </TouchableOpacity>
           </View>
 
           {/* Likes Count */}
           {post.likes ? (
-            <Text style={styles.likesCount}>
+            <Text style={[styles.likesCount, { color: colors.textPrimary }]}>
               {post.likes.toLocaleString()} {post.likes === 1 ? 'like' : 'likes'} 
             </Text>
           ) : null}
@@ -673,7 +675,7 @@ export default function PostDetailScreen() {
           {/* Caption */}
           {post.caption && removeHashtagsFromText(post.caption).length > 0 && (
             <View style={styles.captionContainer}>
-              <Text style={styles.captionUsername}>{displayUsername} </Text>
+              <Text style={[styles.captionUsername, { color: colors.textPrimary }]}>{displayUsername} </Text>
               {renderTextWithMentions(removeHashtagsFromText(post.caption))}
             </View>
           )}
@@ -690,8 +692,8 @@ export default function PostDetailScreen() {
           )}
 
           {/* Comments Section */}
-          <View style={styles.commentsSection}>
-            <Text style={styles.commentsTitle}>
+          <View style={[styles.commentsSection, { borderTopColor: colors.borderLight }]}>
+            <Text style={[styles.commentsTitle, { color: colors.textPrimary }]}>
               Comments ({comments.length})
             </Text>
             
@@ -911,7 +913,6 @@ export default function PostDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
@@ -970,7 +971,6 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#262626',
   },
   timestamp: {
     fontSize: 12,
@@ -998,14 +998,12 @@ const styles = StyleSheet.create({
   likesCount: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#262626',
     paddingHorizontal: 16,
     marginBottom: 8,
   },
   savesCount: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#262626',
     paddingHorizontal: 16,
     marginBottom: 8,
   },
@@ -1017,11 +1015,9 @@ const styles = StyleSheet.create({
   captionUsername: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#262626',
   },
   captionText: {
     fontSize: 14,
-    color: '#262626',
     flex: 1,
   },
   hashtagsContainer: {
@@ -1046,13 +1042,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: '#EFEFEF',
     marginTop: 8,
   },
   commentsTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#262626',
     marginBottom: 16,
   },
   noComments: {

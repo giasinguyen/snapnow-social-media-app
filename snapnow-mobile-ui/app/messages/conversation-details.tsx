@@ -1,16 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { doc, onSnapshot, updateDoc, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
-import { DeviceEventEmitter } from 'react-native';
-import CreateGroupChatModal from '../../components/CreateGroupChatModal';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ActivityIndicator,
-  Alert,
-  FlatList,
+  Alert, DeviceEventEmitter, FlatList,
   Image,
   Modal,
   ScrollView,
@@ -19,9 +16,11 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
+import CreateGroupChatModal from '../../components/CreateGroupChatModal';
 import { auth, db } from '../../config/firebase';
+import { useTheme } from '../../contexts/ThemeContext';
 import { uploadToCloudinary } from '../../services/cloudinary';
 import { Conversation, getConversation, getNickname, updateNickname } from '../../services/conversations';
 import { addParticipantToGroup, updateGroupDetails } from '../../services/groupChats';
@@ -29,6 +28,7 @@ import { UserService } from '../../services/user';
 import { User } from '../../types';
 
 export default function ConversationDetailsScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const params = useLocalSearchParams();
   const {
@@ -575,6 +575,7 @@ export default function ConversationDetailsScreen() {
   const themeColors = getThemeColors(chatTheme);
 
   return (
+
     <View style={[styles.container, { backgroundColor: themeColors.containerBg }]}>
       <StatusBar barStyle={chatTheme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={themeColors.headerBg} />
       <ScrollView style={[styles.content, { backgroundColor: themeColors.containerBg }]} showsVerticalScrollIndicator={false}>
@@ -587,11 +588,11 @@ export default function ConversationDetailsScreen() {
                 source={{ uri: conversation?.groupPhoto || 'https://via.placeholder.com/100' }} 
                 style={styles.avatar} 
               />
-              <Text style={styles.userName}>
+              <Text style={[styles.userName, { color: colors.textPrimary }]}>
                 {conversation?.groupName || 'Group Chat'}
               </Text>
               <TouchableOpacity onPress={handleChangeGroupNameImage}>
-                <Text style={styles.changeNameLink}>Change name and image</Text>
+                <Text style={[styles.changeNameLink, { color: colors.blue }]}>Change name and image</Text>
               </TouchableOpacity>
             </>
           ) : (
@@ -606,11 +607,11 @@ export default function ConversationDetailsScreen() {
                   </Text>
                 </View>
               )}
-              <Text style={styles.userName}>
+              <Text style={[styles.userName, { color: colors.textPrimary }]}>
                 {nickname || otherUserRealtime?.displayName || (otherUserName as string)}
               </Text>
               {(otherUserRealtime?.username || otherUserUsername) && (
-                <Text style={styles.username}>@{otherUserRealtime?.username || otherUserUsername}</Text>
+                <Text style={[styles.username, { color: colors.textSecondary }]}>@{otherUserRealtime?.username || otherUserUsername}</Text>
               )}
             </>
           )}
@@ -620,40 +621,40 @@ export default function ConversationDetailsScreen() {
             {isGroupChat ? (
               // Group chat actions
               <TouchableOpacity style={styles.actionButton} onPress={handleAddPeople}>
-                <View style={styles.actionIcon}>
-                  <Ionicons name="person-add-outline" size={24} color="#000000ff" />
+                <View style={[styles.actionIcon, { backgroundColor: colors.backgroundGray }]}>
+                  <Ionicons name="person-add-outline" size={24} color={colors.textPrimary} />
                 </View>
-                <Text style={styles.actionLabel}>Add</Text>
+                <Text style={[styles.actionLabel, { color: colors.textPrimary }]}>Add</Text>
               </TouchableOpacity>
             ) : (
               // 1-on-1 chat actions
               <TouchableOpacity style={styles.actionButton} onPress={handleViewProfile}>
-                <View style={styles.actionIcon}>
-                  <Ionicons name="person-outline" size={24} color="#000000ff" />
+                <View style={[styles.actionIcon, { backgroundColor: colors.backgroundGray }]}>
+                  <Ionicons name="person-outline" size={24} color={colors.textPrimary} />
                 </View>
-                <Text style={styles.actionLabel}>Profile</Text>
+                <Text style={[styles.actionLabel, { color: colors.textPrimary }]}>Profile</Text>
               </TouchableOpacity>
             )}
 
             <TouchableOpacity style={styles.actionButton}>
-              <View style={styles.actionIcon}>
-                <Ionicons name="search" size={24} color="#000000ff" />
+              <View style={[styles.actionIcon, { backgroundColor: colors.backgroundGray }]}>
+                <Ionicons name="search" size={24} color={colors.textPrimary} />
               </View>
-              <Text style={styles.actionLabel}>Search</Text>
+              <Text style={[styles.actionLabel, { color: colors.textPrimary }]}>Search</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.actionButton} onPress={handleMuteConversation}>
-              <View style={styles.actionIcon}>
-                <Ionicons name="notifications-off-outline" size={24} color="#000000ff" />
+              <View style={[styles.actionIcon, { backgroundColor: colors.backgroundGray }]}>
+                <Ionicons name="notifications-off-outline" size={24} color={colors.textPrimary} />
               </View>
-              <Text style={styles.actionLabel}>Mute</Text>
+              <Text style={[styles.actionLabel, { color: colors.textPrimary }]}>Mute</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.actionButton} onPress={handleOptions}>
-              <View style={styles.actionIcon}>
-                <Ionicons name="ellipsis-horizontal" size={24} color="#000000ff" />
+              <View style={[styles.actionIcon, { backgroundColor: colors.backgroundGray }]}>
+                <Ionicons name="ellipsis-horizontal" size={24} color={colors.textPrimary} />
               </View>
-              <Text style={styles.actionLabel}>Options</Text>
+              <Text style={[styles.actionLabel, { color: colors.textPrimary }]}>Options</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -677,11 +678,11 @@ export default function ConversationDetailsScreen() {
         <TouchableOpacity style={styles.menuItem}>
           <View style={styles.menuLeft}>
             <View style={styles.menuIconContainer}>
-              <Ionicons name="timer-outline" size={24} color="#000000ff" />
+              <Ionicons name="timer-outline" size={24} color={colors.textPrimary} />
             </View>
             <View style={styles.menuTextContainer}>
-              <Text style={styles.menuText}>Disappearing messages</Text>
-              <Text style={styles.menuSubtext}>Off</Text>
+              <Text style={[styles.menuText, { color: colors.textPrimary }]}>Disappearing messages</Text>
+              <Text style={[styles.menuSubtext, { color: colors.textSecondary }]}>Off</Text>
             </View>
           </View>
         </TouchableOpacity>
@@ -693,11 +694,11 @@ export default function ConversationDetailsScreen() {
             <TouchableOpacity style={styles.menuItem} onPress={() => setShowInviteLinkModal(true)}>
               <View style={styles.menuLeft}>
                 <View style={styles.menuIconContainer}>
-                  <Ionicons name="link-outline" size={24} color="#000000ff" />
+                  <Ionicons name="link-outline" size={24} color={colors.textPrimary} />
                 </View>
                 <View style={styles.menuTextContainer}>
-                  <Text style={styles.menuText}>Invite link</Text>
-                  <Text style={styles.menuSubtext}>snapnow.app/group/{conversationId?.slice(0, 8)}</Text>
+                  <Text style={[styles.menuText, { color: colors.textPrimary }]}>Invite link</Text>
+                  <Text style={[styles.menuSubtext, { color: colors.textSecondary }]}>snapnow.app/group/{conversationId?.slice(0, 8)}</Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -706,12 +707,12 @@ export default function ConversationDetailsScreen() {
             <TouchableOpacity style={styles.menuItem} onPress={handleViewPeople}>
               <View style={styles.menuLeft}>
                 <View style={styles.menuIconContainer}>
-                  <Ionicons name="people-outline" size={24} color="#000000ff" />
+                  <Ionicons name="people-outline" size={24} color={colors.textPrimary} />
                 </View>
                 <View style={styles.menuTextContainer}>
-                  <Text style={styles.menuText}>People</Text>
+                  <Text style={[styles.menuText, { color: colors.textPrimary }]}>People</Text>
                   {participants.length > 0 && (
-                    <Text style={styles.menuSubtext}>{participants[0].username}</Text>
+                    <Text style={[styles.menuSubtext, { color: colors.textSecondary }]}>{participants[0].username}</Text>
                   )}
                 </View>
               </View>
@@ -723,9 +724,9 @@ export default function ConversationDetailsScreen() {
         <TouchableOpacity style={styles.menuItem}>
           <View style={styles.menuLeft}>
             <View style={styles.menuIconContainer}>
-              <Ionicons name="lock-closed-outline" size={24} color="#000000ff" />
+              <Ionicons name="lock-closed-outline" size={24} color={colors.textPrimary} />
             </View>
-            <Text style={styles.menuText}>Privacy & safety</Text>
+            <Text style={[styles.menuText, { color: colors.textPrimary }]}>Privacy & safety</Text>
           </View>
         </TouchableOpacity>
 
@@ -734,9 +735,9 @@ export default function ConversationDetailsScreen() {
           <TouchableOpacity style={styles.menuItem} onPress={handleChangeNickname}>
             <View style={styles.menuLeft}>
               <View style={styles.menuIconContainer}>
-                <Ionicons name="pencil-outline" size={24} color="#000000ff" />
+                <Ionicons name="pencil-outline" size={24} color={colors.textPrimary} />
               </View>
-              <Text style={styles.menuText}>Nicknames</Text>
+              <Text style={[styles.menuText, { color: colors.textPrimary }]}>Nicknames</Text>
             </View>
           </TouchableOpacity>
         )}
@@ -746,9 +747,9 @@ export default function ConversationDetailsScreen() {
           <TouchableOpacity style={styles.menuItem} onPress={() => setShowCreateGroupModal(true)}>
             <View style={styles.menuLeft}>
               <View style={styles.menuIconContainer}>
-                <Ionicons name="people-outline" size={24} color="#000000ff" />
+                <Ionicons name="people-outline" size={24} color={colors.textPrimary} />
               </View>
-              <Text style={styles.menuText}>Create a group chat</Text>
+              <Text style={[styles.menuText, { color: colors.textPrimary }]}>Create a group chat</Text>
             </View>
           </TouchableOpacity>
         )}
@@ -766,15 +767,15 @@ export default function ConversationDetailsScreen() {
         )}
 
         {/* Bottom Action Bar */}
-        <View style={styles.bottomBar}>
+        <View style={[styles.bottomBar, { backgroundColor: colors.backgroundWhite, borderTopColor: colors.borderLight }]}>
           <TouchableOpacity style={styles.bottomBarButton} onPress={handleViewMedia}>
-            <Ionicons name="images-outline" size={28} color="#8E8E8E" />
+            <Ionicons name="images-outline" size={28} color={colors.textSecondary} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.bottomBarButton}>
-            <Ionicons name="repeat-outline" size={28} color="#8E8E8E" />
+            <Ionicons name="repeat-outline" size={28} color={colors.textSecondary} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.bottomBarButton}>
-            <Ionicons name="link-outline" size={28} color="#8E8E8E" />
+            <Ionicons name="link-outline" size={28} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
@@ -793,34 +794,34 @@ export default function ConversationDetailsScreen() {
           activeOpacity={1}
           onPress={() => setShowOptionsModal(false)}
         >
-          <View style={styles.optionsModalContent}>
+          <View style={[styles.optionsModalContent, { backgroundColor: colors.backgroundWhite }]}>
             <TouchableOpacity style={styles.optionItem} onPress={handleBlockUser}>
               <Ionicons name="ban-outline" size={24} color="#ef4444" />
               <Text style={[styles.optionText, { color: '#ef4444' }]}>Block User</Text>
             </TouchableOpacity>
             
-            <View style={styles.optionDivider} />
+            <View style={[styles.optionDivider, { backgroundColor: colors.borderLight }]} />
             
             <TouchableOpacity style={styles.optionItem} onPress={handleDeleteChat}>
               <Ionicons name="trash-outline" size={24} color="#ef4444" />
               <Text style={[styles.optionText, { color: '#ef4444' }]}>Delete Conversation</Text>
             </TouchableOpacity>
             
-            <View style={styles.optionDivider} />
+            <View style={[styles.optionDivider, { backgroundColor: colors.borderLight }]} />
             
             <TouchableOpacity style={styles.optionItem} onPress={handleShowConversationId}>
-              <Ionicons name="information-circle-outline" size={24} color="#6b7280" />
-              <Text style={styles.optionText}>Conversation ID</Text>
+              <Ionicons name="information-circle-outline" size={24} color={colors.textSecondary} />
+              <Text style={[styles.optionText, { color: colors.textPrimary }]}>Conversation ID</Text>
             </TouchableOpacity>
             
-            <View style={styles.optionDivider} />
+            <View style={[styles.optionDivider, { backgroundColor: colors.borderLight }]} />
             
             <TouchableOpacity 
               style={styles.optionItem} 
               onPress={() => setShowOptionsModal(false)}
             >
-              <Ionicons name="close-outline" size={24} color="#6b7280" />
-              <Text style={styles.optionText}>Cancel</Text>
+              <Ionicons name="close-outline" size={24} color={colors.textSecondary} />
+              <Text style={[styles.optionText, { color: colors.textSecondary }]}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -834,19 +835,19 @@ export default function ConversationDetailsScreen() {
         onRequestClose={() => setShowNicknameModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Change Nickname</Text>
-            <Text style={styles.modalSubtitle}>
+          <View style={[styles.modalContent, { backgroundColor: colors.backgroundWhite }]}>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Change Nickname</Text>
+            <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>
               {nickname 
                 ? `Current nickname: ${nickname}` 
                 : `Set a nickname for ${otherUserRealtime?.displayName || otherUserName}`}
             </Text>
             <TextInput
-              style={styles.nicknameInput}
+              style={[styles.nicknameInput, { backgroundColor: colors.backgroundGray, color: colors.textPrimary, borderColor: colors.border }]}
               value={nicknameInput}
               onChangeText={setNicknameInput}
               placeholder="Enter nickname (leave empty to remove)"
-              placeholderTextColor="#8E8E8E"
+              placeholderTextColor={colors.textSecondary}
               autoFocus
             />
             <View style={styles.modalButtons}>
@@ -875,11 +876,11 @@ export default function ConversationDetailsScreen() {
         onRequestClose={() => setShowMediaModal(false)}
       >
         <View style={styles.mediaModalOverlay}>
-          <View style={styles.mediaModalContent}>
+          <View style={[styles.mediaModalContent, { backgroundColor: colors.backgroundWhite }]}>
             <View style={styles.mediaModalHeader}>
-              <Text style={styles.mediaModalTitle}>Shared Media</Text>
+              <Text style={[styles.mediaModalTitle, { color: colors.textPrimary }]}>Shared Media</Text>
               <TouchableOpacity onPress={() => setShowMediaModal(false)}>
-                <Ionicons name="close" size={28} color="#000" />
+                <Ionicons name="close" size={28} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.mediaGrid}>
@@ -893,8 +894,8 @@ export default function ConversationDetailsScreen() {
                 </View>
               ) : (
                 <View style={styles.emptyMedia}>
-                  <Ionicons name="images-outline" size={64} color="#8E8E8E" />
-                  <Text style={styles.emptyMediaText}>No shared media</Text>
+                  <Ionicons name="images-outline" size={64} color={colors.textSecondary} />
+                  <Text style={[styles.emptyMediaText, { color: colors.textSecondary }]}>No shared media</Text>
                 </View>
               )}
             </ScrollView>
@@ -910,9 +911,9 @@ export default function ConversationDetailsScreen() {
         onRequestClose={() => setShowChangeGroupModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Change Group Details</Text>
-            <Text style={styles.modalSubtitle}>Update group name and photo</Text>
+          <View style={[styles.modalContent, { backgroundColor: colors.backgroundWhite }]}>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Change Group Details</Text>
+            <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>Update group name and photo</Text>
             
             <TouchableOpacity 
               style={styles.groupPhotoButton}
@@ -921,19 +922,19 @@ export default function ConversationDetailsScreen() {
               {groupPhotoUri ? (
                 <Image source={{ uri: groupPhotoUri }} style={styles.groupPhotoPreview} />
               ) : (
-                <View style={styles.groupPhotoPlaceholder}>
-                  <Ionicons name="camera" size={32} color="#8E8E8E" />
-                  <Text style={styles.groupPhotoText}>Choose Photo</Text>
+                <View style={[styles.groupPhotoPlaceholder, { backgroundColor: colors.backgroundGray }]}>
+                  <Ionicons name="camera" size={32} color={colors.textSecondary} />
+                  <Text style={[styles.groupPhotoText, { color: colors.textSecondary }]}>Choose Photo</Text>
                 </View>
               )}
             </TouchableOpacity>
 
             <TextInput
-              style={styles.nicknameInput}
+              style={[styles.nicknameInput, { backgroundColor: colors.backgroundGray, color: colors.textPrimary, borderColor: colors.border }]}
               value={groupNameInput}
               onChangeText={setGroupNameInput}
               placeholder="Group name"
-              placeholderTextColor="#8E8E8E"
+              placeholderTextColor={colors.textSecondary}
             />
             <View style={styles.modalButtons}>
               <TouchableOpacity
@@ -967,22 +968,22 @@ export default function ConversationDetailsScreen() {
         onRequestClose={() => setShowAddPeopleModal(false)}
       >
         <View style={styles.mediaModalOverlay}>
-          <View style={styles.mediaModalContent}>
-            <View style={styles.mediaModalHeader}>
-              <Text style={styles.mediaModalTitle}>Add People</Text>
+          <View style={[styles.mediaModalContent, { backgroundColor: colors.backgroundWhite }]}>
+            <View style={[styles.mediaModalHeader, { borderBottomColor: colors.borderLight }]}>
+              <Text style={[styles.mediaModalTitle, { color: colors.textPrimary }]}>Add People</Text>
               <TouchableOpacity onPress={() => setShowAddPeopleModal(false)}>
-                <Ionicons name="close" size={28} color="#000" />
+                <Ionicons name="close" size={28} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
             
-            <View style={styles.searchContainer}>
-              <Ionicons name="search" size={20} color="#8E8E8E" style={styles.searchIcon} />
+            <View style={[styles.searchContainer, { backgroundColor: colors.backgroundGray }]}>
+              <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, { color: colors.textPrimary }]}
                 value={searchQuery}
                 onChangeText={handleSearchUsers}
                 placeholder="Search users..."
-                placeholderTextColor="#8E8E8E"
+                placeholderTextColor={colors.textSecondary}
               />
             </View>
 
@@ -990,11 +991,11 @@ export default function ConversationDetailsScreen() {
               <View style={styles.selectedUsersContainer}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   {selectedUsers.map(user => (
-                    <View key={user.id} style={styles.selectedUserChip}>
+                    <View key={user.id} style={[styles.selectedUserChip, { backgroundColor: colors.backgroundGray }]}>
                       <Image source={{ uri: user.profileImage }} style={styles.selectedUserAvatar} />
-                      <Text style={styles.selectedUserName}>{user.username}</Text>
+                      <Text style={[styles.selectedUserName, { color: colors.textPrimary }]}>{user.username}</Text>
                       <TouchableOpacity onPress={() => toggleUserSelection(user)}>
-                        <Ionicons name="close-circle" size={20} color="#8E8E8E" />
+                        <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
                       </TouchableOpacity>
                     </View>
                   ))}
@@ -1014,10 +1015,10 @@ export default function ConversationDetailsScreen() {
                   >
                     <Image source={{ uri: item.profileImage }} style={styles.userAvatar} />
                     <View style={styles.userInfo}>
-                      <Text style={styles.userDisplayName}>{item.displayName}</Text>
-                      <Text style={styles.userUsername}>@{item.username}</Text>
+                      <Text style={[styles.userDisplayName, { color: colors.textPrimary }]}>{item.displayName}</Text>
+                      <Text style={[styles.userUsername, { color: colors.textSecondary }]}>@{item.username}</Text>
                     </View>
-                    <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
+                    <View style={[styles.checkbox, { borderColor: colors.textSecondary }, isSelected && styles.checkboxSelected]}>
                       {isSelected && <Ionicons name="checkmark" size={16} color="#fff" />}
                     </View>
                   </TouchableOpacity>
@@ -1026,16 +1027,16 @@ export default function ConversationDetailsScreen() {
               ListEmptyComponent={
                 isSearching ? (
                   <View style={styles.emptyState}>
-                    <ActivityIndicator color="#0095f6" />
+                    <ActivityIndicator color={colors.blue} />
                   </View>
                 ) : searchQuery ? (
                   <View style={styles.emptyState}>
-                    <Text style={styles.emptyText}>No users found</Text>
+                    <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No users found</Text>
                   </View>
                 ) : (
                   <View style={styles.emptyState}>
-                    <Ionicons name="search" size={48} color="#8E8E8E" />
-                    <Text style={styles.emptyText}>Search for users to add</Text>
+                    <Ionicons name="search" size={48} color={colors.textSecondary} />
+                    <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Search for users to add</Text>
                   </View>
                 )
               }
@@ -1068,11 +1069,11 @@ export default function ConversationDetailsScreen() {
         onRequestClose={() => setShowViewPeopleModal(false)}
       >
         <View style={styles.mediaModalOverlay}>
-          <View style={styles.mediaModalContent}>
-            <View style={styles.mediaModalHeader}>
-              <Text style={styles.mediaModalTitle}>Group Members ({participants.length + 1})</Text>
+          <View style={[styles.mediaModalContent, { backgroundColor: colors.backgroundWhite }]}>
+            <View style={[styles.mediaModalHeader, { borderBottomColor: colors.borderLight }]}>
+              <Text style={[styles.mediaModalTitle, { color: colors.textPrimary }]}>Group Members ({participants.length + 1})</Text>
               <TouchableOpacity onPress={() => setShowViewPeopleModal(false)}>
-                <Ionicons name="close" size={28} color="#000" />
+                <Ionicons name="close" size={28} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
             
@@ -1103,11 +1104,11 @@ export default function ConversationDetailsScreen() {
                 >
                   <Image source={{ uri: item.photoURL }} style={styles.participantAvatar} />
                   <View style={styles.participantInfo}>
-                    <Text style={styles.participantName}>{item.displayName}</Text>
-                    <Text style={styles.participantUsername}>@{item.username}</Text>
+                    <Text style={[styles.participantName, { color: colors.textPrimary }]}>{item.displayName}</Text>
+                    <Text style={[styles.participantUsername, { color: colors.textSecondary }]}>@{item.username}</Text>
                   </View>
                   {item.isAdmin && (
-                    <View style={styles.adminBadge}>
+                    <View style={[styles.adminBadge, { backgroundColor: colors.backgroundGray }]}>
                       <Text style={styles.adminText}>Admin</Text>
                     </View>
                   )}
@@ -1126,12 +1127,12 @@ export default function ConversationDetailsScreen() {
         onRequestClose={() => setShowInviteLinkModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Group Invite Link</Text>
-            <Text style={styles.modalSubtitle}>Share this link with others to invite them to the group</Text>
+          <View style={[styles.modalContent, { backgroundColor: colors.backgroundWhite }]}>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Group Invite Link</Text>
+            <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>Share this link with others to invite them to the group</Text>
             
             <View style={{
-              backgroundColor: '#f3f4f6',
+              backgroundColor: colors.backgroundGray,
               padding: 16,
               borderRadius: 12,
               marginVertical: 16,
@@ -1185,7 +1186,6 @@ export default function ConversationDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   header: {
     flexDirection: 'row',
@@ -1193,7 +1193,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 50,
     paddingBottom: 12,
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
@@ -1204,17 +1203,14 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 16,
     fontWeight: '400',
-    color: '#000000ff',
   },
   content: {
     flex: 1,
-    backgroundColor: '#ffffffff',
   },
   userSection: {
     alignItems: 'center',
     paddingVertical: 30,
     paddingBottom: 32,
-    backgroundColor: '#ffffffff',
   },
   avatar: {
     width: 100,
@@ -1230,17 +1226,14 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 40,
     fontWeight: '600',
-    color: '#000000ff',
   },
   userName: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#000000ff',
     marginBottom: 4,
   },
   username: {
     fontSize: 15,
-    color: '#000000ff',
     marginBottom: 24,
   },
   changeNameLink: {
@@ -1263,14 +1256,12 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#ffffffff',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: -2,
   },
   actionLabel: {
     fontSize: 12,
-    color: '#000000ff',
   },
   menuItem: {
     flexDirection: 'row',
@@ -1278,7 +1269,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 14,
     paddingHorizontal: 16,
-    backgroundColor: '#ffffffff',
   },
   menuLeft: {
     flexDirection: 'row',
@@ -1312,12 +1302,10 @@ const styles = StyleSheet.create({
   },
   menuText: {
     fontSize: 16,
-    color: '#000000ff',
     fontWeight: '400',
   },
   menuSubtext: {
     fontSize: 14,
-    color: '#000000ff',
     marginTop: 2,
   },
   bottomBar: {
@@ -1327,7 +1315,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     marginTop: 20,
     borderTopWidth: 1,
-    borderTopColor: '#ffffffff',
   },
   bottomBarButton: {
     padding: 8,
@@ -1339,7 +1326,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#fff',
     borderRadius: 16,
     padding: 24,
     width: '85%',
@@ -1392,7 +1378,6 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   optionsModalContent: {
-    backgroundColor: '#fff',
     borderRadius: 16,
     marginHorizontal: 20,
     marginTop: 'auto',
@@ -1421,7 +1406,6 @@ const styles = StyleSheet.create({
   },
   mediaModalContent: {
     flex: 1,
-    backgroundColor: '#fff',
     marginTop: 50,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
@@ -1481,7 +1465,6 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1495,7 +1478,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#f0f0f0',
     borderRadius: 8,
     marginHorizontal: 16,
     marginTop: 8,
@@ -1618,7 +1600,6 @@ const styles = StyleSheet.create({
     color: '#8E8E8E',
   },
   adminBadge: {
-    backgroundColor: '#e3f2fd',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,

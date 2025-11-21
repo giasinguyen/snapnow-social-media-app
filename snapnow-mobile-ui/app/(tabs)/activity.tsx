@@ -14,12 +14,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EmptyNotifications, NotificationSection } from '../../components/notifications';
 import { auth } from '../../config/firebase';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useNotifications } from '../../hooks/useNotifications';
 import { getPendingRequestsCount } from '../../services/followRequests';
-import { COLORS, SPACING, TYPOGRAPHY } from '../../src/constants/theme';
+import { SPACING, TYPOGRAPHY } from '../../src/constants/theme';
 import { groupNotificationsByTime } from '../../utils/notificationUtils';
 
 export default function ActivityScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const {
     notifications,
@@ -79,12 +81,12 @@ export default function ActivityScreen() {
 
   if (loading && notifications.length === 0) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Notifications</Text>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={[styles.header, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.border }]}>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Notifications</Text>
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
+          <ActivityIndicator size="large" color={colors.textPrimary} />
         </View>
       </SafeAreaView>
     );
@@ -105,13 +107,13 @@ export default function ActivityScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Notifications</Text>
+      <View style={[styles.header, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.border }]}>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Notifications</Text>
         {unreadCount > 0 && (
           <TouchableOpacity onPress={handleMarkAllAsRead}>
-            <Text style={styles.markAllReadText}>Mark all as read</Text>
+            <Text style={[styles.markAllReadText, { color: colors.blue }]}>Mark all as read</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -177,7 +179,6 @@ export default function ActivityScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
@@ -186,18 +187,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
     borderBottomWidth: 0.5,
-    borderBottomColor: COLORS.border,
   },
   headerTitle: {
     fontSize: TYPOGRAPHY.fontSize.display,
     fontWeight: '700',
-    color: '#262626',
     letterSpacing: -0.5,
   },
   markAllReadText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.primary,
   },
   loadingContainer: {
     flex: 1,

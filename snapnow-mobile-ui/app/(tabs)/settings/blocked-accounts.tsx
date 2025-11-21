@@ -2,20 +2,22 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Image,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth } from '../../../config/firebase';
+import { useTheme } from '../../../contexts/ThemeContext';
 import { BlockedUser, getBlockedUsers, unblockUser } from '../../../services/blocking';
 
 export default function BlockedAccountsScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,36 +115,36 @@ export default function BlockedAccountsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={[styles.header, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.borderLight }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#262626" />
+            <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Blocked Accounts</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Blocked Accounts</Text>
           <View style={styles.placeholder} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#262626" />
+          <ActivityIndicator size="large" color={colors.textPrimary} />
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <View style={[styles.header, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.borderLight }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#262626" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Blocked Accounts</Text>
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+          </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Blocked Accounts</Text>
         <View style={styles.placeholder} />
       </View>
 
       {blockedUsers.length === 0 ? (
         <View style={styles.emptyState}>
-          <Ionicons name="ban-outline" size={64} color="#c7c7c7" />
-          <Text style={styles.emptyTitle}>No Blocked Accounts</Text>
-          <Text style={styles.emptySubtitle}>
+          <Ionicons name="ban-outline" size={64} color={colors.textSecondary} />
+          <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>No Blocked Accounts</Text>
+          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
             When you block someone, they won't be able to see your posts or contact you.
           </Text>
         </View>

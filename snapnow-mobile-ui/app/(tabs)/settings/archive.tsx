@@ -1,19 +1,20 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  ActivityIndicator,
-  TouchableOpacity,
-  Image,
-  Alert,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Image,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SPACING, TYPOGRAPHY, RADIUS } from '../../../src/constants/theme';
+import { useTheme } from '../../../contexts/ThemeContext';
 import { AuthService } from '../../../services/authService';
+import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from '../../../src/constants/theme';
 
 interface ArchivedStory {
   id: string;
@@ -24,6 +25,7 @@ interface ArchivedStory {
 }
 
 const ArchiveScreen = () => {
+  const { colors } = useTheme();
   const router = useRouter();
   const [stories, setStories] = useState<ArchivedStory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -145,7 +147,7 @@ const ArchiveScreen = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />

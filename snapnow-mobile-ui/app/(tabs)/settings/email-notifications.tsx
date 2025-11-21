@@ -3,8 +3,10 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 export default function EmailNotifications() {
+  const { colors } = useTheme();
   const router = useRouter();
 
   const [pushAll, setPushAll] = useState(false);
@@ -39,20 +41,20 @@ export default function EmailNotifications() {
   });
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
+      <View style={[styles.header, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.borderLight }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={22} color="#262626" />
+          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.title}>Email notifications</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>Email notifications</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <View style={styles.container}>
-        <View style={styles.row}>
+        <View style={[styles.row, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.borderLight }]}>
           <View style={styles.left}>
-            <Text style={styles.rowTitle}>Push all</Text>
-            <Text style={styles.rowSubtitle}>Enable or disable all notifications</Text>
+            <Text style={[styles.rowTitle, { color: colors.textPrimary }]}>Push all</Text>
+            <Text style={[styles.rowSubtitle, { color: colors.textSecondary }]}>Enable or disable all notifications</Text>
           </View>
           <Switch
             value={pushAll}
@@ -61,10 +63,10 @@ export default function EmailNotifications() {
           />
         </View>
 
-        <View style={styles.row}>
+        <View style={[styles.row, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.borderLight }]}>
           <View style={styles.left}>
-            <Text style={styles.rowTitle}>Posts</Text>
-            <Text style={styles.rowSubtitle}>Receive notifications for posts</Text>
+            <Text style={[styles.rowTitle, { color: colors.textPrimary }]}>Posts</Text>
+            <Text style={[styles.rowSubtitle, { color: colors.textSecondary }]}>Receive notifications for posts</Text>
           </View>
           <Switch
             value={postNotif}
@@ -73,10 +75,10 @@ export default function EmailNotifications() {
           />
         </View>
 
-        <View style={styles.row}>
+        <View style={[styles.row, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.borderLight }]}>
           <View style={styles.left}>
-            <Text style={styles.rowTitle}>New follower</Text>
-            <Text style={styles.rowSubtitle}>Get notified when someone follows you</Text>
+            <Text style={[styles.rowTitle, { color: colors.textPrimary }]}>New follower</Text>
+            <Text style={[styles.rowSubtitle, { color: colors.textSecondary }]}>Get notified when someone follows you</Text>
           </View>
           <Switch
             value={newFollower}
@@ -85,10 +87,10 @@ export default function EmailNotifications() {
           />
         </View>
 
-        <View style={styles.row}>
+        <View style={[styles.row, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.borderLight }]}>
           <View style={styles.left}>
-            <Text style={styles.rowTitle}>SnapNow features</Text>
-            <Text style={styles.rowSubtitle}>Learn about new SnapNow features</Text>
+            <Text style={[styles.rowTitle, { color: colors.textPrimary }]}>SnapNow features</Text>
+            <Text style={[styles.rowSubtitle, { color: colors.textSecondary }]}>Learn about new SnapNow features</Text>
           </View>
           <Switch
             value={featureNews}

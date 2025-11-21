@@ -1,37 +1,39 @@
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  View,
+    ActivityIndicator,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '../../contexts/ThemeContext';
 
 import PostCard from '../../components/PostCard';
 import {
-  FeedEmpty,
-  FeedFooter,
-  FeedHeader,
-  FeedTabs,
-  Stories,
-  SuggestionsCard,
-  type FeedTab,
-  type Story,
-  type SuggestedUser
+    FeedEmpty,
+    FeedFooter,
+    FeedHeader,
+    FeedTabs,
+    Stories,
+    SuggestionsCard,
+    type FeedTab,
+    type Story,
+    type SuggestedUser
 } from '../../components/feed';
 
 import {
-  MOCK_STORIES,
+    MOCK_STORIES,
 } from '../../services/mockData';
 import { fetchFeedPosts, fetchPosts, hasUserBookmarkedPost } from '../../services/posts';
 import { Post } from '../../types';
 // import { getRecommendedPosts } from '../../services/recommendation';
 import { AuthService } from '../../services/authService';
-import { COLORS, SPACING } from '../../src/constants/theme';
+import { SPACING } from '../../src/constants/theme';
 
 export default function HomeScreen() {
+  const { colors } = useTheme();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -231,7 +233,7 @@ export default function HomeScreen() {
   const stories: Story[] = useMemo(() => MOCK_STORIES, []);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
       <FeedHeader 
         onNotificationsPress={handleNotifications}
@@ -244,11 +246,11 @@ export default function HomeScreen() {
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
+          refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={COLORS.textPrimary}
+            tintColor={colors.textPrimary}
           />
         }
       >
@@ -263,7 +265,7 @@ export default function HomeScreen() {
         {/* Posts Section */}
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={COLORS.textPrimary} />
+            <ActivityIndicator size="large" color={colors.textPrimary} />
           </View>
         ) : posts.length === 0 ? (
           <FeedEmpty onDiscoverPress={handleDiscoverPeople} />
@@ -291,7 +293,7 @@ export default function HomeScreen() {
 
                 {/* Divider between posts */}
                 {index < posts.length - 1 && (
-                  <View style={styles.postDivider} />
+                  <View style={[styles.postDivider, { backgroundColor: colors.backgroundGray }]} />
                 )}
               </React.Fragment>
             ))}
@@ -308,7 +310,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   scrollView: {
     flex: 1,
@@ -321,6 +322,5 @@ const styles = StyleSheet.create({
   },
   postDivider: {
     height: SPACING.sm,
-    backgroundColor: COLORS.backgroundGray,
   },
 });

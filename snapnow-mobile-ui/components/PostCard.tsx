@@ -3,6 +3,7 @@ import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Animated, Image, Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useTheme } from '../contexts/ThemeContext';
 import { AuthService } from '../services/authService';
 import { hasUserLikedPost } from '../services/likes';
 import { savePost, unsavePost } from '../services/posts';
@@ -23,6 +24,7 @@ interface PostCardProps {
 }
 
 const PostCard: React.FC<PostCardProps> = React.memo(({ post, bookmarked: bookmarkedProp, onLike, onComment, onShare, onPress, onDelete }) => {
+  const { colors } = useTheme();
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(post.likes || 0);
   const [bookmarked, setBookmarked] = useState(!!bookmarkedProp);
@@ -55,7 +57,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, bookmarked: bookma
             return (
               <Text
                 key={index}
-                style={{ fontWeight: '700', color: COLORS.textPrimary }}
+                style={{ fontWeight: '700', color: colors.textPrimary }}
                 onPress={async () => {
                   try {
                     const user = await UserService.getUserByUsername(username);
@@ -332,21 +334,21 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, bookmarked: bookma
   }, [isFollowing, post.userId, displayUsername]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.backgroundWhite }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.backgroundWhite }]}>
         <TouchableOpacity style={styles.headerLeft} onPress={handleUserPress}>
           <Image
             source={{ uri: displayUserImage || 'https://via.placeholder.com/40' }}
             style={styles.avatar}
           />
           <View style={styles.userInfo}>
-            <Text style={styles.username}>{displayUsername}</Text>
+            <Text style={[styles.username, { color: colors.textPrimary }]}>{displayUsername}</Text>
             {/* Có thể thêm location hoặc thông tin khác */}
           </View>
         </TouchableOpacity>
         <TouchableOpacity style={styles.moreButton} onPress={() => setOptionsVisible(true)}>
-          <Ionicons name="ellipsis-vertical" size={20} color="#262626" />
+          <Ionicons name="ellipsis-vertical" size={20} color={colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
@@ -389,21 +391,21 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, bookmarked: bookma
             <Ionicons
               name={liked ? 'heart' : 'heart-outline'}
               size={28}
-              color={liked ? '#FF3040' : '#262626'}
+              color={liked ? '#FF3040' : colors.textPrimary}
             />
           </TouchableOpacity>
           <TouchableOpacity onPress={handleComment} style={styles.actionButton}>
-            <Ionicons name="chatbubble-outline" size={26} color="#262626" />
+            <Ionicons name="chatbubble-outline" size={26} color={colors.textPrimary} />
           </TouchableOpacity>
           <TouchableOpacity onPress={handleShare} style={styles.actionButton}>
-            <Ionicons name="paper-plane-outline" size={26} color="#262626" />
+            <Ionicons name="paper-plane-outline" size={26} color={colors.textPrimary} />
           </TouchableOpacity>
         </View>
         <TouchableOpacity onPress={toggleBookmark}>
           <Ionicons
             name={bookmarked ? 'bookmark' : 'bookmark-outline'}
             size={26}
-            color="#262626"
+            color={colors.textPrimary}
           />
         </TouchableOpacity>
       </View>
@@ -411,12 +413,12 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, bookmarked: bookma
       {/* Stats */}
       <View style={styles.statsContainer}>
         {likesCount > 0 && (
-          <Text style={styles.statText}>
+          <Text style={[styles.statText, { color: colors.textPrimary }]}>
             {likesCount} {likesCount === 1 ? 'like' : 'likes'}
           </Text>
         )}
         {savesCount > 0 && (
-          <Text style={styles.statText}>
+          <Text style={[styles.statText, { color: colors.textPrimary }]}>
             {savesCount} {savesCount === 1 ? 'save' : 'saves'}
           </Text>
         )}
@@ -425,7 +427,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, bookmarked: bookma
       {/* Caption */}
       {post.caption && removeHashtagsFromText(post.caption).length > 0 && (
         <View style={styles.captionContainer}>
-          <Text style={styles.caption}>
+          <Text style={[styles.caption, { color: colors.textPrimary }]}>
             <Text style={styles.captionUsername}>{displayUsername}</Text>{' '}
             {renderTextWithMentions(removeHashtagsFromText(post.caption))}
           </Text>
@@ -451,7 +453,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, bookmarked: bookma
       {/* View Comments */}
       {(post.commentsCount || 0) > 0 && (
         <TouchableOpacity onPress={handleComment}>
-          <Text style={styles.viewComments}>
+          <Text style={[styles.viewComments, { color: colors.textSecondary }]}>
             View all {post.commentsCount} comments
           </Text>
         </TouchableOpacity>
@@ -472,7 +474,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, bookmarked: bookma
         onRequestClose={() => setOptionsVisible(false)}
       >
         <Pressable style={styles.modalBackdrop} onPress={() => setOptionsVisible(false)}>
-          <View style={styles.optionsCard}>
+          <View style={[styles.optionsCard, { backgroundColor: colors.backgroundWhite }]}>
             {isOwnPost ? (
               // Options for user's own posts
               <>
@@ -480,16 +482,16 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, bookmarked: bookma
                   <Text style={[styles.optionText, styles.optionDanger]}>Delete Post</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); router.push(`/post/edit/${post.id}` as any); }}>
-                  <Text style={styles.optionText}>Edit Post</Text>
+                  <Text style={[styles.optionText, { color: colors.textPrimary }]}>Edit Post</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); router.push(`/post/${post.id}` as any); }}>
-                  <Text style={styles.optionText}>Go to Post</Text>
+                  <Text style={[styles.optionText, { color: colors.textPrimary }]}>Go to Post</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); onShare?.(post.id); }}>
-                  <Text style={styles.optionText}>Share...</Text>
+                  <Text style={[styles.optionText, { color: colors.textPrimary }]}>Share...</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.optionItem} onPress={async () => { await Clipboard.setStringAsync(`https://snapnow.app/post/${post.id}`); setOptionsVisible(false); Alert.alert('Copy Link', 'Link copied to clipboard'); }}>
-                  <Text style={styles.optionText}>Copy Link</Text>
+                  <Text style={[styles.optionText, { color: colors.textPrimary }]}>Copy Link</Text>
                 </TouchableOpacity>
               </>
             ) : (
@@ -505,34 +507,34 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post, bookmarked: bookma
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); Alert.alert('Add to Favorites', 'Added to favorites (mock)'); }}>
-                  <Text style={styles.optionText}>Add to Favorites</Text>
+                  <Text style={[styles.optionText, { color: colors.textPrimary }]}>Add to Favorites</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); router.push(`/post/${post.id}` as any); }}>
-                  <Text style={styles.optionText}>Go to Post</Text>
+                  <Text style={[styles.optionText, { color: colors.textPrimary }]}>Go to Post</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); onShare?.(post.id); }}>
-                  <Text style={styles.optionText}>Share...</Text>
+                  <Text style={[styles.optionText, { color: colors.textPrimary }]}>Share...</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.optionItem} onPress={async () => { await Clipboard.setStringAsync(`https://snapnow.app/post/${post.id}`); setOptionsVisible(false); Alert.alert('Copy Link', 'Link copied to clipboard'); }}>
-                  <Text style={styles.optionText}>Copy Link</Text>
+                  <Text style={[styles.optionText, { color: colors.textPrimary }]}>Copy Link</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); Alert.alert('Embed', 'Embed is not implemented'); }}>
-                  <Text style={styles.optionText}>Embed</Text>
+                  <Text style={[styles.optionText, { color: colors.textPrimary }]}>Embed</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); Alert.alert('About', `About account ${displayUsername}`); }}>
-                  <Text style={styles.optionText}>About this Account</Text>
+                  <Text style={[styles.optionText, { color: colors.textPrimary }]}>About this Account</Text>
                 </TouchableOpacity>
               </>
             )}
             <TouchableOpacity style={styles.optionItem} onPress={() => setOptionsVisible(false)}>
-              <Text style={[styles.optionText, styles.optionCancel]}>Cancel</Text>
+              <Text style={[styles.optionText, styles.optionCancel, { color: colors.textPrimary }]}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </Pressable>
       </Modal>
 
       {/* Timestamp */}
-      <Text style={styles.timestamp}>
+      <Text style={[styles.timestamp, { color: colors.textSecondary }]}>
         {post.createdAt ? getTimeAgo(post.createdAt) : 'Just now'}
       </Text>
     </View>
@@ -632,7 +634,6 @@ const styles = StyleSheet.create({
   },
   caption: {
     fontSize: TYPOGRAPHY.fontSize.md,
-    color: COLORS.textPrimary,
     lineHeight: TYPOGRAPHY.lineHeight.tight,
   },
   captionUsername: {

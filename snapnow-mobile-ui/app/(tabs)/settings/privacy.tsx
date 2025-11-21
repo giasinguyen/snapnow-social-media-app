@@ -3,15 +3,16 @@ import { useRouter } from 'expo-router';
 import { doc, updateDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import {
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth, db } from '../../../config/firebase';
+import { useTheme } from '../../../contexts/ThemeContext';
 import { AuthService } from '../../../services/authService';
 
 interface SettingItemProps {
@@ -35,37 +36,40 @@ function SettingItem({
   onValueChange,
   isSwitch = false,
 }: SettingItemProps) {
+  const { colors } = useTheme();
+  
   return (
     <TouchableOpacity
-      style={styles.settingItem}
+      style={[styles.settingItem, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.borderLight }]}
       onPress={onPress}
       disabled={isSwitch}
       activeOpacity={0.6}
     >
       <View style={styles.settingLeft}>
-        <View style={styles.iconContainer}>
-          <Ionicons name={icon} size={22} color="#262626" />
+        <View style={[styles.iconContainer, { backgroundColor: colors.backgroundGray }]}>
+          <Ionicons name={icon} size={22} color={colors.textPrimary} />
         </View>
         <View style={styles.settingTextContainer}>
-          <Text style={styles.settingTitle}>{title}</Text>
-          {subtitle && <Text style={styles.settingSubtitle}>{subtitle}</Text>}
+          <Text style={[styles.settingTitle, { color: colors.textPrimary }]}>{title}</Text>
+          {subtitle && <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>{subtitle}</Text>}
         </View>
       </View>
       {isSwitch ? (
         <Switch
           value={value}
           onValueChange={onValueChange}
-          trackColor={{ false: '#DBDBDB', true: '#0095F6' }}
+          trackColor={{ false: colors.border, true: '#0095F6' }}
           thumbColor="#fff"
         />
       ) : (
-        showArrow && <Ionicons name="chevron-forward" size={20} color="#8E8E8E" />
+        showArrow && <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
       )}
     </TouchableOpacity>
   );
 }
 
 export default function PrivacyScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const [privateAccount, setPrivateAccount] = useState(false);
   const [activityStatus, setActivityStatus] = useState(true);
@@ -102,18 +106,18 @@ export default function PrivacyScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <View style={[styles.header, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.borderLight }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#262626" />
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Privacy</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Privacy</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account Privacy</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Account Privacy</Text>
           <View style={styles.sectionContent}>
             <SettingItem
               icon="lock-closed-outline"
@@ -130,7 +134,7 @@ export default function PrivacyScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Activity</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Activity</Text>
           <View style={styles.sectionContent}>
             <SettingItem
               icon="time-outline"
@@ -147,7 +151,7 @@ export default function PrivacyScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Sharing</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Sharing</Text>
           <View style={styles.sectionContent}>
             <SettingItem
               icon="chatbubble-outline"
@@ -164,7 +168,7 @@ export default function PrivacyScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Blocked</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Blocked</Text>
           <View style={styles.sectionContent}>
             <SettingItem
               icon="eye-off-outline"

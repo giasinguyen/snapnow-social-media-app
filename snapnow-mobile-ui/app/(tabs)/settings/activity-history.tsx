@@ -13,9 +13,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth } from '../../../config/firebase';
+import { useTheme } from '../../../contexts/ThemeContext';
 import { Activity, getUserActivityHistory } from '../../../services/activityHistory';
 
 export default function ActivityHistoryScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,7 +97,7 @@ export default function ActivityHistoryScreen() {
 
   const renderActivity = ({ item }: { item: Activity }) => (
     <TouchableOpacity
-      style={styles.activityItem}
+      style={[styles.activityItem, { backgroundColor: colors.backgroundWhite }]}
       onPress={() => handleActivityPress(item)}
       activeOpacity={0.7}
     >
@@ -108,17 +110,17 @@ export default function ActivityHistoryScreen() {
       </View>
 
       <View style={styles.activityContent}>
-        <Text style={styles.activityText} numberOfLines={2}>
+        <Text style={[styles.activityText, { color: colors.textPrimary }]} numberOfLines={2}>
           {item.description}
         </Text>
-        <Text style={styles.activityTime}>{formatTime(item.timestamp)}</Text>
+        <Text style={[styles.activityTime, { color: colors.textSecondary }]}>{formatTime(item.timestamp)}</Text>
       </View>
 
       {item.thumbnailUrl && (
         <Image source={{ uri: item.thumbnailUrl }} style={styles.thumbnail} />
       )}
 
-      <Ionicons name="chevron-forward" size={20} color="#8E8E8E" />
+      <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
     </TouchableOpacity>
   );
 
@@ -161,28 +163,28 @@ export default function ActivityHistoryScreen() {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="time-outline" size={64} color="#DBDBDB" />
-      <Text style={styles.emptyTitle}>No Activity Yet</Text>
-      <Text style={styles.emptyText}>
+      <Ionicons name="time-outline" size={64} color={colors.textSecondary} />
+      <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>No Activity Yet</Text>
+      <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
         Your activity history will appear here
       </Text>
     </View>
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.borderLight }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#262626" />
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Activity History</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Activity History</Text>
         <View style={{ width: 24 }} />
       </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#262626" />
+          <ActivityIndicator size="large" color={colors.textPrimary} />
         </View>
       ) : (
         <FlatList

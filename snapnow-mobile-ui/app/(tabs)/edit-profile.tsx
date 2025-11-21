@@ -20,6 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import { auth, db } from '../../config/firebase';
+import { useTheme } from '../../contexts/ThemeContext';
 import { AuthService, UserProfile } from '../../services/authService';
 import { uploadAvatar } from '../../services/cloudinary';
 import { UserService } from '../../services/user';
@@ -29,6 +30,7 @@ const MAX_DISPLAYNAME_LENGTH = 50;
 const MAX_USERNAME_LENGTH = 30;
 
 export default function EditProfileScreen() {
+  const { colors } = useTheme();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
@@ -190,13 +192,13 @@ export default function EditProfileScreen() {
   const usernameLength = username.length;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.borderLight }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
-          <Ionicons name="close" size={28} color="#262626" />
+          <Ionicons name="close" size={28} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Edit Profile</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Edit Profile</Text>
         <TouchableOpacity 
           onPress={save} 
           style={styles.headerButton}
@@ -210,9 +212,9 @@ export default function EditProfileScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView style={[styles.scrollView, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
         {/* Avatar Section */}
-        <View style={styles.avatarSection}>
+        <View style={[styles.avatarSection, { backgroundColor: colors.backgroundWhite }]}>
           <View style={styles.avatarContainer}>
             <LinearGradient
               colors={['#0095F6', '#E91E63', '#9C27B0']}
@@ -240,15 +242,15 @@ export default function EditProfileScreen() {
           </View>
           
           <TouchableOpacity onPress={showImageOptions}>
-            <Text style={styles.changePhotoText}>Change Profile Photo</Text>
+            <Text style={[styles.changePhotoText, { color: colors.blue }]}>Change Profile Photo</Text>
           </TouchableOpacity>
         </View>
 
         {/* Form Section */}
-        <View style={styles.formSection}>
+        <View style={[styles.formSection, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.borderLight }]}>
           {/* Display Name */}
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Display Name</Text>
+            <Text style={[styles.label, { color: colors.textPrimary }]}>Display Name</Text>
             <View style={styles.inputWrapper}>
               <Input
                 value={displayName}
@@ -269,7 +271,7 @@ export default function EditProfileScreen() {
 
           {/* Username */}
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Username</Text>
+            <Text style={[styles.label, { color: colors.textPrimary }]}>Username</Text>
             <View style={styles.inputWrapper}>
               <Input
                 value={username}
@@ -286,14 +288,14 @@ export default function EditProfileScreen() {
                 {usernameLength}/{MAX_USERNAME_LENGTH}
               </Text>
             </View>
-            <Text style={styles.helperText}>
+            <Text style={[styles.helperText, { color: colors.textSecondary }]}>
               Username can only contain letters, numbers, underscores, and periods
             </Text>
           </View>
 
           {/* Bio */}
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Bio</Text>
+            <Text style={[styles.label, { color: colors.textPrimary }]}>Bio</Text>
             <View style={styles.inputWrapper}>
               <Input
                 value={bio}
@@ -316,15 +318,15 @@ export default function EditProfileScreen() {
         </View>
 
         {/* Privacy Settings */}
-        <View style={styles.privacySection}>
-          <Text style={styles.sectionTitle}>Privacy Settings</Text>
+        <View style={[styles.privacySection, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.borderLight }]}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Privacy Settings</Text>
           
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
-              <Ionicons name="lock-closed-outline" size={22} color="#262626" />
+              <Ionicons name="lock-closed-outline" size={22} color={colors.textPrimary} />
               <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Private Account</Text>
-                <Text style={styles.settingDescription}>
+                <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>Private Account</Text>
+                <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
                   Only approved followers can see your posts
                 </Text>
               </View>
@@ -339,10 +341,10 @@ export default function EditProfileScreen() {
 
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
-              <Ionicons name="time-outline" size={22} color="#262626" />
+              <Ionicons name="time-outline" size={22} color={colors.textPrimary} />
               <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Activity Status</Text>
-                <Text style={styles.settingDescription}>
+                <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>Activity Status</Text>
+                <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
                   Show when you&apos;re active
                 </Text>
               </View>
@@ -357,8 +359,8 @@ export default function EditProfileScreen() {
         </View>
 
         {/* SnapNow Features */}
-        <View style={styles.snapSection}>
-          <Text style={styles.sectionTitle}>SnapNow Features</Text>
+        <View style={[styles.snapSection, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.borderLight }]}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>SnapNow Features</Text>
           
           <TouchableOpacity style={styles.featureItem}>
             <View style={styles.featureLeft}>
@@ -366,13 +368,13 @@ export default function EditProfileScreen() {
                 <Ionicons name="camera" size={20} color="#fff" />
               </View>
               <View style={styles.featureInfo}>
-                <Text style={styles.featureLabel}>Camera Settings</Text>
-                <Text style={styles.featureDescription}>
+                <Text style={[styles.featureLabel, { color: colors.textPrimary }]}>Camera Settings</Text>
+                <Text style={[styles.featureDescription, { color: colors.textSecondary }]}>
                   Customize your snap experience
                 </Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#8E8E8E" />
+            <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.featureItem}>
@@ -381,13 +383,13 @@ export default function EditProfileScreen() {
                 <Ionicons name="trophy" size={20} color="#fff" />
               </View>
               <View style={styles.featureInfo}>
-                <Text style={styles.featureLabel}>Achievements</Text>
-                <Text style={styles.featureDescription}>
+                <Text style={[styles.featureLabel, { color: colors.textPrimary }]}>Achievements</Text>
+                <Text style={[styles.featureDescription, { color: colors.textSecondary }]}>
                   View your photo milestones
                 </Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#8E8E8E" />
+            <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.featureItem}>
@@ -520,11 +522,9 @@ const styles = StyleSheet.create({
 
   // Form Section
   formSection: {
-    backgroundColor: '#fff',
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 8,
-    borderBottomColor: '#FAFAFA',
   },
   inputContainer: {
     marginBottom: 24,
@@ -566,11 +566,9 @@ const styles = StyleSheet.create({
 
   // Privacy Settings
   privacySection: {
-    backgroundColor: '#fff',
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 8,
-    borderBottomColor: '#FAFAFA',
   },
   sectionTitle: {
     fontSize: 13,
@@ -608,11 +606,9 @@ const styles = StyleSheet.create({
 
   // SnapNow Features
   snapSection: {
-    backgroundColor: '#fff',
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 8,
-    borderBottomColor: '#FAFAFA',
   },
   featureItem: {
     flexDirection: 'row',
