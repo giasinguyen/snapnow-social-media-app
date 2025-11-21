@@ -5,6 +5,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { doc, onSnapshot } from 'firebase/firestore';
 import React, { useEffect, useRef, useState } from 'react';
+import { DeviceEventEmitter } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ActivityIndicator,
   Alert,
@@ -57,6 +59,7 @@ export default function ChatScreen() {
   );
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [loading, setLoading] = useState(true);
+  const [chatTheme, setChatTheme] = useState<'default' | 'purple' | 'blue' | 'dark'>('default');
   const [messageText, setMessageText] = useState(initialMessage as string || '');
   const [sending, setSending] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -223,6 +226,49 @@ export default function ChatScreen() {
   }, [otherUserId, conversation?.isGroupChat]);
 
   // Filter messages based on search query
+    // Theme helper and persistence per conversation
+    const getThemeColors = (theme: typeof chatTheme) => {
+      switch (theme) {
+        case 'purple':
+          return { containerBg: '#F7F3FF', headerBg: '#efe7ff', accent: '#7C4DFF', text: '#1f1f1f', messageReceivedBg: '#fff' };
+        case 'blue':
+          return { containerBg: '#F0F7FF', headerBg: '#eaf6ff', accent: '#3B82F6', text: '#1f1f1f', messageReceivedBg: '#fff' };
+        case 'dark':
+          return { containerBg: '#0b0c0d', headerBg: '#0b0c0d', accent: '#9CA3AF', text: '#ffffff', messageReceivedBg: '#111215' };
+        default:
+          return { containerBg: '#f9fafb', headerBg: '#ffffffff', accent: '#fc8727ff', text: '#000000', messageReceivedBg: '#ffffff' };
+      }
+    };
+
+    useEffect(() => {
+      const loadTheme = async () => {
+        if (!conversationId) return;
+        try {
+          const key = `chat_theme_${conversationId}`;
+          const stored = await AsyncStorage.getItem(key);
+          if (stored === 'purple' || stored === 'blue' || stored === 'dark' || stored === 'default') {
+            setChatTheme(stored as any);
+          }
+        } catch (error) {
+          // ignore
+        }
+      };
+
+      loadTheme();
+      // subscribe to theme change events for this conversation
+      const sub = DeviceEventEmitter.addListener('chatThemeChanged', (payload: any) => {
+        if (!payload) return;
+        // if event is for this conversation (or global), apply immediately
+        if (payload.conversationId === conversationId || !payload.conversationId) {
+          if (payload.theme === 'purple' || payload.theme === 'blue' || payload.theme === 'dark' || payload.theme === 'default') {
+            setChatTheme(payload.theme);
+          }
+        }
+      });
+      return () => {
+        sub.remove();
+      };
+    }, [conversationId]);
   useEffect(() => {
     if (searchQuery.trim()) {
       const filtered = messages.filter(msg => 
@@ -670,7 +716,7 @@ export default function ChatScreen() {
               borderRadius: 20,
               paddingHorizontal: 16,
               paddingVertical: 12,
-              backgroundColor: isDeletedForEveryone ? '#f3f4f6' : (isMyMessage ? '#fc8727ff' : '#ffffff'),
+              backgroundColor: isDeletedForEveryone ? '#f3f4f6' : (isMyMessage ? '#fc8727ff' : getThemeColors(chatTheme).messageReceivedBg),
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 1 },
               shadowOpacity: 0.08,
@@ -759,7 +805,7 @@ export default function ChatScreen() {
               style={{
                 fontSize: 16,
                 lineHeight: 22,
-                color: isDeletedForEveryone ? '#9ca3af' : (isMyMessage ? '#ffffff' : '#1f2937'),
+                color: isDeletedForEveryone ? '#9ca3af' : (isMyMessage ? '#ffffff' : (chatTheme === 'dark' ? '#e6eef8' : '#1f2937')),
                 fontStyle: isDeletedForEveryone ? 'italic' : 'normal',
               }}
             >
@@ -830,7 +876,7 @@ export default function ChatScreen() {
           headerShown: true,
           title: '',
           headerStyle: {
-            backgroundColor: '#ffffffff',
+            backgroundColor: getThemeColors(chatTheme).headerBg,
           },
           headerShadowVisible: true,
           headerLeft: () => (
@@ -850,7 +896,7 @@ export default function ChatScreen() {
               style={{ flexDirection: 'row', alignItems: 'center', paddingRight: 16 }}
             >
               <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 12 }}>
-                <Ionicons name="arrow-back" size={24} color="#000" />
+                <Ionicons name="arrow-back" size={24} color={getThemeColors(chatTheme).text} />
               </TouchableOpacity>
               <View style={{ position: 'relative' }}>
                 <Image
@@ -878,7 +924,7 @@ export default function ChatScreen() {
                 )}
               </View>
               <View>
-                <Text style={{ fontWeight: '700', fontSize: 16, color: '#000' }} numberOfLines={1}>
+                <Text style={{ fontWeight: '700', fontSize: 16, color: getThemeColors(chatTheme).text }} numberOfLines={1}>
                   {conversation?.isGroupChat
                     ? (conversation.groupName || 'Group Chat')
                     : (nickname || otherUserRealtime?.displayName || (otherUserName as string) || 'Unknown User')}
@@ -916,7 +962,7 @@ export default function ChatScreen() {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'position'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-        style={{ flex: 1, backgroundColor: '#f9fafb' }}
+        style={{ flex: 1, backgroundColor: getThemeColors(chatTheme).containerBg }}
         contentContainerStyle={{ flex: 1 }}
       >
         {/* Search Bar */}
