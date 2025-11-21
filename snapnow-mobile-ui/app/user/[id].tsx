@@ -28,6 +28,10 @@ import { getUserStories, Story } from '../../services/stories';
 import { UserService } from '../../services/user';
 import { Post, User } from '../../types';
 
+//
+import { getFollowers, getFollowing } from '../../services/follow';
+//
+
 const { width } = Dimensions.get('window');
 const POST_SIZE = (width - 2) / 3; // 2px total gap, 1px between each
 
@@ -57,6 +61,10 @@ export default function UserProfileScreen() {
   const [userStories, setUserStories] = useState<Story[]>([]);
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);
   const [showAvatarViewer, setShowAvatarViewer] = useState(false);
+  
+  const [counFtollowers, setCountFollowers] = useState(0);   // 
+  const [countFollowing, setCountFollowing] = useState(0);   //
+
   const router = useRouter();
 
   const loadUserProfile = async () => {
@@ -66,13 +74,24 @@ export default function UserProfileScreen() {
       setLoading(true);
       const userData = await UserService.getUserProfile(id);
       setUser(userData);
-      
+
+
       // Load user's posts
       if (userData?.id) {
         setLoadingPosts(true);
         const posts = await fetchUserPosts(userData.id);
         setUserPosts(posts);
         setLoadingPosts(false);
+
+              
+      // Fetch follower and following counts
+      const [userCountFollower, userCountFollowing] = await Promise.all([
+        (await getFollowers(userData.id)).length,
+        (await getFollowing(userData.id)).length
+        ]);
+        setCountFollowers(userCountFollower);
+        setCountFollowing(userCountFollowing);
+
       }
       
       // Check if current user is following this user
@@ -515,7 +534,7 @@ export default function UserProfileScreen() {
               style={styles.statItem}
               onPress={() => router.push(`/user/follow/followers?userId=${user.id}`)}
             >
-              <Text style={[styles.statNumber, { color: colors.textPrimary }]}>{formatFollowers(user.followersCount ?? 1234)}</Text>
+              <Text style={[styles.statNumber, { color: colors.textPrimary }]}>{formatFollowers(counFtollowers ?? 1234)}</Text>
               <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Followers</Text>
             </TouchableOpacity>
             <View style={styles.statDivider} />
@@ -523,7 +542,7 @@ export default function UserProfileScreen() {
               style={styles.statItem}
               onPress={() => router.push(`/user/follow/following?userId=${user.id}`)}
             >
-              <Text style={[styles.statNumber, { color: colors.textPrimary }]}>{user.followingCount ?? 567}</Text>
+              <Text style={[styles.statNumber, { color: colors.textPrimary }]}>{countFollowing?? 567}</Text>
               <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Following</Text>
             </TouchableOpacity>
             <View style={styles.statDivider} />
