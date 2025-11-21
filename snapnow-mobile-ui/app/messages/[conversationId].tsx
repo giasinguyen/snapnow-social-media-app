@@ -173,6 +173,19 @@ export default function ChatScreen() {
       }
     });
 
+    // When conversation doc updates, prefer server-side theme if present
+    // (this ensures other participants see theme changes even if DeviceEventEmitter isn't emitted locally)
+    const handleConversationSnapshot = onSnapshot(conversationRef, (snapshot) => {
+      if (!snapshot.exists()) return;
+      const data = snapshot.data() as any;
+      if (data?.theme && data.theme !== chatTheme) {
+        setChatTheme(data.theme);
+        // keep local cache in sync
+        const key = conversationId ? `chat_theme_${conversationId}` : 'chat_theme_default';
+        AsyncStorage.setItem(key, data.theme).catch(() => {});
+      }
+    });
+
     const unsubscribe = subscribeToMessages(
       conversationId,
       (updatedMessages: Message[]) => {
@@ -198,6 +211,7 @@ export default function ChatScreen() {
     return () => {
       unsubscribe();
       unsubscribeConversation();
+      handleConversationSnapshot();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]);
@@ -960,8 +974,8 @@ export default function ChatScreen() {
       />
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'position'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        behavior={'padding'}
+        keyboardVerticalOffset={90}
         style={{ flex: 1, backgroundColor: getThemeColors(chatTheme).containerBg }}
         contentContainerStyle={{ flex: 1 }}
       >
