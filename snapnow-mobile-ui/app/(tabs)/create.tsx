@@ -3,25 +3,25 @@ import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    Keyboard,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import ActionBar from "../../components/create/ActionBar";
 import HeaderBar from "../../components/create/HeaderBar";
 import PrivacySheet, {
-  PrivacyOption,
+    PrivacyOption,
 } from "../../components/create/PrivacySheet";
 import SelectedImages from "../../components/create/SelectedImages";
 import UserComposer from "../../components/create/UserComposer";
@@ -153,6 +153,7 @@ const CreateSnapScreen: React.FC = () => {
         imageUrl: uploadedImageUrls[0] || "",
         caption: snapContent.trim(),
         hashtags,
+        privacy: privacy.key as 'anyone' | 'followers' | 'following' | 'mentions',
       });
 
       // Extract mentions and send notifications
