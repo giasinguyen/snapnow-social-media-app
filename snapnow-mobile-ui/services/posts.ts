@@ -228,6 +228,7 @@ export async function createPost(postData: {
   imageUrls?: string[] // Add support for multiple images
   caption: string
   hashtags?: string[]
+  privacy?: 'anyone' | 'followers' | 'following' | 'mentions' // Who can reply and quote
 }) {
   try {
     // Clean data - remove undefined values to avoid Firestore error
@@ -237,6 +238,7 @@ export async function createPost(postData: {
       userImage: postData.userImage || '', // Default to empty string instead of undefined
       caption: postData.caption,
       hashtags: postData.hashtags || [],
+      privacy: postData.privacy || 'anyone', // Default to 'anyone' if not specified
       likes: 0,
       commentsCount: 0,
       createdAt: serverTimestamp(),

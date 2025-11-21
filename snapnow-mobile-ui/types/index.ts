@@ -29,6 +29,7 @@ export interface Post {
   savesCount?: number; // Number of saves/bookmarks
   isLiked?: boolean;
   isSaved?: boolean; // Whether current user has saved this post
+  privacy?: 'anyone' | 'followers' | 'following' | 'mentions'; // Who can reply and quote
   createdAt?: any;
 }
 
@@ -46,6 +47,7 @@ export interface Comment {
   parentCommentId?: string; // For replies
   replies?: Comment[]; // Nested replies
   repliesCount?: number; // Number of replies
+  mentions?: { [username: string]: string }; // Map of mentioned usernames to user IDs
 }
 
 export interface Follow {
