@@ -1,19 +1,20 @@
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Link } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
   Alert,
   KeyboardAvoidingView,
   Platform,
-  TouchableOpacity,
-  TextInput,
   ScrollView,
   StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Link } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme } from '../../contexts/ThemeContext';
 import { loginUser } from '../../services/authService';
 // import {loginBypass } from '../../services/authService';
 
@@ -33,6 +34,7 @@ const COLORS = {
 };
 
 export default function LoginScreen() {
+  const { colors } = useTheme();
   const [username, setUsername] = useState('admin@snapnow.com');
   const [password, setPassword] = useState('admin123');
   const [isLoading, setIsLoading] = useState(false);
@@ -64,18 +66,18 @@ export default function LoginScreen() {
   };
 
   const handleQuickLogin = () => {
-    setUsername('admin@snapnow.com');
-    setPassword('admin123');
+    setUsername('tocchien2804@gmail.com');
+    setPassword('123456');
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.flex1}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { backgroundColor: colors.background }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
@@ -91,21 +93,21 @@ export default function LoginScreen() {
                 <Ionicons name="camera" size={64} color="#fff" />
               </LinearGradient>
 
-              <Text style={styles.appTitle}>SnapNow</Text>
-              <Text style={styles.appSubtitle}>Capture & Share Your Moments</Text>
+              <Text style={[styles.appTitle, { color: colors.textPrimary }]}>SnapNow</Text>
+              <Text style={[styles.appSubtitle, { color: colors.textSecondary }]}>Capture & Share Your Moments</Text>
             </View>
 
             {/* Form */}
             <View style={styles.form}>
               {/* Username */}
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Username or Email</Text>
-                <View style={styles.inputWrap}>
-                  <Ionicons name="person-outline" size={20} color="#8E8E8E" />
+                <Text style={[styles.label, { color: colors.textPrimary }]}>Username or Email</Text>
+                <View style={[styles.inputWrap, { backgroundColor: colors.backgroundGray, borderColor: colors.border }]}>
+                  <Ionicons name="person-outline" size={20} color={colors.textSecondary} />
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: colors.textPrimary }]}
                     placeholder="Enter username or email"
-                    placeholderTextColor="#8E8E8E"
+                    placeholderTextColor={colors.textSecondary}
                     value={username}
                     onChangeText={setUsername}
                     autoCapitalize="none"
@@ -117,13 +119,13 @@ export default function LoginScreen() {
 
               {/* Password */}
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Password</Text>
-                <View style={styles.inputWrap}>
-                  <Ionicons name="lock-closed-outline" size={20} color="#8E8E8E" />
+                <Text style={[styles.label, { color: colors.textPrimary }]}>Password</Text>
+                <View style={[styles.inputWrap, { backgroundColor: colors.backgroundGray, borderColor: colors.border }]}>
+                  <Ionicons name="lock-closed-outline" size={20} color={colors.textSecondary} />
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: colors.textPrimary }]}
                     placeholder="Enter password"
-                    placeholderTextColor="#8E8E8E"
+                    placeholderTextColor={colors.textSecondary}
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
@@ -137,7 +139,7 @@ export default function LoginScreen() {
                     <Ionicons
                       name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                       size={20}
-                      color="#8E8E8E"
+                      color={colors.textSecondary}
                     />
                   </TouchableOpacity>
                 </View>
@@ -184,14 +186,14 @@ export default function LoginScreen() {
               </View>
 
               {/* Socials */}
-              <TouchableOpacity style={styles.socialBtn}>
+              <TouchableOpacity style={[styles.socialBtn, { backgroundColor: colors.backgroundWhite, borderColor: colors.border }]}>
                 <Ionicons name="logo-google" size={20} color="#DB4437" />
-                <Text style={styles.socialText}>Continue with Google</Text>
+                <Text style={[styles.socialText, { color: colors.textPrimary }]}>Continue with Google</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={[styles.socialBtn, styles.mb0]}>
+              <TouchableOpacity style={[styles.socialBtn, styles.mb0, { backgroundColor: colors.backgroundWhite, borderColor: colors.border }]}>
                 <Ionicons name="logo-facebook" size={20} color="#1877F2" />
-                <Text style={styles.socialText}>Continue with Facebook</Text>
+                <Text style={[styles.socialText, { color: colors.textPrimary }]}>Continue with Facebook</Text>
               </TouchableOpacity>
 
               {/* Dev-only bypass login */}
@@ -217,8 +219,8 @@ export default function LoginScreen() {
             </View>
 
             {/* Sign Up */}
-            <View style={styles.signupRow}>
-              <Text style={styles.signupText}>Don&apos;t have an account? </Text>
+            <View style={[styles.signupRow, { borderTopColor: colors.border }]}>
+              <Text style={[styles.signupText, { color: colors.textSecondary }]}>Don&apos;t have an account? </Text>
               <Link href="/register" asChild>
                 <TouchableOpacity>
                   <Text style={styles.signupLink}>Sign up</Text>
@@ -234,7 +236,7 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   flex1: { flex: 1 },
-  safe: { flex: 1, backgroundColor: COLORS.white },
+  safe: { flex: 1 },
   scrollContent: { flexGrow: 1 },
   container: {
     flex: 1,
@@ -252,22 +254,21 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 8, shadowOffset: { width: 0, height: 4 },
     elevation: 8, // shadow-lg
   },
-  appTitle: { fontSize: 48, fontWeight: 'bold', color: COLORS.gray900, marginBottom: 8 }, // text-5xl
-  appSubtitle: { fontSize: 18, color: COLORS.gray500 }, // text-lg
+  appTitle: { fontSize: 48, fontWeight: 'bold', marginBottom: 8 }, // text-5xl
+  appSubtitle: { fontSize: 18 }, // text-lg
 
   // Form
   form: { marginBottom: 32 }, // mb-8
   formGroup: { marginBottom: 24 }, // mb-6 / mb-4
-  label: { fontSize: 14, fontWeight: '600', color: COLORS.gray700, marginBottom: 8 }, // text-sm semibold
+  label: { fontSize: 14, fontWeight: '600', marginBottom: 8 }, // text-sm semibold
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.gray50,
-    borderWidth: 1, borderColor: COLORS.gray200,
+    borderWidth: 1,
     borderRadius: 12, // rounded-xl
     paddingHorizontal: 16, paddingVertical: 12, // px-4 py-3
   },
-  input: { flex: 1, marginLeft: 12, fontSize: 16, color: COLORS.gray900 }, // text-base
+  input: { flex: 1, marginLeft: 12, fontSize: 16 }, // text-base
   ml2: { marginLeft: 8 },
 
   // Quick login
@@ -305,18 +306,17 @@ const styles = StyleSheet.create({
   // Social buttons
   socialBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: COLORS.white,
-    borderWidth: 2, borderColor: COLORS.gray200,
+    borderWidth: 2,
     borderRadius: 12, paddingVertical: 12, marginBottom: 12,
   },
-  socialText: { marginLeft: 12, color: COLORS.gray700, fontWeight: '600' },
+  socialText: { marginLeft: 12, fontWeight: '600' },
   mb0: { marginBottom: 0 },
 
   // Signup
   signupRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    paddingTop: 24, borderTopWidth: 1, borderTopColor: COLORS.gray200,
+    paddingTop: 24, borderTopWidth: 1,
   },
-  signupText: { fontSize: 14, color: COLORS.gray600 },
+  signupText: { fontSize: 14 },
   signupLink: { fontSize: 14, color: COLORS.blue600, fontWeight: '700' },
 });
