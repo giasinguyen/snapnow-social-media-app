@@ -17,13 +17,9 @@ import { CLOUDINARY_CONFIG, CLOUDINARY_UPLOAD_URL } from "../config/cloudinary";
 const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
 const GEMINI_API_URL =
   "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent";
-const REPLICATE_API_KEY = process.env.EXPO_PUBLIC_REPLICATE_API_KEY;
-const REPLICATE_API_URL = "https://api.replicate.com/v1/predictions";
-
-// Model version hashes - using stable, publicly available models
-const FLUX_VERSION = "5599ed30703defd1d160a25a63321b4dec97101d98b4674bcc56e41f62f35637"; // FLUX Schnell
-const SD3_VERSION = "f437ab8c4e29d53c44e94e6eb046170c02dc3fc2bdd542f8e451bcb8a88df0e6"; // Stable Diffusion 1.5 (fallback)
-
+const HUGGINGFACE_API_KEY = process.env.EXPO_PUBLIC_HUGGINGFACE_API_KEY;
+const HUGGINGFACE_API_URL =
+  "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell";
 
 export interface AIMessage {
   id: string;
@@ -146,7 +142,7 @@ AI:`;
 };
 
 /**
- * Generate an image using Replicate (flux-1.1-pro or ideogram-v2-turbo)
+ * Generate an image using Hugging Face FLUX.1-schnell
  */
 export const generateImageWithAI = async (
   prompt: string,
@@ -157,54 +153,98 @@ export const generateImageWithAI = async (
       throw new Error("Image prompt cannot be empty");
     }
 
-    console.log("🎨 Generating image with Replicate (FLUX-Schnell)...");
+    if (!HUGGINGFACE_API_KEY) {
+      throw new Error(
+        "Hugging Face API key is not configured. Please add EXPO_PUBLIC_HUGGINGFACE_API_KEY to your .env file"
+      );
+    }
 
-    // Create prediction with FLUX-Schnell (free, fast model)
-    const createResponse = await fetch(REPLICATE_API_URL, {
+    console.log("🎨 Generating image with Hugging Face FLUX.1-schnell...");
+    console.log("📝 Prompt (original):", prompt);
+
+    // Translate Vietnamese to English for better results
+    let enhancedPrompt = prompt;
+    
+    // Simple Vietnamese to English translation for common words
+    const translations: { [key: string]: string } = {
+      'mèo': 'cat',
+      'chó': 'dog',
+      'hoa': 'flower',
+      'cây': 'tree',
+      'biển': 'ocean',
+      'núi': 'mountain',
+      'hoàng hôn': 'sunset',
+      'bầu trời': 'sky',
+      'đẹp': 'beautiful',
+      'dễ thương': 'cute',
+      'thành phố': 'city',
+      'vườn': 'garden',
+      'ngôi nhà': 'house',
+      'ô tô': 'car',
+      'người': 'person',
+      'phụ nữ': 'woman',
+      'đàn ông': 'man',
+      'trẻ em': 'child',
+      'phong cảnh': 'landscape',
+      'thiên nhiên': 'nature',
+    };
+
+    // Apply translations
+    let translatedPrompt = prompt.toLowerCase();
+    Object.entries(translations).forEach(([vietnamese, english]) => {
+      translatedPrompt = translatedPrompt.replace(new RegExp(vietnamese, 'gi'), english);
+    });
+
+    // If prompt is in Vietnamese and got translated, use enhanced version
+    if (translatedPrompt !== prompt.toLowerCase()) {
+      enhancedPrompt = translatedPrompt;
+      console.log("🌐 Translated prompt:", enhancedPrompt);
+    }
+
+    // Add quality modifiers for better results
+    enhancedPrompt = `${enhancedPrompt}, high quality, detailed, professional photography, 4k`;
+    console.log("✨ Enhanced prompt:", enhancedPrompt);
+
+    // Generate image with Hugging Face
+    const response = await fetch(HUGGINGFACE_API_URL, {
       method: "POST",
       headers: {
+        Authorization: `Bearer ${HUGGINGFACE_API_KEY}`,
         "Content-Type": "application/json",
-        Authorization: `Bearer ${REPLICATE_API_KEY}`,
       },
       body: JSON.stringify({
-        version: FLUX_VERSION,
-        input: {
-          prompt: prompt,
-          go_fast: true,
-          megapixels: "1",
-          num_outputs: 1,
-          aspect_ratio: "1:1",
-          output_format: "webp",
-          output_quality: 80,
-          num_inference_steps: 4,
+        inputs: enhancedPrompt,
+        parameters: {
+          num_inference_steps: 4, // Fast generation (1-4 steps for schnell)
+          guidance_scale: 0, // FLUX.1-schnell doesn't use guidance
         },
       }),
     });
 
-    if (!createResponse.ok) {
-      const errorData = await createResponse.json();
-      console.error("Replicate API Error:", errorData);
-      throw new Error(
-        errorData.detail || "Failed to create image generation request"
-      );
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Hugging Face API Error:", errorText);
+
+      // Handle model loading
+      if (response.status === 503) {
+        throw new Error("Model is loading, please try again in 20-30 seconds");
+      }
+
+      throw new Error(`Hugging Face API error: ${response.statusText}`);
     }
 
-    const prediction = await createResponse.json();
-    console.log("📝 Prediction created:", prediction.id);
+    // Get image as blob
+    const imageBlob = await response.blob();
+    console.log(
+      "✅ Image generated, size:",
+      (imageBlob.size / 1024).toFixed(2),
+      "KB"
+    );
 
-    // Poll for result from Replicate
-    let replicateUrl = await pollReplicateResult(prediction.id);
-
-    if (!replicateUrl) {
-      // Fallback to Stable Diffusion 1.5 if FLUX fails
-      console.log("🔄 Trying fallback model: Stable Diffusion 1.5...");
-      replicateUrl = await generateWithIdeogram(prompt, userId);
-    }
-
-    // Upload Replicate image to Cloudinary for permanent storage
+    // Upload to Cloudinary
     console.log("📤 Uploading image to Cloudinary...");
-    const cloudinaryUrl = await uploadImageToCloudinary(
-      replicateUrl,
+    const cloudinaryUrl = await uploadBlobToCloudinary(
+      imageBlob,
       userId,
       prompt
     );
@@ -220,51 +260,44 @@ export const generateImageWithAI = async (
 };
 
 /**
- * Upload image from URL to Cloudinary
+ * Upload image blob to Cloudinary
  */
-const uploadImageToCloudinary = async (
-  imageUrl: string,
+const uploadBlobToCloudinary = async (
+  imageBlob: Blob,
   userId: string,
   prompt: string
 ): Promise<string> => {
   try {
     console.log("📤 Uploading image to Cloudinary...");
-    console.log("🔗 Source URL:", imageUrl);
+    console.log("📊 Size:", (imageBlob.size / 1024).toFixed(2), "KB");
 
-    // Download image from Replicate first
-    console.log("⬇️ Downloading image from Replicate...");
-    const imageResponse = await fetch(imageUrl);
-    if (!imageResponse.ok) {
-      throw new Error("Failed to download image from Replicate");
-    }
+    // Convert blob to base64 for mobile upload
+    const reader = new FileReader();
+    const base64Promise = new Promise<string>((resolve, reject) => {
+      reader.onloadend = () => {
+        const base64data = reader.result as string;
+        resolve(base64data);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(imageBlob);
+    });
 
-    const imageBlob = await imageResponse.blob();
-    console.log(
-      "✅ Image downloaded, size:",
-      (imageBlob.size / 1024).toFixed(2),
-      "KB"
-    );
+    const base64Image = await base64Promise;
 
-    // Create FormData with the actual file blob
+    // Create FormData for Cloudinary upload
     const formData = new FormData();
-    formData.append("file", {
-      uri: imageUrl,
-      type: "image/jpeg",
-      name: `ai-generated-${Date.now()}.jpg`,
-    } as any);
+    formData.append("file", base64Image);
     formData.append("upload_preset", CLOUDINARY_CONFIG.uploadPreset);
     formData.append("folder", "snapnow/ai-generated");
     formData.append("tags", "ai,generated," + userId);
-
-    // Add context metadata
-    formData.append("context", `prompt=${prompt}|user=${userId}`);
+    formData.append(
+      "context",
+      `prompt=${prompt}|user=${userId}|model=FLUX.1-schnell`
+    );
 
     const response = await fetch(CLOUDINARY_UPLOAD_URL, {
       method: "POST",
       body: formData,
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
     });
 
     if (!response.ok) {
@@ -286,108 +319,6 @@ const uploadImageToCloudinary = async (
     console.error("❌ Error uploading to Cloudinary:", error);
     throw error;
   }
-};
-
-/**
- * Poll Replicate API for result
- */
-const pollReplicateResult = async (
-  predictionId: string,
-  maxAttempts: number = 30
-): Promise<string> => {
-  for (let i = 0; i < maxAttempts; i++) {
-    await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2s between polls
-
-    const response = await fetch(`${REPLICATE_API_URL}/${predictionId}`, {
-      headers: {
-        Authorization: `Bearer ${REPLICATE_API_KEY}`,
-      },
-    });
-
-    const prediction = await response.json();
-    console.log(`🔍 Poll ${i + 1}/${maxAttempts}: ${prediction.status}`);
-
-    if (prediction.status === "succeeded") {
-      // Log the full output to debug
-      console.log(
-        "📦 Full prediction output:",
-        JSON.stringify(prediction.output, null, 2)
-      );
-
-      let replicateUrl = "";
-
-      // Handle different output formats
-      if (Array.isArray(prediction.output)) {
-        replicateUrl = prediction.output[0];
-      } else if (typeof prediction.output === "string") {
-        replicateUrl = prediction.output;
-      } else if (prediction.output?.url) {
-        replicateUrl = prediction.output.url;
-      }
-
-      if (replicateUrl && replicateUrl.startsWith("http")) {
-        console.log("✅ Image generated by Replicate!");
-        console.log("🔗 Replicate URL (temporary):", replicateUrl);
-        return replicateUrl;
-      } else {
-        console.error("❌ Invalid URL received:", replicateUrl);
-        throw new Error("Invalid image URL from Replicate");
-      }
-    }
-
-    if (prediction.status === "failed" || prediction.status === "canceled") {
-      throw new Error(
-        prediction.error || "Image generation failed or was canceled"
-      );
-    }
-  }
-
-  throw new Error("Image generation timed out");
-};
-
-/**
- * Fallback: Generate with Stable Diffusion 1.5
- */
-const generateWithIdeogram = async (
-  prompt: string,
-  userId: string
-): Promise<string> => {
-  console.log("🔄 Using fallback: Stable Diffusion 1.5...");
-  const createResponse = await fetch(REPLICATE_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${REPLICATE_API_KEY}`,
-    },
-    body: JSON.stringify({
-      version: SD3_VERSION,
-      input: {
-        prompt: prompt,
-        width: 512,
-        height: 512,
-        num_outputs: 1,
-        num_inference_steps: 25,
-        guidance_scale: 7.5,
-      },
-    }),
-  });
-
-  if (!createResponse.ok) {
-    const errorData = await createResponse.json();
-    console.error("SD 1.5 API Error:", errorData);
-    throw new Error("Failed to create SD 1.5 prediction");
-  }
-
-  const prediction = await createResponse.json();
-  const replicateUrl = await pollReplicateResult(prediction.id);
-
-  // Upload to Cloudinary
-  const cloudinaryUrl = await uploadImageToCloudinary(
-    replicateUrl,
-    userId,
-    prompt
-  );
-  return cloudinaryUrl;
 };
 
 /**
@@ -494,6 +425,8 @@ export const getAIConversationHistory = async (
         id: doc.id,
         role: data.role,
         text: data.text,
+        imageUrl: data.imageUrl,
+        imagePrompt: data.imagePrompt,
         timestamp: data.timestamp,
         createdAt: data.timestamp?.toDate() || new Date(),
       };
@@ -531,6 +464,8 @@ export const subscribeToAIConversation = (
           id: doc.id,
           role: data.role,
           text: data.text,
+          imageUrl: data.imageUrl,
+          imagePrompt: data.imagePrompt,
           timestamp: data.timestamp,
           createdAt: data.timestamp?.toDate() || new Date(),
         };
