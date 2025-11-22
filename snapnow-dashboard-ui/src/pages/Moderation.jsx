@@ -1,15 +1,31 @@
 import { useState, useEffect } from 'react';
 import { Shield, Ban, Eye, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import moderationService from '../services/moderationService';
 
 const Moderation = () => {
+  const [queue, setQueue] = useState([]);
+  const [stats, setStats] = useState({ pending: 0, flagged: 0, removed: 0, approved: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // TODO: Fetch moderation data from API
-    setTimeout(() => {
-      setLoading(false);
-    }, 1000);
+    loadData();
   }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [queueData, statsData] = await Promise.all([
+        moderationService.getQueue(),
+        moderationService.getStats(),
+      ]);
+      setQueue(queueData.queue || []);
+      setStats(statsData);
+    } catch (error) {
+      console.error('Error loading moderation data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -35,7 +51,7 @@ const Moderation = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Pending Review</p>
-              <p className="text-2xl font-bold text-orange-600">0</p>
+              <p className="text-2xl font-bold text-orange-600">{stats.pending}</p>
             </div>
             <Clock className="w-10 h-10 text-orange-500" />
           </div>
@@ -44,7 +60,7 @@ const Moderation = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Auto Flagged</p>
-              <p className="text-2xl font-bold text-yellow-600">0</p>
+              <p className="text-2xl font-bold text-yellow-600">{stats.flagged}</p>
             </div>
             <AlertTriangle className="w-10 h-10 text-yellow-500" />
           </div>
@@ -53,7 +69,7 @@ const Moderation = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Removed</p>
-              <p className="text-2xl font-bold text-red-600">0</p>
+              <p className="text-2xl font-bold text-red-600">{stats.removed}</p>
             </div>
             <Ban className="w-10 h-10 text-red-500" />
           </div>
@@ -62,7 +78,7 @@ const Moderation = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Approved</p>
-              <p className="text-2xl font-bold text-green-600">0</p>
+              <p className="text-2xl font-bold text-green-600">{stats.approved}</p>
             </div>
             <CheckCircle className="w-10 h-10 text-green-500" />
           </div>
@@ -107,7 +123,9 @@ const Moderation = () => {
           <p className="text-gray-600 mb-4">Content requiring manual review</p>
           <div className="text-center py-8">
             <Eye className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500 text-sm">No items in review queue</p>
+            <p className="text-gray-500 text-sm">
+              {queue.length > 0 ? `${queue.length} items in review queue` : 'No items in review queue'}
+            </p>
           </div>
         </div>
       </div>

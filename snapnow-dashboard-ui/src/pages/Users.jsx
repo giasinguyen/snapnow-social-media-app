@@ -216,7 +216,7 @@ const Users = () => {
                               {user.username}
                             </div>
                             <div className="text-sm text-gray-500">
-                              {user.fullName || 'No name'}
+                              {user.displayName || user.fullName || 'No name'}
                             </div>
                           </div>
                         </div>
@@ -337,7 +337,7 @@ const Users = () => {
                       {selectedUser.status === 'banned' ? 'Banned' : 'Active'}
                     </span>
                   </div>
-                  <p className="text-gray-600">{selectedUser.fullName || 'No name'}</p>
+                  <p className="text-gray-600">{selectedUser.displayName || selectedUser.fullName || 'No name'}</p>
                   <p className="text-gray-500 text-sm mt-1">{selectedUser.email || 'No email'}</p>
                 </div>
               </div>
