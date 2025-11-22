@@ -10,7 +10,12 @@ import {
   LogOut,
   Menu,
   X,
-  Camera
+  Camera,
+  MessageSquare,
+  Flag,
+  Bell,
+  TrendingUp,
+  Shield
 } from 'lucide-react';
 
 const DashboardLayout = () => {
@@ -31,7 +36,12 @@ const DashboardLayout = () => {
     { path: '/dashboard', icon: LayoutDashboard, label: 'Overview' },
     { path: '/dashboard/users', icon: Users, label: 'Users' },
     { path: '/dashboard/posts', icon: FileText, label: 'Posts' },
+    { path: '/dashboard/comments', icon: MessageSquare, label: 'Comments' },
+    { path: '/dashboard/reports', icon: Flag, label: 'Reports' },
+    { path: '/dashboard/notifications', icon: Bell, label: 'Notifications' },
     { path: '/dashboard/analytics', icon: BarChart3, label: 'Analytics' },
+    { path: '/dashboard/trends', icon: TrendingUp, label: 'Trends' },
+    { path: '/dashboard/moderation', icon: Shield, label: 'Moderation' },
     { path: '/dashboard/settings', icon: Settings, label: 'Settings' },
   ];
 
@@ -46,10 +56,10 @@ const DashboardLayout = () => {
         {/* Logo */}
         <div className="h-16 flex items-center justify-between px-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-linear-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
               <Camera className="w-6 h-6 text-white" />
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            <span className="text-xl font-bold bg-linear-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
               SnapNow
             </span>
           </div>
@@ -71,7 +81,7 @@ const DashboardLayout = () => {
               className={({ isActive }) =>
                 `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                   isActive
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
+                    ? 'bg-linear-to-r from-purple-500 to-pink-500 text-white shadow-lg'
                     : 'text-gray-700 hover:bg-gray-100'
                 }`
               }
@@ -89,7 +99,7 @@ const DashboardLayout = () => {
         {/* User info and logout */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
           <div className="flex items-center gap-3 mb-3 px-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center">
+            <div className="w-10 h-10 bg-linear-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center">
               <span className="text-white font-semibold text-sm">
                 {user?.email?.charAt(0).toUpperCase()}
               </span>
@@ -137,7 +147,7 @@ const DashboardLayout = () => {
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-30 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         ></div>
       )}

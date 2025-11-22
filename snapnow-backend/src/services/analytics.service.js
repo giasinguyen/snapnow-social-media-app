@@ -268,12 +268,56 @@ class AnalyticsService {
       
       let query = this.db.collection('users');
 
-      // Apply search filter (by username or email)
+      // For search, we need to fetch all and filter in memory
+      // Because Firestore doesn't support full-text search natively
       if (search) {
-        query = query.where('username', '>=', search).where('username', '<=', search + '\uf8ff');
+        // Fetch all users and filter in memory
+        const allSnapshot = await this.db.collection('users').get();
+        const searchLower = search.toLowerCase();
+        
+        let filteredUsers = allSnapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(user => {
+            const username = (user.username || '').toLowerCase();
+            const email = (user.email || '').toLowerCase();
+            const fullName = (user.fullName || '').toLowerCase();
+            return username.includes(searchLower) || 
+                   email.includes(searchLower) || 
+                   fullName.includes(searchLower);
+          });
+
+        // Sort in memory
+        filteredUsers.sort((a, b) => {
+          const aValue = a[sortBy];
+          const bValue = b[sortBy];
+          
+          // Handle Firestore Timestamp
+          const aTime = aValue?.toDate ? aValue.toDate() : new Date(aValue);
+          const bTime = bValue?.toDate ? bValue.toDate() : new Date(bValue);
+          
+          if (sortOrder === 'desc') {
+            return bTime - aTime;
+          }
+          return aTime - bTime;
+        });
+
+        // Paginate in memory
+        const total = filteredUsers.length;
+        const offset = (page - 1) * limit;
+        const users = filteredUsers.slice(offset, offset + limit);
+
+        return {
+          users,
+          pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+          },
+        };
       }
 
-      // Apply sorting
+      // No search - use optimized query
       query = query.orderBy(sortBy, sortOrder);
 
       // Get total count
