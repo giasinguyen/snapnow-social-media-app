@@ -12,10 +12,7 @@ import {
   X,
   Camera,
   MessageSquare,
-  Flag,
-  Bell,
-  TrendingUp,
-  Shield
+  Flag
 } from 'lucide-react';
 
 const DashboardLayout = () => {
@@ -38,10 +35,7 @@ const DashboardLayout = () => {
     { path: '/dashboard/posts', icon: FileText, label: 'Posts' },
     { path: '/dashboard/comments', icon: MessageSquare, label: 'Comments' },
     { path: '/dashboard/reports', icon: Flag, label: 'Reports' },
-    { path: '/dashboard/notifications', icon: Bell, label: 'Notifications' },
     { path: '/dashboard/analytics', icon: BarChart3, label: 'Analytics' },
-    { path: '/dashboard/trends', icon: TrendingUp, label: 'Trends' },
-    { path: '/dashboard/moderation', icon: Shield, label: 'Moderation' },
     { path: '/dashboard/settings', icon: Settings, label: 'Settings' },
   ];
 
