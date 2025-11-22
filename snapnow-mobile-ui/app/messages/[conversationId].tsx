@@ -42,7 +42,7 @@ import {
 } from '../../services/messages';
 
 export default function ChatScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const params = useLocalSearchParams();
   const {
     conversationId: initialConversationId,
@@ -59,7 +59,6 @@ export default function ChatScreen() {
   );
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [loading, setLoading] = useState(true);
-  const [chatTheme, setChatTheme] = useState<'default' | 'purple' | 'blue' | 'dark'>('default');
   const [messageText, setMessageText] = useState(initialMessage as string || '');
   const [sending, setSending] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -173,18 +172,7 @@ export default function ChatScreen() {
       }
     });
 
-    // When conversation doc updates, prefer server-side theme if present
-    // (this ensures other participants see theme changes even if DeviceEventEmitter isn't emitted locally)
-    const handleConversationSnapshot = onSnapshot(conversationRef, (snapshot) => {
-      if (!snapshot.exists()) return;
-      const data = snapshot.data() as any;
-      if (data?.theme && data.theme !== chatTheme) {
-        setChatTheme(data.theme);
-        // keep local cache in sync
-        const key = conversationId ? `chat_theme_${conversationId}` : 'chat_theme_default';
-        AsyncStorage.setItem(key, data.theme).catch(() => {});
-      }
-    });
+    // Chat theme system removed - using app dark mode instead
 
     const unsubscribe = subscribeToMessages(
       conversationId,
@@ -211,7 +199,6 @@ export default function ChatScreen() {
     return () => {
       unsubscribe();
       unsubscribeConversation();
-      handleConversationSnapshot();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]);
@@ -240,49 +227,6 @@ export default function ChatScreen() {
   }, [otherUserId, conversation?.isGroupChat]);
 
   // Filter messages based on search query
-    // Theme helper and persistence per conversation
-    const getThemeColors = (theme: typeof chatTheme) => {
-      switch (theme) {
-        case 'purple':
-          return { containerBg: '#F7F3FF', headerBg: '#efe7ff', accent: '#7C4DFF', text: '#1f1f1f', messageReceivedBg: '#fff' };
-        case 'blue':
-          return { containerBg: '#F0F7FF', headerBg: '#eaf6ff', accent: '#3B82F6', text: '#1f1f1f', messageReceivedBg: '#fff' };
-        case 'dark':
-          return { containerBg: '#0b0c0d', headerBg: '#0b0c0d', accent: '#9CA3AF', text: '#ffffff', messageReceivedBg: '#111215' };
-        default:
-          return { containerBg: '#f9fafb', headerBg: '#ffffffff', accent: '#fc8727ff', text: '#000000', messageReceivedBg: '#ffffff' };
-      }
-    };
-
-    useEffect(() => {
-      const loadTheme = async () => {
-        if (!conversationId) return;
-        try {
-          const key = `chat_theme_${conversationId}`;
-          const stored = await AsyncStorage.getItem(key);
-          if (stored === 'purple' || stored === 'blue' || stored === 'dark' || stored === 'default') {
-            setChatTheme(stored as any);
-          }
-        } catch (error) {
-          // ignore
-        }
-      };
-
-      loadTheme();
-      // subscribe to theme change events for this conversation
-      const sub = DeviceEventEmitter.addListener('chatThemeChanged', (payload: any) => {
-        if (!payload) return;
-        // if event is for this conversation (or global), apply immediately
-        if (payload.conversationId === conversationId || !payload.conversationId) {
-          if (payload.theme === 'purple' || payload.theme === 'blue' || payload.theme === 'dark' || payload.theme === 'default') {
-            setChatTheme(payload.theme);
-          }
-        }
-      });
-      return () => {
-        sub.remove();
-      };
-    }, [conversationId]);
   useEffect(() => {
     if (searchQuery.trim()) {
       const filtered = messages.filter(msg => 
@@ -717,7 +661,7 @@ export default function ChatScreen() {
               {showAvatar && (
                 <Image
                   source={{ uri: senderPhoto || 'https://via.placeholder.com/32' }}
-                  style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#e5e7eb' }}
+                  style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: colors.borderLight }}
                 />
               )}
             </View>
@@ -730,8 +674,8 @@ export default function ChatScreen() {
               borderRadius: 20,
               paddingHorizontal: 16,
               paddingVertical: 12,
-              backgroundColor: isDeletedForEveryone ? '#f3f4f6' : (isMyMessage ? '#fc8727ff' : getThemeColors(chatTheme).messageReceivedBg),
-              shadowColor: '#000',
+              backgroundColor: isDeletedForEveryone ? colors.backgroundGray : (isMyMessage ? '#fc8727ff' : colors.backgroundWhite),
+              shadowColor: colors.textPrimary,
               shadowOffset: { width: 0, height: 1 },
               shadowOpacity: 0.08,
               shadowRadius: 3,
@@ -819,7 +763,7 @@ export default function ChatScreen() {
               style={{
                 fontSize: 16,
                 lineHeight: 22,
-                color: isDeletedForEveryone ? '#9ca3af' : (isMyMessage ? '#ffffff' : (chatTheme === 'dark' ? '#e6eef8' : '#1f2937')),
+                color: isDeletedForEveryone ? colors.textLight : (isMyMessage ? '#ffffff' : colors.textPrimary),
                 fontStyle: isDeletedForEveryone ? 'italic' : 'normal',
               }}
             >
@@ -890,7 +834,7 @@ export default function ChatScreen() {
           headerShown: true,
           title: '',
           headerStyle: {
-            backgroundColor: getThemeColors(chatTheme).headerBg,
+            backgroundColor: colors.backgroundWhite,
           },
           headerShadowVisible: true,
           headerLeft: () => (
@@ -910,7 +854,7 @@ export default function ChatScreen() {
               style={{ flexDirection: 'row', alignItems: 'center', paddingRight: 16 }}
             >
               <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 12 }}>
-                <Ionicons name="arrow-back" size={24} color={getThemeColors(chatTheme).text} />
+                <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
               </TouchableOpacity>
               <View style={{ position: 'relative' }}>
                 <Image
@@ -932,13 +876,13 @@ export default function ChatScreen() {
                       borderRadius: 6,
                       backgroundColor: '#34c759',
                       borderWidth: 2,
-                      borderColor: '#ffffff',
+                      borderColor: colors.backgroundWhite,
                     }}
                   />
                 )}
               </View>
               <View>
-                <Text style={{ fontWeight: '700', fontSize: 16, color: getThemeColors(chatTheme).text }} numberOfLines={1}>
+                <Text style={{ fontWeight: '700', fontSize: 16, color: colors.textPrimary }} numberOfLines={1}>
                   {conversation?.isGroupChat
                     ? (conversation.groupName || 'Group Chat')
                     : (nickname || otherUserRealtime?.displayName || (otherUserName as string) || 'Unknown User')}
@@ -976,7 +920,7 @@ export default function ChatScreen() {
       <KeyboardAvoidingView
         behavior={'padding'}
         keyboardVerticalOffset={90}
-        style={{ flex: 1, backgroundColor: getThemeColors(chatTheme).containerBg }}
+        style={{ flex: 1, backgroundColor: colors.background }}
         contentContainerStyle={{ flex: 1 }}
       >
         {/* Search Bar */}
@@ -1048,7 +992,7 @@ export default function ChatScreen() {
         >
           {/* Image Preview when uploading */}
           {uploadingImage && selectedImage && (
-            <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' }}>
+            <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.borderLight }}>
               <View style={{ position: 'relative' }}>
                 <Image 
                   source={{ uri: selectedImage }}
@@ -1066,8 +1010,8 @@ export default function ChatScreen() {
                   justifyContent: 'center',
                   alignItems: 'center',
                 }}>
-                  <ActivityIndicator size="large" color="#fff" />
-                  <Text style={{ color: '#fff', marginTop: 8, fontSize: 12 }}>Uploading...</Text>
+                  <ActivityIndicator size="large" color={colors.textWhite} />
+                  <Text style={{ color: colors.textWhite, marginTop: 8, fontSize: 12 }}>Uploading...</Text>
                 </View>
               </View>
             </View>
@@ -1126,7 +1070,7 @@ export default function ChatScreen() {
               <Ionicons 
                 name="camera-outline" 
                 size={24} 
-                color={sending ? '#d1d5db' : '#fc8727ff'} 
+                color={sending ? colors.textLight : '#fc8727ff'} 
               />
             </TouchableOpacity>
 
@@ -1139,7 +1083,7 @@ export default function ChatScreen() {
               <Ionicons 
                 name="image-outline" 
                 size={24} 
-                color={sending ? '#d1d5db' : '#fc8727ff'} 
+                color={sending ? colors.textLight : '#fc8727ff'} 
               />
             </TouchableOpacity>
 
@@ -1179,14 +1123,14 @@ export default function ChatScreen() {
               style={{
                 padding: 12,
                 borderRadius: 24,
-                backgroundColor: messageText.trim() && !sending ? '#fc8727ff' : '#d1d5db',
+                backgroundColor: messageText.trim() && !sending ? '#fc8727ff' : colors.textLight,
               }}
             >
-              {sending && !uploadingImage ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Ionicons name="send" size={20} color="#fff" />
-              )}
+                {sending && !uploadingImage ? (
+                  <ActivityIndicator size="small" color={colors.textWhite} />
+                ) : (
+                  <Ionicons name="send" size={20} color={colors.textWhite} />
+                )}
             </TouchableOpacity>
           </View>
         </View>
@@ -1291,16 +1235,16 @@ export default function ChatScreen() {
                   width: 40,
                   height: 40,
                   borderRadius: 20,
-                  backgroundColor: '#fef2f2',
+                  backgroundColor: colors.error + '20',
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginRight: 16,
                 }}>
-                  <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                  <Ionicons name="trash-outline" size={20} color={colors.error} />
                 </View>
                 <Text style={{
                   fontSize: 16,
-                  color: '#ef4444',
+                  color: colors.error,
                   fontWeight: '500',
                 }}>
                   Delete for Me
@@ -1322,20 +1266,20 @@ export default function ChatScreen() {
                     width: 40,
                     height: 40,
                     borderRadius: 20,
-                    backgroundColor: '#fef2f2',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginRight: 16,
-                  }}>
-                    <Ionicons name="arrow-undo-outline" size={20} color="#ef4444" />
-                  </View>
-                  <Text style={{
-                    fontSize: 16,
-                    color: '#ef4444',
-                    fontWeight: '500',
-                  }}>
-                    Unsend for Everyone
-                  </Text>
+                  backgroundColor: colors.error + '20',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 16,
+                }}>
+                  <Ionicons name="arrow-undo-outline" size={20} color={colors.error} />
+                </View>
+                <Text style={{
+                  fontSize: 16,
+                  color: colors.error,
+                  fontWeight: '500',
+                }}>
+                  Unsend for Everyone
+                </Text>
                 </TouchableOpacity>
               )}
 

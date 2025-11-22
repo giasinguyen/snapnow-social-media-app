@@ -28,7 +28,7 @@ import { UserService } from '../../services/user';
 import { User } from '../../types';
 
 export default function ConversationDetailsScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const router = useRouter();
   const params = useLocalSearchParams();
   const {
@@ -63,48 +63,7 @@ export default function ConversationDetailsScreen() {
   const [otherUserRealtime, setOtherUserRealtime] = useState<{ displayName: string; photoURL: string; username: string } | null>(null);
   const [participantsInfo, setParticipantsInfo] = useState<Map<string, { displayName: string; username: string; photoURL: string }>>(new Map());
   const participantSubscriptions = React.useRef<Map<string, () => void>>(new Map());
-  const [chatTheme, setChatTheme] = useState<'default' | 'purple' | 'blue' | 'dark'>('default');
-
-  const THEME_KEY = conversationId ? `chat_theme_${conversationId}` : 'chat_theme_default';
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
-
-  const applyTheme = async (theme: typeof chatTheme) => {
-    try {
-      // If theme is unchanged, do nothing (no system message)
-      if (theme === chatTheme) return;
-
-      const key = conversationId ? `chat_theme_${conversationId}` : 'chat_theme_default';
-      // update local state and storage
-      setChatTheme(theme);
-      await AsyncStorage.setItem(key, theme);
-      // persist to server so it's global for everyone
-      try {
-        if (conversationId) {
-          // Use setDoc with merge to avoid failures if the conversation doc doesn't exist yet
-          await setDoc(doc(db, 'conversations', conversationId as string), { theme }, { merge: true });
-        }
-      } catch (e) {
-        console.error('Error persisting theme to conversation doc', e);
-      }
-
-      // notify other screens (chat) to update immediately
-      DeviceEventEmitter.emit('chatThemeChanged', { conversationId, theme });
-
-      // Create a small system message in the conversation to show that theme changed
-      try {
-        if (conversationId) {
-          const friendly = theme === 'default' ? 'Default' : theme === 'purple' ? 'Gradient Purple' : theme === 'blue' ? 'Gradient Blue' : 'Dark';
-          const { sendSystemMessage } = require('../../services/messages');
-          const actor = auth.currentUser?.displayName || 'Someone';
-          await sendSystemMessage(conversationId as string, `Chat theme changed to ${friendly} by ${actor}`);
-        }
-      } catch (e) {
-        console.error('Error sending theme change system message', e);
-      }
-    } catch (e) {
-      console.error('Error applying theme', e);
-    }
-  };
 
   useEffect(() => {
     loadConversationData();
@@ -258,19 +217,7 @@ export default function ConversationDetailsScreen() {
     setShowMediaModal(true);
   };
 
-  // Map theme to colors used in this screen
-  const getThemeColors = (theme: typeof chatTheme) => {
-    switch (theme) {
-      case 'purple':
-        return { containerBg: '#F7F3FF', headerBg: '#efe7ff', accent: '#7C4DFF', text: '#1f1f1f' };
-      case 'blue':
-        return { containerBg: '#F0F7FF', headerBg: '#eaf6ff', accent: '#3B82F6', text: '#1f1f1f' };
-      case 'dark':
-        return { containerBg: '#111214', headerBg: '#0b0c0d', accent: '#9CA3AF', text: '#ffffff' };
-      default:
-        return { containerBg: '#ffffff', headerBg: '#ffffff', accent: '#7C4DFF', text: '#000000' };
-    }
-  };
+  // Chat theme system removed - using app dark mode instead
 
   const handleOptions = () => {
     setShowOptionsModal(true);
@@ -343,44 +290,7 @@ export default function ConversationDetailsScreen() {
     ]);
   };
 
-  const handleChangeTheme = () => {
-    Alert.alert('Change Theme', 'Choose a chat background theme', [
-      { text: 'Default', onPress: () => applyTheme('default') },
-      { text: 'Gradient Purple', onPress: () => applyTheme('purple') },
-      { text: 'Gradient Blue', onPress: () => applyTheme('blue') },
-      { text: 'Dark', onPress: () => applyTheme('dark') },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
-  };
-
-  // Load stored theme for this conversation (or default)
-  useEffect(() => {
-    const loadTheme = async () => {
-      try {
-        const key = conversationId ? `chat_theme_${conversationId}` : 'chat_theme_default';
-        const stored = await AsyncStorage.getItem(key);
-        if (stored === 'purple' || stored === 'blue' || stored === 'dark' || stored === 'default') {
-          setChatTheme(stored as any);
-        }
-      } catch (error) {
-        // ignore
-      }
-    };
-
-    loadTheme();
-  }, [conversationId]);
-
-  // If conversation document has a theme field, prefer that (server-side setting)
-  useEffect(() => {
-    const serverTheme = (conversation as any)?.theme as typeof chatTheme | undefined;
-    if (serverTheme && serverTheme !== chatTheme) {
-      setChatTheme(serverTheme);
-      // keep local cache in sync
-      const key = conversationId ? `chat_theme_${conversationId}` : 'chat_theme_default';
-      AsyncStorage.setItem(key, serverTheme).catch(() => {});
-      DeviceEventEmitter.emit('chatThemeChanged', { conversationId, theme: serverTheme });
-    }
-  }, [conversation]);
+  // Chat theme feature removed - using app dark mode instead
 
   const handleChangeNickname = () => {
     setNicknameInput(nickname);
@@ -572,15 +482,12 @@ export default function ConversationDetailsScreen() {
     );
   };
 
-  const themeColors = getThemeColors(chatTheme);
-
   return (
-
-    <View style={[styles.container, { backgroundColor: themeColors.containerBg }]}>
-      <StatusBar barStyle={chatTheme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={themeColors.headerBg} />
-      <ScrollView style={[styles.content, { backgroundColor: themeColors.containerBg }]} showsVerticalScrollIndicator={false}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.backgroundWhite} />
+      <ScrollView style={[styles.content, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
         {/* User/Group Info */}
-        <View style={[styles.userSection, { backgroundColor: themeColors.headerBg }]}>
+        <View style={[styles.userSection, { backgroundColor: colors.backgroundWhite }]}>
           {isGroupChat ? (
             // Group chat header
             <>
@@ -659,20 +566,7 @@ export default function ConversationDetailsScreen() {
           </View>
         </View>
 
-        {/* Theme */}
-        <TouchableOpacity style={styles.menuItem} onPress={handleChangeTheme}>
-          <View style={styles.menuLeft}>
-            <View style={[styles.menuIcon, { backgroundColor: themeColors.accent }]}>
-              <View style={styles.themeCircle} />
-            </View>
-            <View style={styles.menuTextContainer}>
-              <Text style={[styles.menuText, { color: themeColors.text }]}>Theme</Text>
-              <Text style={[styles.menuSubtext, { color: themeColors.text }]}>
-                {chatTheme === 'default' ? 'Default' : chatTheme === 'purple' ? 'Gradient Purple' : chatTheme === 'blue' ? 'Gradient Blue' : 'Dark'}
-              </Text>
-            </View>
-          </View>
-        </TouchableOpacity>
+        {/* Theme option removed - using app dark mode instead */}
 
         {/* Disappearing messages */}
         <TouchableOpacity style={styles.menuItem}>
@@ -761,7 +655,7 @@ export default function ConversationDetailsScreen() {
               <View style={styles.menuIconContainer}>
                 <Ionicons name="exit-outline" size={24} color="#ef4444" />
               </View>
-              <Text style={[styles.menuText, { color: '#ef4444' }]}>Leave Group</Text>
+              <Text style={[styles.menuText, { color: colors.error }]}>Leave Group</Text>
             </View>
           </TouchableOpacity>
         )}
@@ -797,14 +691,14 @@ export default function ConversationDetailsScreen() {
           <View style={[styles.optionsModalContent, { backgroundColor: colors.backgroundWhite }]}>
             <TouchableOpacity style={styles.optionItem} onPress={handleBlockUser}>
               <Ionicons name="ban-outline" size={24} color="#ef4444" />
-              <Text style={[styles.optionText, { color: '#ef4444' }]}>Block User</Text>
+              <Text style={[styles.optionText, { color: colors.error }]}>Block User</Text>
             </TouchableOpacity>
             
             <View style={[styles.optionDivider, { backgroundColor: colors.borderLight }]} />
             
             <TouchableOpacity style={styles.optionItem} onPress={handleDeleteChat}>
               <Ionicons name="trash-outline" size={24} color="#ef4444" />
-              <Text style={[styles.optionText, { color: '#ef4444' }]}>Delete Conversation</Text>
+              <Text style={[styles.optionText, { color: colors.error }]}>Delete Conversation</Text>
             </TouchableOpacity>
             
             <View style={[styles.optionDivider, { backgroundColor: colors.borderLight }]} />
@@ -852,10 +746,10 @@ export default function ConversationDetailsScreen() {
             />
             <View style={styles.modalButtons}>
               <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
+                style={[styles.modalButton, styles.cancelButton, { backgroundColor: colors.backgroundGray }]}
                 onPress={() => setShowNicknameModal(false)}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={[styles.cancelButtonText, { color: colors.textPrimary }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalButton, styles.saveButton]}
@@ -938,11 +832,11 @@ export default function ConversationDetailsScreen() {
             />
             <View style={styles.modalButtons}>
               <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
+                style={[styles.modalButton, styles.cancelButton, { backgroundColor: colors.backgroundGray }]}
                 onPress={() => setShowChangeGroupModal(false)}
                 disabled={isUploading}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={[styles.cancelButtonText, { color: colors.textPrimary }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalButton, styles.saveButton]}
@@ -950,7 +844,7 @@ export default function ConversationDetailsScreen() {
                 disabled={isUploading}
               >
                 {isUploading ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={colors.textWhite} />
                 ) : (
                   <Text style={styles.saveButtonText}>Save</Text>
                 )}
@@ -1018,8 +912,8 @@ export default function ConversationDetailsScreen() {
                       <Text style={[styles.userDisplayName, { color: colors.textPrimary }]}>{item.displayName}</Text>
                       <Text style={[styles.userUsername, { color: colors.textSecondary }]}>@{item.username}</Text>
                     </View>
-                    <View style={[styles.checkbox, { borderColor: colors.textSecondary }, isSelected && styles.checkboxSelected]}>
-                      {isSelected && <Ionicons name="checkmark" size={16} color="#fff" />}
+                    <View style={[styles.checkbox, { borderColor: colors.textSecondary }, isSelected && [styles.checkboxSelected, { backgroundColor: colors.blue, borderColor: colors.blue }]]}>
+                      {isSelected && <Ionicons name="checkmark" size={16} color={colors.textWhite} />}
                     </View>
                   </TouchableOpacity>
                 );
@@ -1048,13 +942,13 @@ export default function ConversationDetailsScreen() {
                 onPress={handleAddSelectedUsers}
                 disabled={isUploading}
               >
-                {isUploading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.addUsersButtonText}>
-                    Add {selectedUsers.length} user{selectedUsers.length > 1 ? 's' : ''}
-                  </Text>
-                )}
+                  {isUploading ? (
+                    <ActivityIndicator color={colors.textWhite} />
+                  ) : (
+                    <Text style={styles.addUsersButtonText}>
+                      Add {selectedUsers.length} user{selectedUsers.length > 1 ? 's' : ''}
+                    </Text>
+                  )}
               </TouchableOpacity>
             )}
           </View>
@@ -1334,21 +1228,17 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000',
     marginBottom: 8,
   },
   modalSubtitle: {
     fontSize: 14,
-    color: '#8E8E8E',
     marginBottom: 16,
   },
   nicknameInput: {
     borderWidth: 1,
-    borderColor: '#e0e0e0',
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    color: '#000',
     marginBottom: 20,
   },
   modalButtons: {
@@ -1362,12 +1252,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#f0f0f0',
+    // backgroundColor will be set dynamically
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000',
   },
   saveButton: {
     backgroundColor: '#0095f6',
@@ -1393,7 +1282,6 @@ const styles = StyleSheet.create({
   },
   optionText: {
     fontSize: 16,
-    color: '#000',
   },
   optionDivider: {
     height: 1,
@@ -1421,7 +1309,6 @@ const styles = StyleSheet.create({
   mediaModalTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000',
   },
   mediaGrid: {
     flex: 1,
@@ -1449,7 +1336,6 @@ const styles = StyleSheet.create({
   },
   emptyMediaText: {
     fontSize: 16,
-    color: '#8E8E8E',
     marginTop: 16,
   },
   groupPhotoButton: {
@@ -1470,7 +1356,6 @@ const styles = StyleSheet.create({
   },
   groupPhotoText: {
     fontSize: 12,
-    color: '#8E8E8E',
     marginTop: 4,
   },
   searchContainer: {
@@ -1488,7 +1373,6 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: '#000',
   },
   selectedUsersContainer: {
     paddingHorizontal: 16,
@@ -1511,7 +1395,6 @@ const styles = StyleSheet.create({
   },
   selectedUserName: {
     fontSize: 14,
-    color: '#000',
     fontWeight: '500',
   },
   userItem: {
@@ -1532,18 +1415,15 @@ const styles = StyleSheet.create({
   userDisplayName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000',
   },
   userUsername: {
     fontSize: 14,
-    color: '#8E8E8E',
   },
   checkbox: {
     width: 24,
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#8E8E8E',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1559,7 +1439,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#8E8E8E',
     marginTop: 16,
   },
   addUsersButton: {
@@ -1593,11 +1472,9 @@ const styles = StyleSheet.create({
   participantName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000',
   },
   participantUsername: {
     fontSize: 14,
-    color: '#8E8E8E',
   },
   adminBadge: {
     paddingHorizontal: 10,
