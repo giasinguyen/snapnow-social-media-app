@@ -615,7 +615,10 @@ export default function ConversationDetailsScreen() {
         )}
 
         {/* Privacy & safety */}
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity 
+          style={styles.menuItem}
+          onPress={() => router.push('/(tabs)/settings/privacy')}
+        >
           <View style={styles.menuLeft}>
             <View style={styles.menuIconContainer}>
               <Ionicons name="lock-closed-outline" size={24} color={colors.textPrimary} />

@@ -387,7 +387,7 @@ export default function ProfileScreen() {
             </TouchableOpacity>
             <View style={[styles.statDivider, { backgroundColor: colors.borderLight }]} />
 
-              //Fix load followers/following count real-time update issue
+            {/* Fix load followers/following count real-time update issue */}
             <TouchableOpacity 
               style={styles.statItem}
               onPress={() => {

@@ -340,8 +340,8 @@ export default function UserFollowScreen() {
           </View>
         )}
         <View style={styles.userInfo}>
-          <Text style={styles.username}>{item.username}</Text>
-          <Text style={styles.displayName}>{item.displayName || item.username}</Text>
+          <Text style={[styles.username, { color: colors.textPrimary }]}>{item.username}</Text>
+          <Text style={[styles.displayName, { color: colors.textSecondary }]}>{item.displayName || item.username}</Text>
         </View>
       </TouchableOpacity>
       
@@ -508,7 +508,7 @@ export default function UserFollowScreen() {
                     }
                   }}
                 >
-                  <Text style={styles.dropdownTextRed}>Unfollow</Text>
+                  <Text style={[styles.dropdownTextRed, { color: colors.error }]}>Unfollow</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
                   style={styles.dropdownItem}
@@ -681,7 +681,6 @@ const styles = StyleSheet.create({
   },
   dropdownTextRed: {
     fontSize: 14,
-    color: '#FF3B30',
     fontWeight: '500',
   },
   modalBackdrop: {
