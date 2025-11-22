@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { useRouter } from 'expo-router';
-import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { doc, getDoc } from 'firebase/firestore';
+import React, { useState } from 'react';
+import { Image, Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { db } from '../../config/firebase';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Notification } from '../../types';
 
@@ -14,6 +16,7 @@ interface NotificationItemProps {
 export const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onPress }) => {
   const { colors } = useTheme();
   const router = useRouter();
+  const [showStoryEndedModal, setShowStoryEndedModal] = useState(false);
 
   const getIcon = () => {
     switch (notification.type) {
@@ -40,7 +43,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
     }
   };
 
-  const handlePress = () => {
+  const handlePress = async () => {
     onPress?.();
     
     if (notification.type === 'follow') {
@@ -50,7 +53,34 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
     } else if (notification.type === 'follow_request_accepted') {
       router.push(`/user/${notification.fromUserId}`);
     } else if (notification.type === 'story_reaction' && notification.storyId) {
-      router.push(`/story/${notification.storyId}` as any);
+      // Check if story still exists before navigating
+      try {
+        const storyRef = doc(db, 'stories', notification.storyId);
+        const storyDoc = await getDoc(storyRef);
+        
+        if (!storyDoc.exists()) {
+          setShowStoryEndedModal(true);
+          return;
+        }
+        
+        // Check if story is expired
+        const storyData = storyDoc.data();
+        const expiresAt = storyData?.expiresAt?.toDate?.();
+        
+        if (expiresAt) {
+          const now = new Date();
+          if (expiresAt < now) {
+            setShowStoryEndedModal(true);
+            return;
+          }
+        }
+        
+        router.push(`/story/${notification.storyId}` as any);
+      } catch (error) {
+        console.error('Error checking story:', error);
+        // If there's an error checking, just navigate anyway - let the story screen handle it
+        router.push(`/story/${notification.storyId}` as any);
+      }
     } else if (notification.type === 'mention' && notification.postId) {
       router.push(`/post/${notification.postId}` as any);
     } else if (notification.postId) {
@@ -101,27 +131,122 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
   };
 
   return (
-    <TouchableOpacity
-      style={[
-        styles.container,
-        { backgroundColor: colors.backgroundWhite },
-        !notification.isRead && { backgroundColor: colors.backgroundGray }
-      ]}
-      onPress={handlePress}
-      activeOpacity={0.7}
-    >
-      <View style={styles.leftContent}>
-        {renderAvatar()}
-        <View style={styles.textContainer}>
-          <Text style={[styles.message, { color: colors.textPrimary }]} numberOfLines={2}>
-            <Text style={[styles.username, { color: colors.textPrimary }]}>{notification.fromUsername}</Text>
-            <Text style={[styles.messageText, { color: colors.textSecondary }]}> {notification.message}</Text>
-          </Text>
-          <Text style={[styles.time, { color: colors.textSecondary }]}>{formatTime(notification.createdAt)}</Text>
+    <>
+      <TouchableOpacity
+        style={[
+          styles.container,
+          { backgroundColor: colors.backgroundWhite },
+          !notification.isRead && { backgroundColor: colors.backgroundGray }
+        ]}
+        onPress={handlePress}
+        activeOpacity={0.7}
+      >
+        <View style={styles.leftContent}>
+          {renderAvatar()}
+          <View style={styles.textContainer}>
+            <Text style={[styles.message, { color: colors.textPrimary }]} numberOfLines={2}>
+              <Text style={[styles.username, { color: colors.textPrimary }]}>{notification.fromUsername}</Text>
+              <Text style={[styles.messageText, { color: colors.textSecondary }]}> {notification.message}</Text>
+            </Text>
+            <Text style={[styles.time, { color: colors.textSecondary }]}>{formatTime(notification.createdAt)}</Text>
+          </View>
         </View>
-      </View>
-      {renderPostImage()}
-    </TouchableOpacity>
+        {renderPostImage()}
+      </TouchableOpacity>
+
+      {/* Story Ended Modal */}
+      <Modal
+        visible={showStoryEndedModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowStoryEndedModal(false)}
+      >
+        <Pressable 
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingHorizontal: 40,
+          }}
+          onPress={() => setShowStoryEndedModal(false)}
+        >
+          <Pressable 
+            style={{
+              backgroundColor: colors.backgroundWhite,
+              borderRadius: 20,
+              padding: 24,
+              width: '100%',
+              maxWidth: 340,
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              elevation: 8,
+            }}
+            onPress={(e) => e.stopPropagation()}
+          >
+            {/* Icon */}
+            <View style={{
+              width: 64,
+              height: 64,
+              borderRadius: 32,
+              backgroundColor: '#fc872710',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 16,
+            }}>
+              <Ionicons name="time-outline" size={32} color="#fc8727ff" />
+            </View>
+
+            {/* Title */}
+            <Text style={{
+              fontSize: 22,
+              fontWeight: '700',
+              color: colors.textPrimary,
+              marginBottom: 12,
+              textAlign: 'center',
+            }}>
+              Story Ended
+            </Text>
+
+            {/* Message */}
+            <Text style={{
+              fontSize: 15,
+              color: colors.textSecondary,
+              textAlign: 'center',
+              lineHeight: 22,
+              marginBottom: 24,
+            }}>
+              This story has ended and is no longer available.
+            </Text>
+
+            {/* OK Button */}
+            <TouchableOpacity
+              onPress={() => setShowStoryEndedModal(false)}
+              style={{
+                backgroundColor: '#fc8727ff',
+                paddingVertical: 14,
+                paddingHorizontal: 48,
+                borderRadius: 12,
+                width: '100%',
+                alignItems: 'center',
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={{
+                color: '#FFFFFF',
+                fontSize: 16,
+                fontWeight: '600',
+              }}>
+                OK
+              </Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
   );
 };
 

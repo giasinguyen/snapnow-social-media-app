@@ -18,7 +18,7 @@ export default function HelpCenterScreen() {
             <ScrollView contentContainerStyle={styles.content}>
                 <Text style={[styles.title, { color: colors.textPrimary }]}>Help Center</Text>
                 <Text style={[styles.paragraph, { color: colors.textSecondary }]}>
-                    Need help using <Text style={styles.bold}>SnapNow</Text>? You’re in the
+                    Need help using <Text style={[styles.bold, { color: colors.textPrimary }]}>SnapNow</Text>? You’re in the
                     right place. Our Help Center is designed to guide you through every
                     aspect of the app — from account setup and privacy management to
                     posting your first photo and exploring trending content.

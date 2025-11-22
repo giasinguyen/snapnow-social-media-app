@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth } from '../../config/firebase';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
     acceptFollowRequest,
     getPendingFollowRequests,
@@ -23,6 +24,7 @@ import {
 
 export default function FollowRequestsScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const [requests, setRequests] = useState<FollowRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -101,26 +103,26 @@ export default function FollowRequestsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.borderLight }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#262626" />
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Follow Requests</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Follow Requests</Text>
         <View style={{ width: 24 }} />
       </View>
 
       {/* Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#0095F6" />
+          <ActivityIndicator size="large" color="#fc8727ff" />
         </View>
       ) : requests.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="people-outline" size={64} color="#DBDBDB" />
-          <Text style={styles.emptyTitle}>No Follow Requests</Text>
-          <Text style={styles.emptySubtitle}>
+          <Ionicons name="people-outline" size={64} color={colors.borderLight} />
+          <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>No Follow Requests</Text>
+          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
             When someone requests to follow you, you'll see them here.
           </Text>
         </View>
@@ -133,7 +135,7 @@ export default function FollowRequestsScreen() {
           }
         >
           {requests.map((request) => (
-            <View key={request.id} style={styles.requestItem}>
+            <View key={request.id} style={[styles.requestItem, { borderBottomColor: colors.borderLight }]}>
               <TouchableOpacity
                 style={styles.userInfo}
                 onPress={() => router.push(`/user/${request.fromUserId}`)}
@@ -142,18 +144,18 @@ export default function FollowRequestsScreen() {
                   source={{
                     uri: request.fromProfileImage || 'https://via.placeholder.com/50',
                   }}
-                  style={styles.avatar}
+                  style={[styles.avatar, { backgroundColor: colors.borderLight }]}
                 />
                 <View style={styles.userDetails}>
-                  <Text style={styles.username}>{request.fromUsername}</Text>
-                  <Text style={styles.timestamp}>
+                  <Text style={[styles.username, { color: colors.textPrimary }]}>{request.fromUsername}</Text>
+                  <Text style={[styles.timestamp, { color: colors.textSecondary }]}>
                     {getTimeAgo(request.createdAt)}
                   </Text>
                 </View>
               </TouchableOpacity>
 
               {processingIds.has(request.id) ? (
-                <ActivityIndicator size="small" color="#0095F6" />
+                <ActivityIndicator size="small" color="#fc8727ff" />
               ) : (
                 <View style={styles.actionButtons}>
                   <TouchableOpacity
@@ -163,10 +165,10 @@ export default function FollowRequestsScreen() {
                     <Text style={styles.acceptButtonText}>Accept</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={styles.rejectButton}
+                    style={[styles.rejectButton, { backgroundColor: colors.backgroundGray }]}
                     onPress={() => handleReject(request)}
                   >
-                    <Text style={styles.rejectButtonText}>Decline</Text>
+                    <Text style={[styles.rejectButtonText, { color: colors.textPrimary }]}>Decline</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -192,7 +194,6 @@ function getTimeAgo(date: Date): string {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
@@ -201,7 +202,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#DBDBDB',
   },
   backButton: {
     padding: 4,
@@ -209,7 +209,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#262626',
   },
   loadingContainer: {
     flex: 1,
@@ -225,12 +224,10 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#262626',
     marginTop: 16,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#8E8E8E',
     textAlign: 'center',
     marginTop: 8,
   },
@@ -244,7 +241,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#EFEFEF',
   },
   userInfo: {
     flexDirection: 'row',
@@ -263,11 +259,9 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#262626',
   },
   timestamp: {
     fontSize: 12,
-    color: '#8E8E8E',
     marginTop: 2,
   },
   actionButtons: {
@@ -286,13 +280,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   rejectButton: {
-    backgroundColor: '#EFEFEF',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
   },
   rejectButtonText: {
-    color: '#262626',
     fontSize: 14,
     fontWeight: '600',
   },

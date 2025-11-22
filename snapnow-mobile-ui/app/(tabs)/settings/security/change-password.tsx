@@ -3,9 +3,11 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '../../../../contexts/ThemeContext';
 import { updatePassword } from '../../../../services/authService';
 
 export default function ChangePassword() {
+  const { colors } = useTheme();
   const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -53,13 +55,13 @@ export default function ChangePassword() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.borderLight }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={22} color="#262626" />
+            <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.title}>Change password</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>Change password</Text>
           <View style={{ width: 24 }} />
         </View>
 
@@ -67,8 +69,9 @@ export default function ChangePassword() {
         <View style={styles.content}>
           <View style={{ position: "relative" }}>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.backgroundWhite, color: colors.textPrimary, borderColor: colors.border }]}
               placeholder="Current password"
+              placeholderTextColor={colors.textSecondary}
               secureTextEntry={!showPassword}
               value={currentPassword}
               onChangeText={setCurrentPassword}
@@ -86,7 +89,7 @@ export default function ChangePassword() {
               <Ionicons
                 name={showPassword ? "eye" : "eye-off"}
                 size={24}
-                color="#999"
+                color={colors.textSecondary}
               />
             </TouchableOpacity>
           </View>
@@ -95,8 +98,9 @@ export default function ChangePassword() {
 
           <View style={{ position: "relative" }}>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.backgroundWhite, color: colors.textPrimary, borderColor: colors.border }]}
               placeholder="New password"
+              placeholderTextColor={colors.textSecondary}
               secureTextEntry={!showNewPassword}
               value={newPassword}
               onChangeText={setNewPassword}
@@ -114,7 +118,7 @@ export default function ChangePassword() {
               <Ionicons
                 name={showNewPassword ? "eye" : "eye-off"}
                 size={24}
-                color="#999"
+                color={colors.textSecondary}
               />
             </TouchableOpacity>
           </View>
@@ -122,8 +126,9 @@ export default function ChangePassword() {
 {/* 3 */}
           <View style={{ position: "relative" }}>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.backgroundWhite, color: colors.textPrimary, borderColor: colors.border }]}
               placeholder="Confirm new password"
+              placeholderTextColor={colors.textSecondary}
               secureTextEntry={!showConfirmPassword}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
@@ -141,7 +146,7 @@ export default function ChangePassword() {
               <Ionicons
                 name={showConfirmPassword ? "eye" : "eye-off"}
                 size={24}
-                color="#999"
+                color={colors.textSecondary}
               />
             </TouchableOpacity>
           </View>
@@ -162,7 +167,7 @@ export default function ChangePassword() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#FAFAFA' },
+  safe: { flex: 1 },
   container: { flex: 1 },
   header: {
     flexDirection: 'row',
@@ -170,14 +175,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#EFEFEF',
   },
   backButton: { padding: 4 },
-  title: { fontSize: 18, fontWeight: '600', color: '#262626' },
+  title: { fontSize: 18, fontWeight: '600' },
   content: { padding: 16, marginTop: 12 },
-  input: { backgroundColor: '#fff', padding: 12, borderRadius: 8, marginBottom: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: '#e5e5e5' },
+  input: { padding: 12, borderRadius: 8, marginBottom: 12, borderWidth: StyleSheet.hairlineWidth },
   primaryBtn: { backgroundColor: '#0095f6', paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
   primaryBtnDisabled: { opacity: 0.6 },
   primaryBtnText: { color: '#fff', fontWeight: '700' },
