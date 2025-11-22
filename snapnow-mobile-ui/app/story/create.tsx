@@ -9,7 +9,9 @@ import {
     BackHandler,
     Dimensions,
     Image,
+    Modal,
     PanResponder,
+    Pressable,
     StyleSheet,
     Text,
     TextInput,
@@ -39,6 +41,7 @@ export default function CreateStoryScreen() {
   const [textBgColor, setTextBgColor] = useState('transparent')
   const [textPosition, setTextPosition] = useState({ x: SCREEN_WIDTH / 2 - 100, y: SCREEN_HEIGHT / 3 - 50 })
   const [uploading, setUploading] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [showTextOptions, setShowTextOptions] = useState(false)
   // const textInputRef = useRef<TextInput | null>(null)
 
@@ -230,13 +233,8 @@ export default function CreateStoryScreen() {
       const storyId = await createStory(imageUrl, text, textStyle)
       console.log('✅ Story created successfully:', storyId)
 
-      // Navigate back and show success
-      router.back()
-      
-      // Small delay to allow navigation, then show alert
-      setTimeout(() => {
-        Alert.alert('Success', 'Your story has been posted!')
-      }, 300)
+      // Show success modal
+      setShowSuccessModal(true)
     } catch (error) {
       console.error('Error creating story:', error)
       Alert.alert('Error', 'Failed to create story. Please try again.')
@@ -277,9 +275,10 @@ export default function CreateStoryScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      {/* Header */}
-      <View style={styles.header}>
+    <>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        {/* Header */}
+        <View style={styles.header}>
         <TouchableOpacity
           onPress={() => {
             // Confirm before discarding an image/story draft
@@ -462,6 +461,169 @@ export default function CreateStoryScreen() {
         )}
       </View>
     </SafeAreaView>
+
+      {/* Uploading Modal */}
+      <Modal
+        visible={uploading}
+        transparent
+        animationType="fade"
+      >
+        <Pressable 
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingHorizontal: 40,
+          }}
+        >
+          <View 
+            style={{
+              backgroundColor: colors.backgroundWhite,
+              borderRadius: 20,
+              padding: 32,
+              width: '100%',
+              maxWidth: 340,
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              elevation: 8,
+            }}
+          >
+            {/* Icon */}
+            <View style={{
+              width: 80,
+              height: 80,
+              borderRadius: 40,
+              backgroundColor: '#fc872710',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 20,
+            }}>
+              <ActivityIndicator size="large" color="#fc8727ff" />
+            </View>
+
+            {/* Title */}
+            <Text style={{
+              fontSize: 22,
+              fontWeight: '700',
+              color: colors.textPrimary,
+              marginBottom: 8,
+              textAlign: 'center',
+            }}>
+              Creating Story
+            </Text>
+
+            {/* Message */}
+            <Text style={{
+              fontSize: 15,
+              color: colors.textSecondary,
+              textAlign: 'center',
+              lineHeight: 22,
+            }}>
+              Please wait while we upload your story...
+            </Text>
+          </View>
+        </Pressable>
+      </Modal>
+
+      {/* Success Modal */}
+      <Modal
+        visible={showSuccessModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          setShowSuccessModal(false)
+          router.back()
+        }}
+      >
+        <Pressable
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingHorizontal: 40,
+          }}
+          onPress={() => {
+            setShowSuccessModal(false)
+            router.back()
+          }}
+        >
+          <Pressable
+            style={{
+              backgroundColor: colors.backgroundWhite,
+              borderRadius: 16,
+              padding: 24,
+              width: '100%',
+              maxWidth: 320,
+              alignItems: 'center',
+            }}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 32,
+                backgroundColor: '#fc872710',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginBottom: 16,
+              }}
+            >
+              <Ionicons name="checkmark-circle" size={40} color="#fc8727ff" />
+            </View>
+            <Text
+              style={{
+                fontSize: 22,
+                fontWeight: 'bold',
+                color: colors.textPrimary,
+                marginBottom: 8,
+              }}
+            >
+              Success
+            </Text>
+            <Text
+              style={{
+                fontSize: 15,
+                color: colors.textSecondary,
+                textAlign: 'center',
+                marginBottom: 20,
+              }}
+            >
+              Your story has been posted!
+            </Text>
+            <Pressable
+              onPress={() => {
+                setShowSuccessModal(false)
+                router.back()
+              }}
+              style={{
+                backgroundColor: '#fc8727ff',
+                paddingVertical: 12,
+                paddingHorizontal: 40,
+                borderRadius: 24,
+                width: '100%',
+                alignItems: 'center',
+              }}
+            >
+              <Text
+                style={{
+                  color: '#FFFFFF',
+                  fontSize: 16,
+                  fontWeight: '600',
+                }}
+              >
+                OK
+              </Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
   )
 }
 

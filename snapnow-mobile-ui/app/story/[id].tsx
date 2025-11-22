@@ -692,8 +692,25 @@ export default function StoryScreen() {
     setIsPaused(false)
   }
 
-  if (loading) return <SafeAreaView style={styles.container}><ActivityIndicator /></SafeAreaView>
-  if (!userStories.length) return <SafeAreaView style={styles.container}><Text>Story not found</Text></SafeAreaView>
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#fff" />
+        </View>
+      </SafeAreaView>
+    )
+  }
+  
+  if (!userStories.length) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ color: '#fff', fontSize: 16 }}>Story not found</Text>
+        </View>
+      </SafeAreaView>
+    )
+  }
 
   const currentUserStoriesArray = userStories[currentUserIndex] || []
   const currentStory = currentUserStoriesArray[currentStoryIndex]

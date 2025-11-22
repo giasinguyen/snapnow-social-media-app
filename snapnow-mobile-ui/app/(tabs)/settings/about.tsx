@@ -18,7 +18,7 @@ export default function AboutScreen() {
             <ScrollView contentContainerStyle={styles.content}>
                 <Text style={[styles.title, { color: colors.textPrimary }]}>About SnapNow</Text>
                 <Text style={[styles.paragraph, { color: colors.textSecondary }]}>
-                    Welcome to <Text style={styles.bold}>SnapNow</Text> — a modern social
+                    Welcome to <Text style={[styles.bold, { color: colors.textPrimary }]}>SnapNow</Text> — a modern social
                     media experience built for the new generation of creators, thinkers,
                     and dreamers. We believe that every moment deserves to be captured,
                     shared, and remembered in the most authentic way possible.

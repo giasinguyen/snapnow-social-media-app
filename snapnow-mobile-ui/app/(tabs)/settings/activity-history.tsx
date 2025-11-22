@@ -2,14 +2,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    Image,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  Image,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth } from '../../../config/firebase';
@@ -97,7 +97,7 @@ export default function ActivityHistoryScreen() {
 
   const renderActivity = ({ item }: { item: Activity }) => (
     <TouchableOpacity
-      style={[styles.activityItem, { backgroundColor: colors.backgroundWhite }]}
+      style={[styles.activityItem, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.borderLight }]}
       onPress={() => handleActivityPress(item)}
       activeOpacity={0.7}
     >
@@ -125,36 +125,36 @@ export default function ActivityHistoryScreen() {
   );
 
   const renderHeader = () => (
-    <View style={styles.filterContainer}>
+    <View style={[styles.filterContainer, { backgroundColor: colors.backgroundWhite, borderBottomColor: colors.borderLight }]}>
       <TouchableOpacity
-        style={[styles.filterButton, filter === 'all' && styles.filterButtonActive]}
+        style={[styles.filterButton, { backgroundColor: colors.backgroundGray }, filter === 'all' && { backgroundColor: '#fc8727ff' }]}
         onPress={() => setFilter('all')}
       >
-        <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>
+        <Text style={[styles.filterText, { color: colors.textSecondary }, filter === 'all' && { color: '#fff' }]}>
           All
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.filterButton, filter === 'likes' && styles.filterButtonActive]}
+        style={[styles.filterButton, { backgroundColor: colors.backgroundGray }, filter === 'likes' && { backgroundColor: '#fc8727ff' }]}
         onPress={() => setFilter('likes')}
       >
-        <Text style={[styles.filterText, filter === 'likes' && styles.filterTextActive]}>
+        <Text style={[styles.filterText, { color: colors.textSecondary }, filter === 'likes' && { color: '#fff' }]}>
           Likes
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.filterButton, filter === 'comments' && styles.filterButtonActive]}
+        style={[styles.filterButton, { backgroundColor: colors.backgroundGray }, filter === 'comments' && { backgroundColor: '#fc8727ff' }]}
         onPress={() => setFilter('comments')}
       >
-        <Text style={[styles.filterText, filter === 'comments' && styles.filterTextActive]}>
+        <Text style={[styles.filterText, { color: colors.textSecondary }, filter === 'comments' && { color: '#fff' }]}>
           Comments
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.filterButton, filter === 'posts' && styles.filterButtonActive]}
+        style={[styles.filterButton, { backgroundColor: colors.backgroundGray }, filter === 'posts' && { backgroundColor: '#fc8727ff' }]}
         onPress={() => setFilter('posts')}
       >
-        <Text style={[styles.filterText, filter === 'posts' && styles.filterTextActive]}>
+        <Text style={[styles.filterText, { color: colors.textSecondary }, filter === 'posts' && { color: '#fff' }]}>
           Posts
         </Text>
       </TouchableOpacity>
@@ -207,7 +207,6 @@ export default function ActivityHistoryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
   },
   header: {
     flexDirection: 'row',
@@ -215,9 +214,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#EFEFEF',
   },
   backButton: {
     padding: 4,
@@ -225,7 +222,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#262626',
   },
   loadingContainer: {
     flex: 1,
@@ -237,15 +233,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 8,
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#EFEFEF',
   },
   filterButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: '#FAFAFA',
   },
   filterButtonActive: {
     backgroundColor: '#262626',
@@ -253,7 +246,6 @@ const styles = StyleSheet.create({
   filterText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#8E8E8E',
   },
   filterTextActive: {
     color: '#fff',
@@ -262,9 +254,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#EFEFEF',
   },
   iconContainer: {
     width: 44,
@@ -279,12 +269,10 @@ const styles = StyleSheet.create({
   },
   activityText: {
     fontSize: 14,
-    color: '#262626',
     marginBottom: 4,
   },
   activityTime: {
     fontSize: 12,
-    color: '#8E8E8E',
   },
   thumbnail: {
     width: 44,
@@ -304,13 +292,11 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#262626',
     marginTop: 16,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
-    color: '#8E8E8E',
     textAlign: 'center',
   },
 });

@@ -2,19 +2,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TouchableOpacity,
-  View,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Switch,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ThemeSelector from '../../../components/ThemeSelector';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { AuthService } from '../../../services/authService';
-import { checkNotificationPermissions } from '../../../services/notificationPermissions';
 
 interface SettingItemProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -216,18 +215,6 @@ export default function SettingsScreen() {
               onValueChange={setNotificationsEnabled}
           />
           <SettingItem
-            icon="information-circle-outline"
-            title="Check Notification Permissions"
-            subtitle="View current permission status"
-            onPress={async () => {
-              await checkNotificationPermissions();
-              Alert.alert(
-                'Permissions Check',
-                'Check console logs for detailed permission status'
-              );
-            }}
-          />
-          <SettingItem
             icon="mail-outline"
             title="Email Notifications"
             subtitle="Manage email preferences"
@@ -291,7 +278,7 @@ export default function SettingsScreen() {
           <SettingItem
             icon="shield-outline"
             title="Privacy Policy"
-            onPress={() => router.push('/(tabs)/settings/privacy')}
+            onPress={() => router.push('/(tabs)/settings/privacy-policy')}
           />
         </SettingSection>
 

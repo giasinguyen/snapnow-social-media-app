@@ -8,7 +8,9 @@ import {
   Animated,
   Keyboard,
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -49,6 +51,7 @@ const CreateSnapScreen: React.FC = () => {
   const [privacy, setPrivacy] = useState<PrivacyOption>(privacyOptions[0]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [posting, setPosting] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const animatedBottom = useRef(new Animated.Value(0)).current;
 
@@ -188,16 +191,7 @@ const CreateSnapScreen: React.FC = () => {
         }
       }
 
-      Alert.alert("Success", "Post created!", [
-        {
-          text: "OK",
-          onPress: () => {
-            setSnapContent("");
-            setImageUris([]);
-            router.replace("/(tabs)");
-          },
-        },
-      ]);
+      setShowSuccessModal(true);
     } catch (err: any) {
       console.error(err);
       Alert.alert("Error", err.message || "Failed to create post.");
@@ -214,7 +208,7 @@ const CreateSnapScreen: React.FC = () => {
         keyboardVerticalOffset={80}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={[styles.container, { color: colors.textPrimary }]}>
+          <View style={styles.container}>
             <HeaderBar 
               title={"New snap"} 
               left={<Ionicons name="close" size={26} color={colors.textPrimary} />}
@@ -299,6 +293,174 @@ const CreateSnapScreen: React.FC = () => {
           setPrivacyOpen(false);
         }}
       />
+
+      {/* Uploading Modal */}
+      <Modal
+        visible={posting}
+        transparent
+        animationType="fade"
+      >
+        <Pressable 
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingHorizontal: 40,
+          }}
+        >
+          <View 
+            style={{
+              backgroundColor: colors.backgroundWhite,
+              borderRadius: 20,
+              padding: 32,
+              width: '100%',
+              maxWidth: 340,
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              elevation: 8,
+            }}
+          >
+            {/* Icon */}
+            <View style={{
+              width: 80,
+              height: 80,
+              borderRadius: 40,
+              backgroundColor: '#fc872710',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 20,
+            }}>
+              <ActivityIndicator size="large" color="#fc8727ff" />
+            </View>
+
+            {/* Title */}
+            <Text style={{
+              fontSize: 22,
+              fontWeight: '700',
+              color: colors.textPrimary,
+              marginBottom: 8,
+              textAlign: 'center',
+            }}>
+              Creating Post
+            </Text>
+
+            {/* Message */}
+            <Text style={{
+              fontSize: 15,
+              color: colors.textSecondary,
+              textAlign: 'center',
+              lineHeight: 22,
+            }}>
+              Please wait while we upload your post...
+            </Text>
+          </View>
+        </Pressable>
+      </Modal>
+
+      {/* Success Modal */}
+      <Modal
+        visible={showSuccessModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          setShowSuccessModal(false);
+          setSnapContent("");
+          setImageUris([]);
+          router.replace("/(tabs)");
+        }}
+      >
+        <Pressable
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingHorizontal: 40,
+          }}
+          onPress={() => {
+            setShowSuccessModal(false);
+            setSnapContent("");
+            setImageUris([]);
+            router.replace("/(tabs)");
+          }}
+        >
+          <Pressable
+            style={{
+              backgroundColor: colors.backgroundWhite,
+              borderRadius: 16,
+              padding: 24,
+              width: '100%',
+              maxWidth: 320,
+              alignItems: 'center',
+            }}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 32,
+                backgroundColor: '#fc872710',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginBottom: 16,
+              }}
+            >
+              <Ionicons name="checkmark-circle" size={40} color="#fc8727ff" />
+            </View>
+            <Text
+              style={{
+                fontSize: 22,
+                fontWeight: 'bold',
+                color: colors.textPrimary,
+                marginBottom: 8,
+              }}
+            >
+              Success
+            </Text>
+            <Text
+              style={{
+                fontSize: 15,
+                color: colors.textSecondary,
+                textAlign: 'center',
+                marginBottom: 20,
+              }}
+            >
+              Post created!
+            </Text>
+            <Pressable
+              onPress={() => {
+                setShowSuccessModal(false);
+                setSnapContent("");
+                setImageUris([]);
+                router.replace("/(tabs)");
+              }}
+              style={{
+                backgroundColor: '#fc8727ff',
+                paddingVertical: 12,
+                paddingHorizontal: 40,
+                borderRadius: 24,
+                width: '100%',
+                alignItems: 'center',
+              }}
+            >
+              <Text
+                style={{
+                  color: '#FFFFFF',
+                  fontSize: 16,
+                  fontWeight: '600',
+                }}
+              >
+                OK
+              </Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 };

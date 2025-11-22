@@ -3,30 +3,32 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Stack } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { auth } from '../../config/firebase';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
-  AIMessage,
-  clearAIConversation,
-  generateImageWithAI,
-  getAIConversationHistory,
-  sendMessageToAI,
-  subscribeToAIConversation,
+    AIMessage,
+    clearAIConversation,
+    generateImageWithAI,
+    getAIConversationHistory,
+    sendMessageToAI,
+    subscribeToAIConversation,
 } from '../../services/aiChat';
 
 export default function AIChatScreen() {
+  const { colors } = useTheme();
   const [messages, setMessages] = useState<AIMessage[]>([]);
   const [messageText, setMessageText] = useState('');
   const [loading, setLoading] = useState(true);
@@ -167,10 +169,10 @@ export default function AIChatScreen() {
           <View
             style={[
               styles.messageBubble,
-              isUser ? styles.userBubble : styles.aiBubble
+              isUser ? styles.userBubble : { backgroundColor: colors.backgroundGray }
             ]}
           >
-            <Text style={[styles.messageText, isUser ? styles.userText : styles.aiText]}>
+            <Text style={[styles.messageText, isUser ? styles.userText : { color: colors.textPrimary }]}>
               {item.text}
             </Text>
             
@@ -183,7 +185,7 @@ export default function AIChatScreen() {
                   resizeMode="cover"
                 />
                 {item.imagePrompt && (
-                  <Text style={styles.imagePromptText}>
+                  <Text style={[styles.imagePromptText, { color: colors.textSecondary }]}>
                     Prompt: {item.imagePrompt}
                   </Text>
                 )}
@@ -222,15 +224,15 @@ export default function AIChatScreen() {
             onPress={() => {
               setMessageText(prompt.prompt);
             }}
-            style={styles.promptChip}
+            style={[styles.promptChip, { backgroundColor: colors.backgroundGray }]}
           >
             <Ionicons
               name={prompt.icon as any}
               size={16}
-              color="#6B7280"
+              color={colors.textSecondary}
               style={{ marginRight: 6 }}
             />
-            <Text style={styles.promptText}>
+            <Text style={[styles.promptText, { color: colors.textPrimary }]}>
               {prompt.text}
             </Text>
           </TouchableOpacity>
@@ -241,7 +243,7 @@ export default function AIChatScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.backgroundWhite }]}>
         <Stack.Screen
           options={{
             headerShown: true,
@@ -257,7 +259,7 @@ export default function AIChatScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.backgroundWhite }]}>
       <Stack.Screen
         options={{
           headerShown: true,
@@ -290,8 +292,8 @@ export default function AIChatScreen() {
             >
               <Ionicons name="sparkles" size={40} color="white" />
             </LinearGradient>
-            <Text style={styles.welcomeTitle}>SnapNow AI</Text>
-            <Text style={styles.welcomeSubtitle}>
+            <Text style={[styles.welcomeTitle, { color: colors.textPrimary }]}>SnapNow AI</Text>
+            <Text style={[styles.welcomeSubtitle, { color: colors.textSecondary }]}>
               Xin chào! Tôi là trợ lý AI của SnapNow. {'\n'}
               💬 Hỏi tôi bất cứ điều gì về chụp ảnh, caption, hashtag...{'\n'}
               🎨 Hoặc gõ &quot;Tạo ảnh về...&quot; để tôi tạo ảnh AI cho bạn! ✨
@@ -316,23 +318,23 @@ export default function AIChatScreen() {
         )}
 
         {/* Input Area */}
-        <View style={styles.inputContainer}>
+        <View style={[styles.inputContainer, { backgroundColor: colors.backgroundWhite, borderTopColor: colors.borderLight }]}>
           {(sending || generatingImage) && (
             <View style={styles.loadingIndicator}>
               <ActivityIndicator size="small" color="#fc8727ff" />
-              <Text style={styles.loadingText}>
+              <Text style={[styles.loadingText, { color: colors.primary }]}>
                 {generatingImage ? '🎨 Đang tạo ảnh với AI... (30-60 giây)' : '💬 AI đang trả lời...'}
               </Text>
             </View>
           )}
           
-          <View style={styles.inputWrapper}>
+          <View style={[styles.inputWrapper, { backgroundColor: colors.backgroundGray }]}>
             <TextInput
               value={messageText}
               onChangeText={setMessageText}
               placeholder="Nhắn tin hoặc 'Tạo ảnh về...' để tạo ảnh AI"
-              placeholderTextColor="#9CA3AF"
-              style={styles.textInput}
+              placeholderTextColor={colors.textSecondary}
+              style={[styles.textInput, { color: colors.textPrimary }]}
               multiline
               maxLength={1000}
               editable={!sending && !generatingImage}
@@ -354,7 +356,7 @@ export default function AIChatScreen() {
             )}
           </View>
           
-          <Text style={styles.disclaimer}>
+          <Text style={[styles.disclaimer, { color: colors.textSecondary }]}>
             AI có thể mắc lỗi. Hãy kiểm tra thông tin quan trọng.
           </Text>
         </View>
@@ -366,7 +368,6 @@ export default function AIChatScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
   },
   loadingContainer: {
     flex: 1,
@@ -393,12 +394,10 @@ const styles = StyleSheet.create({
   welcomeTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#1f2937',
     marginBottom: 8,
   },
   welcomeSubtitle: {
     fontSize: 15,
-    color: '#6b7280',
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 24,
@@ -443,16 +442,13 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     marginBottom: 2,
   },
+  userBubble: {
+    backgroundColor: '#fc8727ff',
+  },
   messageBubble: {
     borderRadius: 18,
     paddingHorizontal: 16,
     paddingVertical: 12,
-  },
-  userBubble: {
-    backgroundColor: '#fc8727ff',
-  },
-  aiBubble: {
-    backgroundColor: '#f3f4f6',
   },
   messageText: {
     fontSize: 15,
@@ -460,9 +456,6 @@ const styles = StyleSheet.create({
   },
   userText: {
     color: '#ffffff',
-  },
-  aiText: {
-    color: '#1f2937',
   },
   imageContainer: {
     marginTop: 8,
@@ -476,7 +469,6 @@ const styles = StyleSheet.create({
   },
   imagePromptText: {
     fontSize: 11,
-    color: '#6b7280',
     marginTop: 6,
     fontStyle: 'italic',
   },
@@ -488,7 +480,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   promptChip: {
-    backgroundColor: '#f3f4f6',
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -496,13 +487,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   promptText: {
-    color: '#4b5563',
     fontSize: 14,
   },
   inputContainer: {
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-    backgroundColor: '#ffffff',
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
@@ -515,13 +503,11 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 13,
-    color: '#fc8727ff',
     fontWeight: '600',
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f3f4f6',
     borderRadius: 24,
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -529,7 +515,6 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     fontSize: 15,
-    color: '#1f2937',
     marginRight: 8,
     maxHeight: 100,
   },
@@ -548,7 +533,6 @@ const styles = StyleSheet.create({
   },
   disclaimer: {
     fontSize: 11,
-    color: '#9ca3af',
     textAlign: 'center',
     marginTop: 8,
   },

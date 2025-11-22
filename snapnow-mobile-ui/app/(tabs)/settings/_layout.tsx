@@ -31,6 +31,10 @@ export default function SettingsLayout() {
       />
       <Stack.Screen 
         name="privacy" 
+        options={{ title: "Privacy" }} 
+      />
+      <Stack.Screen 
+        name="privacy-policy" 
         options={{ title: "Privacy Policy" }} 
       />
       <Stack.Screen 

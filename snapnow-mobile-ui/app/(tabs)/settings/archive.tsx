@@ -138,9 +138,9 @@ const ArchiveScreen = () => {
 
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="image-outline" size={64} color={COLORS.textSecondary} />
-      <Text style={styles.emptyTitle}>No Archived Stories</Text>
-      <Text style={styles.emptyText}>
+      <Ionicons name="image-outline" size={64} color={colors.textSecondary} />
+      <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>No Archived Stories</Text>
+      <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
         Stories you save will appear here
       </Text>
     </View>
@@ -148,17 +148,17 @@ const ArchiveScreen = () => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: colors.borderLight }]}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.title}>Archived Stories</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>Archived Stories</Text>
         <View style={{ width: 24 }} />
       </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.blue} />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : stories.length === 0 ? (
         renderEmptyState()
@@ -180,7 +180,6 @@ const ArchiveScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.backgroundWhite,
   },
   header: {
     flexDirection: 'row',
@@ -189,12 +188,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
     borderBottomWidth: 0.5,
-    borderBottomColor: COLORS.borderLight,
   },
   title: {
     fontSize: TYPOGRAPHY.fontSize.lg,
     fontWeight: TYPOGRAPHY.fontWeight.semibold,
-    color: COLORS.textPrimary,
   },
   loadingContainer: {
     flex: 1,
@@ -259,12 +256,10 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: TYPOGRAPHY.fontSize.lg,
     fontWeight: TYPOGRAPHY.fontWeight.semibold,
-    color: COLORS.textPrimary,
     marginTop: SPACING.md,
   },
   emptyText: {
     fontSize: TYPOGRAPHY.fontSize.md,
-    color: COLORS.textSecondary,
     marginTop: SPACING.sm,
     textAlign: 'center',
   },
