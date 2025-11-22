@@ -19,6 +19,7 @@ initializeFirebaseAdmin();
 const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
 const postRoutes = require('./routes/post.routes');
+const commentRoutes = require('./routes/comment.routes');
 const analyticsRoutes = require('./routes/analytics.routes');
 const moderationRoutes = require('./routes/moderation.routes');
 const settingsRoutes = require('./routes/settings.routes');
@@ -94,8 +95,11 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/posts', postRoutes);
+app.use('/api/comments', commentRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/moderation', moderationRoutes);
+app.use('/api/reports', require('./routes/report.routes'));
+app.use('/api/trends', require('./routes/trend.routes'));
 app.use('/api/settings', settingsRoutes);
 
 // Welcome Route
