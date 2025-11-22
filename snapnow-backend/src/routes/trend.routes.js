@@ -3,7 +3,7 @@ const router = express.Router();
 const trendController = require('../controllers/trend.controller');
 const { verifyFirebaseToken, requireAdmin } = require('../middleware/auth.middleware');
 
-// All routes require authentication and admin role
+// All routes require authentication
 router.use(verifyFirebaseToken);
 router.use(requireAdmin);
 
@@ -13,6 +13,13 @@ router.use(requireAdmin);
  * @access  Private/Admin
  */
 router.get('/hashtags', trendController.getTrendingHashtags);
+
+/**
+ * @route   GET /api/trends/engagement
+ * @desc    Get engagement leaders
+ * @access  Private/Admin
+ */
+router.get('/engagement', trendController.getTopPosts);
 
 /**
  * @route   GET /api/trends/posts

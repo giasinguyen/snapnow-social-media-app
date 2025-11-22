@@ -8,6 +8,20 @@ router.use(verifyFirebaseToken);
 router.use(requireAdmin);
 
 /**
+ * @route   GET /api/moderation/queue
+ * @desc    Get moderation queue (flagged content)
+ * @access  Private/Admin
+ */
+router.get('/queue', moderationController.getFlaggedContent);
+
+/**
+ * @route   GET /api/moderation/stats
+ * @desc    Get moderation statistics
+ * @access  Private/Admin
+ */
+router.get('/stats', moderationController.getModerationStats);
+
+/**
  * @route   GET /api/moderation/reports
  * @desc    Get all reports
  * @access  Private/Admin
