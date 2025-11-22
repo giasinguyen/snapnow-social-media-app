@@ -9,10 +9,7 @@ import Users from './pages/Users';
 import Posts from './pages/Posts';
 import Comments from './pages/Comments';
 import Reports from './pages/Reports';
-import Notifications from './pages/Notifications';
 import Analytics from './pages/Analytics';
-import Trends from './pages/Trends';
-import Moderation from './pages/Moderation';
 import Settings from './pages/Settings';
 import './App.css';
 
@@ -39,10 +36,7 @@ function App() {
               <Route path="posts" element={<Posts />} />
               <Route path="comments" element={<Comments />} />
               <Route path="reports" element={<Reports />} />
-              <Route path="notifications" element={<Notifications />} />
               <Route path="analytics" element={<Analytics />} />
-              <Route path="trends" element={<Trends />} />
-              <Route path="moderation" element={<Moderation />} />
               <Route path="settings" element={<Settings />} />
             </Route>
 
