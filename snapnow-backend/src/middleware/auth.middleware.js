@@ -1,6 +1,6 @@
-const jwt = require('jsonwebtoken');
-const { getAuth } = require('../config/firebase.admin');
-const { asyncHandler } = require('./errorHandler');
+const jwt = require("jsonwebtoken");
+const { getAuth } = require("../config/firebase.admin");
+const { asyncHandler } = require("./errorHandler");
 
 /**
  * Verify JWT token for dashboard admin
@@ -9,12 +9,15 @@ const verifyToken = asyncHandler(async (req, res, next) => {
   let token;
 
   // Get token from header
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    token = req.headers.authorization.split(' ')[1];
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
   }
 
   if (!token) {
-    const error = new Error('Not authorized, no token provided');
+    const error = new Error("Not authorized, no token provided");
     error.statusCode = 401;
     throw error;
   }
@@ -37,12 +40,15 @@ const verifyFirebaseToken = asyncHandler(async (req, res, next) => {
   let token;
 
   // Get token from header
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    token = req.headers.authorization.split(' ')[1];
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
   }
 
   if (!token) {
-    const error = new Error('Not authorized, no token provided');
+    const error = new Error("Not authorized, no token provided");
     error.statusCode = 401;
     throw error;
   }
@@ -53,9 +59,9 @@ const verifyFirebaseToken = asyncHandler(async (req, res, next) => {
     req.user = decodedToken;
     next();
   } catch (error) {
-    console.error('Error verifying Firebase token:', error);
+    console.error("Error verifying Firebase token:", error);
     error.statusCode = 401;
-    error.message = 'Invalid or expired Firebase token';
+    error.message = "Invalid or expired Firebase token";
     throw error;
   }
 });
@@ -65,23 +71,26 @@ const verifyFirebaseToken = asyncHandler(async (req, res, next) => {
  */
 const requireAdmin = asyncHandler(async (req, res, next) => {
   // Check for JWT-based admin (from verifyToken)
-  if (req.user && req.user.isAdmin) {
+  // Allow admin email
+  if (req.user && req.user.email === process.env.ADMIN_EMAIL) {
     return next();
   }
-  
+
   // Check for Firebase custom claims admin (from verifyFirebaseToken)
   if (req.user && req.user.admin === true) {
     return next();
   }
-  
+
   // For development: Allow all authenticated users to access analytics
   // TODO: Remove this in production and implement proper admin custom claims
-  if (process.env.NODE_ENV === 'development' && req.user) {
-    console.warn('⚠️  Development mode: Allowing non-admin user to access admin routes');
+  if (process.env.NODE_ENV === "development" && req.user) {
+    console.warn(
+      "⚠️  Development mode: Allowing non-admin user to access admin routes"
+    );
     return next();
   }
-  
-  const error = new Error('Access denied. Admin privileges required.');
+
+  const error = new Error("Access denied. Admin privileges required.");
   error.statusCode = 403;
   throw error;
 });
