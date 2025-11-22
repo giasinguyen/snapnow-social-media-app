@@ -1,17 +1,32 @@
 import { useState, useEffect } from 'react';
 import { Bell, MessageSquare, UserPlus, Heart, Mail, Search, Filter } from 'lucide-react';
+import notificationsService from '../services/notificationsService';
 
 const Notifications = () => {
-  const [_notifications, _setNotifications] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [stats, setStats] = useState({ totalSent: 0, delivered: 0, opened: 0, openRate: 0 });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    // TODO: Fetch notifications from API
-    setTimeout(() => {
-      setLoading(false);
-    }, 1000);
+    loadData();
   }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [notificationsData, statsData] = await Promise.all([
+        notificationsService.getNotifications(),
+        notificationsService.getStats(),
+      ]);
+      setNotifications(notificationsData.notifications || []);
+      setStats(statsData);
+    } catch (error) {
+      console.error('Error loading notifications:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -41,7 +56,7 @@ const Notifications = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Total Sent</p>
-              <p className="text-2xl font-bold text-purple-600">0</p>
+              <p className="text-2xl font-bold text-purple-600">{stats.totalSent}</p>
             </div>
             <Bell className="w-10 h-10 text-purple-500" />
           </div>
@@ -50,7 +65,7 @@ const Notifications = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Delivered</p>
-              <p className="text-2xl font-bold text-green-600">0</p>
+              <p className="text-2xl font-bold text-green-600">{stats.delivered}</p>
             </div>
             <MessageSquare className="w-10 h-10 text-green-500" />
           </div>
@@ -59,7 +74,7 @@ const Notifications = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Opened</p>
-              <p className="text-2xl font-bold text-blue-600">0</p>
+              <p className="text-2xl font-bold text-blue-600">{stats.opened}</p>
             </div>
             <Heart className="w-10 h-10 text-blue-500" />
           </div>
@@ -68,7 +83,7 @@ const Notifications = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Open Rate</p>
-              <p className="text-2xl font-bold text-orange-600">0%</p>
+              <p className="text-2xl font-bold text-orange-600">{stats.openRate}%</p>
             </div>
             <UserPlus className="w-10 h-10 text-orange-500" />
           </div>
@@ -99,7 +114,11 @@ const Notifications = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
         <Bell className="w-16 h-16 text-gray-300 mx-auto mb-4" />
         <h3 className="text-xl font-semibold text-gray-900 mb-2">Push Notifications</h3>
-        <p className="text-gray-600">This feature is coming soon. You'll be able to send push notifications to all users or specific groups.</p>
+        <p className="text-gray-600">
+          {notifications.length > 0
+            ? `Found ${notifications.length} notifications. Full interface coming soon.`
+            : 'This feature is coming soon. You\'ll be able to send push notifications to all users or specific groups.'}
+        </p>
       </div>
     </div>
   );

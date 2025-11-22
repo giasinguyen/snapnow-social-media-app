@@ -1,18 +1,33 @@
 import { useState, useEffect } from 'react';
 import { Flag, AlertTriangle, CheckCircle, Clock, Search, Eye } from 'lucide-react';
+import reportsService from '../services/reportsService';
 
 const Reports = () => {
-  const [_reports, _setReports] = useState([]);
+  const [reports, setReports] = useState([]);
+  const [stats, setStats] = useState({ pending: 0, reviewing: 0, resolved: 0, violations: 0 });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all');
 
   useEffect(() => {
-    // TODO: Fetch reports from API
-    setTimeout(() => {
+    loadData();
+  }, [filter]);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [reportsData, statsData] = await Promise.all([
+        reportsService.getReports({ status: filter === 'all' ? undefined : filter }),
+        reportsService.getStats(),
+      ]);
+      setReports(reportsData.reports || []);
+      setStats(statsData);
+    } catch (error) {
+      console.error('Error loading reports:', error);
+    } finally {
       setLoading(false);
-    }, 1000);
-  }, []);
+    }
+  };
 
   if (loading) {
     return (
@@ -38,7 +53,7 @@ const Reports = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Pending</p>
-              <p className="text-2xl font-bold text-orange-600">0</p>
+              <p className="text-2xl font-bold text-orange-600">{stats.pending}</p>
             </div>
             <Clock className="w-10 h-10 text-orange-500" />
           </div>
@@ -47,7 +62,7 @@ const Reports = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Under Review</p>
-              <p className="text-2xl font-bold text-blue-600">0</p>
+              <p className="text-2xl font-bold text-blue-600">{stats.reviewing}</p>
             </div>
             <Eye className="w-10 h-10 text-blue-500" />
           </div>
@@ -56,7 +71,7 @@ const Reports = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Resolved</p>
-              <p className="text-2xl font-bold text-green-600">0</p>
+              <p className="text-2xl font-bold text-green-600">{stats.resolved}</p>
             </div>
             <CheckCircle className="w-10 h-10 text-green-500" />
           </div>
@@ -65,7 +80,7 @@ const Reports = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Violations</p>
-              <p className="text-2xl font-bold text-red-600">0</p>
+              <p className="text-2xl font-bold text-red-600">{stats.violations}</p>
             </div>
             <AlertTriangle className="w-10 h-10 text-red-500" />
           </div>
@@ -102,7 +117,11 @@ const Reports = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
         <Flag className="w-16 h-16 text-gray-300 mx-auto mb-4" />
         <h3 className="text-xl font-semibold text-gray-900 mb-2">Reports Management</h3>
-        <p className="text-gray-600">This feature is coming soon. You'll be able to review and handle user reports for posts, comments, and users.</p>
+        <p className="text-gray-600">
+          {reports.length > 0 
+            ? `Found ${reports.length} reports. Full interface coming soon.`
+            : 'No reports found. You\'ll be able to review and handle user reports for posts, comments, and users here.'}
+        </p>
       </div>
     </div>
   );
