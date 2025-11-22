@@ -23,6 +23,9 @@ const commentRoutes = require('./routes/comment.routes');
 const analyticsRoutes = require('./routes/analytics.routes');
 const moderationRoutes = require('./routes/moderation.routes');
 const settingsRoutes = require('./routes/settings.routes');
+const reportRoutes = require('./routes/report.routes');
+const trendRoutes = require('./routes/trend.routes');
+const notificationRoutes = require('./routes/notification.routes');
 
 // Middleware
 const { errorHandler, notFound } = require('./middleware/errorHandler');
@@ -98,8 +101,9 @@ app.use('/api/posts', postRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/moderation', moderationRoutes);
-app.use('/api/reports', require('./routes/report.routes'));
-app.use('/api/trends', require('./routes/trend.routes'));
+app.use('/api/reports', reportRoutes);
+app.use('/api/trends', trendRoutes);
+app.use('/api/notifications', notificationRoutes);
 app.use('/api/settings', settingsRoutes);
 
 // Welcome Route
