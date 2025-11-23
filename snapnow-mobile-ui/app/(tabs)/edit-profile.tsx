@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Modal,
   ScrollView,
   StyleSheet,
   Switch,
@@ -39,6 +40,7 @@ export default function EditProfileScreen() {
   const [saving, setSaving] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
   const [showActivityStatus, setShowActivityStatus] = useState(true);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -168,7 +170,11 @@ export default function EditProfileScreen() {
       }
 
       Alert.alert('Success', 'Your profile was updated successfully.');
-      router.push('/profile' as any);
+      setShowSuccessModal(true);
+      setTimeout(() => {
+        setShowSuccessModal(false);
+        router.push('/profile' as any);
+      }, 2000);
     } catch (err: any) {
       console.error('Failed to save profile', err);
       Alert.alert('Error', err.message || 'Failed to save profile');
@@ -427,6 +433,26 @@ export default function EditProfileScreen() {
           />
         </View>
       </ScrollView>
+
+      {/* Success Modal */}
+      <Modal
+        visible={showSuccessModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSuccessModal(false)}
+      >
+        <View style={styles.successModalOverlay}>
+          <View style={[styles.successCard, { backgroundColor: colors.backgroundWhite }]}>
+            <View style={styles.successIconContainer}>
+              <Ionicons name="checkmark-circle" size={64} color="#fc8727ff" />
+            </View>
+            <Text style={[styles.successTitle, { color: colors.textPrimary }]}>Success</Text>
+            <Text style={[styles.successText, { color: colors.textSecondary }]}>
+              Your profile was updated successfully.
+            </Text>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -659,5 +685,39 @@ const styles = StyleSheet.create({
   buttonSection: {
     paddingHorizontal: 16,
     paddingBottom: 24,
+  },
+
+  // Success Modal
+  successModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  successCard: {
+    width: '100%',
+    maxWidth: 320,
+    borderRadius: 20,
+    padding: 32,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  successIconContainer: {
+    marginBottom: 20,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  successText: {
+    fontSize: 15,
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });
