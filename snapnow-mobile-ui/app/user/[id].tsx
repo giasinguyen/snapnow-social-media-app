@@ -662,8 +662,8 @@ export default function UserProfileScreen() {
               size={22}
               color={activeTab === 'grid' ? colors.textPrimary : colors.textSecondary}
             />
-            <Text style={[styles.tabText, activeTab === 'grid' && { color: colors.textPrimary }]}>
-              Grid
+          <Text style={[styles.tabText, { color: colors.textSecondary }, activeTab === 'grid' && [styles.activeTabText, { color: colors.textPrimary }]]}>
+              Post
             </Text>
           </TouchableOpacity>
           
@@ -676,8 +676,8 @@ export default function UserProfileScreen() {
               size={22}
               color={activeTab === 'snaps' ? colors.textPrimary : colors.textSecondary}
             />
-            <Text style={[styles.tabText, activeTab === 'snaps' && { color: colors.textPrimary }]}>
-              Snaps
+            <Text style={[styles.tabText, { color: colors.textSecondary }, activeTab === 'snaps' && [styles.activeTabText, { color: colors.textPrimary }]]}>
+             Snaps
             </Text>
           </TouchableOpacity>
 
@@ -690,7 +690,7 @@ export default function UserProfileScreen() {
               size={22}
               color={activeTab === 'albums' ? colors.textPrimary : colors.textSecondary}
             />
-            <Text style={[styles.tabText, activeTab === 'albums' && { color: colors.textPrimary }]}>
+            <Text style={[styles.tabText, { color: colors.textSecondary }, activeTab === 'albums' && [styles.activeTabText, { color: colors.textPrimary }]]}>
               Albums
             </Text>
           </TouchableOpacity>
@@ -704,7 +704,7 @@ export default function UserProfileScreen() {
               size={22}
               color={activeTab === 'tagged' ? colors.textPrimary : colors.textSecondary}
             />
-            <Text style={[styles.tabText, activeTab === 'tagged' && { color: colors.textPrimary }]}>
+            <Text style={[styles.tabText, { color: colors.textSecondary }, activeTab === 'tagged' && [styles.activeTabText, { color: colors.textPrimary }]]}>
               Tagged
             </Text>
           </TouchableOpacity>

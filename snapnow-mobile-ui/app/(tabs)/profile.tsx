@@ -637,15 +637,15 @@ export default function ProfileScreen() {
 
         {/* Tagged Tab */}
         {activeTab === 'tagged' && (
-          <View style={[styles.postsGrid, { backgroundColor: colors.backgroundWhite }]}>
+          <View style={[styles.postsGrid, { backgroundColor: colors.background }]}>
             {loadingTagged ? (
               <View style={styles.center}>
                 <ActivityIndicator size="large" color="#0095F6" />
               </View>
             ) : taggedPosts.length === 0 ? (
-              <View style={styles.emptyState}>
+              <View style={[styles.emptyState, {backgroundColor: colors.background}]}>
                 <View style={styles.emptyIconContainer}>
-                  <Ionicons name="person-circle-outline" size={64} color={colors.borderLight} />
+                  <Ionicons name="person-circle-outline" size={64} color={colors.border} />
                 </View>
                 <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>Photos and videos of you</Text>
                 <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>

@@ -44,7 +44,11 @@ export async function getUserActivityStatus(userId: string): Promise<ActivitySta
       lastActive: data.lastActive?.toDate() || new Date(),
       activityStatusEnabled: data.activityStatus !== false, // Default to true
     };
-  } catch (error) {
+  } catch (error: any) {
+    // Nếu lỗi do security rules, trả về null mà không spam console
+    if (error?.code === 'permission-denied') {
+      return null;
+    }
     console.error('Error getting activity status:', error);
     return null;
   }
