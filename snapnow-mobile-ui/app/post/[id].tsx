@@ -519,7 +519,7 @@ export default function PostDetailScreen() {
           <View style={{ width: 24 }} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#0095F6" />
+          <ActivityIndicator size="large" color={colors.blue} />
         </View>
       </SafeAreaView>
     );
@@ -536,7 +536,7 @@ export default function PostDetailScreen() {
           <View style={{ width: 24 }} />
         </View>
         <View style={styles.emptyContainer}>
-          <Ionicons name="image-outline" size={64} color="#DBDBDB" />
+          <Ionicons name="image-outline" size={64} color={colors.borderLight} />
           <Text style={[styles.emptyText, { color: colors.textPrimary }]}>Post not found</Text>
         </View>
       </SafeAreaView>
@@ -573,7 +573,7 @@ export default function PostDetailScreen() {
               />
               <View style={styles.userDetails}>
                 <Text style={[styles.username, { color: colors.textPrimary }]}>{displayUsername || 'Anonymous'}</Text>
-                <Text style={styles.timestamp}>{formatDate(post.createdAt)}</Text>
+                <Text style={[styles.timestamp, { color: colors.textSecondary }]}>{formatDate(post.createdAt)}</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -684,7 +684,7 @@ export default function PostDetailScreen() {
           {post.hashtags && post.hashtags.length > 0 && (
             <View style={styles.hashtagsContainer}>
               {post.hashtags.map((tag, index) => (
-                <Text key={index} style={styles.hashtag}>
+                <Text key={index} style={[styles.hashtag, { color: colors.blue }]}>
                   {tag}{' '}
                 </Text>
               ))}
@@ -721,29 +721,29 @@ export default function PostDetailScreen() {
 
         {/* Reply indicator */}
         {replyingTo && (
-          <View style={styles.replyIndicator}>
+          <View style={[styles.replyIndicator, { backgroundColor: colors.backgroundGray, borderTopColor: colors.borderLight }]}>
             <View style={styles.replyIndicatorContent}>
-              <Ionicons name="arrow-undo-outline" size={14} color="#8e8e8e" style={styles.replyIcon} />
-              <Text style={styles.replyingText}>
+              <Ionicons name="arrow-undo-outline" size={14} color={colors.textSecondary} style={styles.replyIcon} />
+              <Text style={[styles.replyingText, { color: colors.textPrimary }]}>
                 Replying to @{replyingTo.username}
               </Text>
             </View>
             <TouchableOpacity onPress={handleCancelReply} style={styles.cancelReplyBtn}>
-              <Ionicons name="close" size={16} color="#8e8e8e" />
+              <Ionicons name="close" size={16} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
         )}
 
         {/* Comment Input */}
-        <View style={styles.commentInputContainer}>
+        <View style={[styles.commentInputContainer, { borderTopColor: colors.borderLight, backgroundColor: colors.backgroundWhite }]}>
           {currentUserAvatar ? (
             <Image
               source={{ uri: currentUserAvatar }}
               style={styles.commentInputAvatar}
             />
           ) : (
-            <View style={[styles.commentInputAvatar, { backgroundColor: '#E1E8ED', justifyContent: 'center', alignItems: 'center' }]}>
-              <Text style={{ fontSize: 14, color: '#657786' }}>?</Text>
+            <View style={[styles.commentInputAvatar, { backgroundColor: colors.backgroundGray, justifyContent: 'center', alignItems: 'center' }]}>
+              <Text style={{ fontSize: 14, color: colors.textSecondary }}>?</Text>
             </View>
           )}
           <View style={styles.commentInputWrapper}>
@@ -759,7 +759,7 @@ export default function PostDetailScreen() {
               </View>
             )}
             <MentionInput
-              style={styles.commentInput}
+              style={[styles.commentInput, { color: colors.textPrimary }]}
               placeholder={replyingTo ? `Reply to @${replyingTo.username}...` : "Add a comment..."}
               value={commentText}
               onChangeText={setCommentText}
@@ -771,7 +771,7 @@ export default function PostDetailScreen() {
             onPress={pickCommentImage}
             style={styles.imageButton}
           >
-            <Ionicons name="image-outline" size={24} color="#8E8E8E" />
+            <Ionicons name="image-outline" size={24} color={colors.textSecondary} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={handleComment}
@@ -779,7 +779,7 @@ export default function PostDetailScreen() {
             style={styles.sendButton}
           >
             {submittingComment ? (
-              <ActivityIndicator size="small" color="#0095F6" />
+              <ActivityIndicator size="small" color={colors.blue} />
             ) : (
               <Text
                 style={[
@@ -878,7 +878,7 @@ export default function PostDetailScreen() {
         onRequestClose={() => setOptionsVisible(false)}
       >
         <Pressable style={styles.modalBackdrop} onPress={() => setOptionsVisible(false)}>
-          <View style={styles.optionsCard}>
+          <View style={[styles.optionsCard, { backgroundColor: colors.backgroundWhite }]}>
             {isOwnPost ? (
               // Options for user's own posts
               <>
@@ -886,7 +886,7 @@ export default function PostDetailScreen() {
                   <Text style={[styles.optionText, styles.optionDanger]}>Delete Post</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); router.push(`/post/edit/${post.id}` as any); }}>
-                  <Text style={styles.optionText}>Edit Post</Text>
+                  <Text style={[styles.optionText, { color: colors.textPrimary }]}>Edit Post</Text>
                 </TouchableOpacity>
               </>
             ) : (
@@ -896,12 +896,12 @@ export default function PostDetailScreen() {
                   <Text style={[styles.optionText, styles.optionDanger]}>Report</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.optionItem} onPress={() => { setOptionsVisible(false); Alert.alert('Unfollow', `Unfollow ${displayUsername} (not implemented)`); }}>
-                  <Text style={styles.optionText}>Unfollow</Text>
+                  <Text style={[styles.optionText, { color: colors.textPrimary }]}>Unfollow</Text>
                 </TouchableOpacity>
               </>
             )}
             <TouchableOpacity style={styles.optionItem} onPress={() => setOptionsVisible(false)}>
-              <Text style={[styles.optionText, styles.optionCancel]}>Cancel</Text>
+              <Text style={[styles.optionText, styles.optionCancel, { color: colors.textPrimary }]}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </Pressable>
@@ -921,7 +921,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#EFEFEF',
   },
   backButton: {
     padding: 4,
@@ -929,7 +928,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#262626',
   },
   moreButton: {
     padding: 4,
@@ -946,7 +944,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#8E8E8E',
     marginTop: 16,
   },
   content: {
@@ -974,13 +971,11 @@ const styles = StyleSheet.create({
   },
   timestamp: {
     fontSize: 12,
-    color: '#8E8E8E',
     marginTop: 2,
   },
   postImage: {
     width: '100%',
     aspectRatio: 1,
-    backgroundColor: '#F0F0F0',
   },
   actions: {
     flexDirection: 'row',
@@ -1028,15 +1023,14 @@ const styles = StyleSheet.create({
   },
   hashtag: {
     fontSize: 14,
-    color: '#0095F6',
   },
   viewCommentsButton: {
     paddingHorizontal: 16,
     marginBottom: 12,
   },
   viewCommentsText: {
-    color: '#8e8e8e',
     fontSize: 14,
+    color: '#8e8e8e',
   },
   commentsSection: {
     paddingHorizontal: 4,
@@ -1055,13 +1049,13 @@ const styles = StyleSheet.create({
   },
   noCommentsText: {
     fontSize: 14,
-    color: '#8E8E8E',
     fontWeight: '500',
+    color: '#8E8E8E',
   },
   noCommentsSubtext: {
     fontSize: 12,
-    color: '#AAAAAA',
     marginTop: 4,
+    color: '#AAAAAA',
   },
   commentItem: {
     flexDirection: 'row',
@@ -1084,15 +1078,12 @@ const styles = StyleSheet.create({
   commentUsername: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#262626',
   },
   commentTime: {
     fontSize: 13,
-    color: '#8E8E8E',
   },
   commentText: {
     fontSize: 14,
-    color: '#262626',
     lineHeight: 20,
   },
   commentImage: {
@@ -1107,8 +1098,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: '#EFEFEF',
-    backgroundColor: '#FFFFFF',
   },
   commentInputAvatar: {
     width: 35,
@@ -1122,7 +1111,6 @@ const styles = StyleSheet.create({
   },
   commentInput: {
     fontSize: 14,
-    color: '#262626',
     maxHeight: 80,
   },
   imageButton: {
@@ -1138,7 +1126,7 @@ const styles = StyleSheet.create({
     color: '#0095F6',
   },
   sendButtonTextDisabled: {
-    color: '#B0D4F1',
+    opacity: 0.5,
   },
   commentImagePreview: {
     position: 'relative',
@@ -1162,9 +1150,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: "#f8f9fa",
     borderTopWidth: 1,
-    borderTopColor: "#efefef",
   },
   replyIndicatorContent: {
     flexDirection: "row",
@@ -1175,7 +1161,6 @@ const styles = StyleSheet.create({
   },
   replyingText: {
     fontSize: 13,
-    color: "#262626",
     fontWeight: "500",
   },
   cancelReplyBtn: {
@@ -1267,7 +1252,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   optionsCard: {
-    backgroundColor: '#fff',
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     paddingVertical: 8,
@@ -1280,14 +1264,12 @@ const styles = StyleSheet.create({
   },
   optionText: {
     fontSize: 16,
-    color: '#262626',
   },
   optionDanger: {
     color: '#ED4956',
     fontWeight: '700',
   },
   optionCancel: {
-    color: '#262626',
     fontWeight: '600',
   },
 });
