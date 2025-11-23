@@ -5,18 +5,18 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { doc, onSnapshot } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Image,
-    Modal,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  Modal,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import CreateGroupChatModal from '../../components/CreateGroupChatModal';
 import { auth, db } from '../../config/firebase';
@@ -64,6 +64,8 @@ export default function ConversationDetailsScreen() {
   const [participantsInfo, setParticipantsInfo] = useState<Map<string, { displayName: string; username: string; photoURL: string }>>(new Map());
   const participantSubscriptions = React.useRef<Map<string, () => void>>(new Map());
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     loadConversationData();
@@ -424,16 +426,54 @@ export default function ConversationDetailsScreen() {
       const currentUserId = auth.currentUser?.uid;
       if (!currentUserId) throw new Error('Not authenticated');
 
+      let addedCount = 0;
+      let pendingCount = 0;
+
       // Add each user to the group
       for (const user of selectedUsers) {
-        await addParticipantToGroup(conversationId as string, user.id, {
-          displayName: user.displayName,
-          photoURL: user.profileImage || '',
-          username: user.username,
-        });
+        try {
+          await addParticipantToGroup(
+            conversationId as string, 
+            user.id, 
+            {
+              displayName: user.displayName,
+              photoURL: user.profileImage || '',
+              username: user.username,
+            },
+            currentUserId
+          );
+          
+          // Check if it went to pending (based on approval setting)
+          const convDoc = await getConversation(conversationId as string);
+          const isAdmin = convDoc?.admins?.includes(currentUserId);
+          const requiresApproval = convDoc?.requireApproval;
+          
+          if (requiresApproval && !isAdmin) {
+            pendingCount++;
+          } else {
+            addedCount++;
+          }
+        } catch (error: any) {
+          console.error(`Error adding user ${user.displayName}:`, error);
+          // Continue with other users even if one fails
+        }
       }
 
-      Alert.alert('Success', `Added ${selectedUsers.length} user(s) to the group`);
+      let message = '';
+      if (addedCount > 0 && pendingCount > 0) {
+        message = `Added ${addedCount} user(s). ${pendingCount} user(s) pending admin approval.`;
+      } else if (addedCount > 0) {
+        message = `Added ${addedCount} user(s) to the group`;
+      } else if (pendingCount > 0) {
+        message = `${pendingCount} user(s) added to pending requests (admin approval required)`;
+      }
+
+      if (message) {
+        setSuccessMessage(message);
+        setShowSuccessModal(true);
+        setTimeout(() => setShowSuccessModal(false), 2500);
+      }
+      
       setShowAddPeopleModal(false);
       await loadConversationData();
     } catch (error: any) {
@@ -615,17 +655,23 @@ export default function ConversationDetailsScreen() {
         )}
 
         {/* Privacy & safety */}
-        <TouchableOpacity 
-          style={styles.menuItem}
-          onPress={() => router.push('/(tabs)/settings/privacy')}
-        >
-          <View style={styles.menuLeft}>
-            <View style={styles.menuIconContainer}>
-              <Ionicons name="lock-closed-outline" size={24} color={colors.textPrimary} />
+        {isGroupChat && auth.currentUser?.uid && conversation?.admins?.includes(auth.currentUser.uid) ? (
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => router.push(`/messages/group-settings?conversationId=${conversationId}` as any)}
+          >
+            <View style={styles.menuLeft}>
+              <View style={styles.menuIconContainer}>
+                <Ionicons name="lock-closed-outline" size={24} color={colors.textPrimary} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={[styles.menuText, { color: colors.textPrimary }]}>Privacy & Safety</Text>
+                <Text style={[styles.menuSubtext, { color: colors.textSecondary }]}>Admin settings</Text>
+              </View>
             </View>
-            <Text style={[styles.menuText, { color: colors.textPrimary }]}>Privacy & safety</Text>
-          </View>
-        </TouchableOpacity>
+            <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+        ) : null}
 
         {/* Nicknames - only for 1-on-1 */}
         {!isGroupChat && (
@@ -1076,6 +1122,26 @@ export default function ConversationDetailsScreen() {
         }}
         initialSelectedUserIds={otherUserId ? [otherUserId as string] : []}
       />
+
+      {/* Success Modal */}
+      <Modal
+        visible={showSuccessModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSuccessModal(false)}
+      >
+        <View style={styles.successModalOverlay}>
+          <View style={[styles.successCard, { backgroundColor: colors.backgroundWhite }]}>
+            <View style={styles.successIconContainer}>
+              <Ionicons name="checkmark-circle" size={64} color="#fc8727ff" />
+            </View>
+            <Text style={[styles.successTitle, { color: colors.textPrimary }]}>Success</Text>
+            <Text style={[styles.successText, { color: colors.textSecondary }]}>
+              {successMessage}
+            </Text>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1488,5 +1554,37 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#0095f6',
     fontWeight: '600',
+  },
+  successModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  successCard: {
+    width: '100%',
+    maxWidth: 320,
+    borderRadius: 20,
+    padding: 32,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  successIconContainer: {
+    marginBottom: 20,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  successText: {
+    fontSize: 15,
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });

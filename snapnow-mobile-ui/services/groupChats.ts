@@ -1,16 +1,16 @@
 import {
-    addDoc,
-    arrayRemove,
-    arrayUnion,
-    collection,
-    doc,
-    getDoc,
-    getDocs,
-    query,
-    serverTimestamp,
-    Timestamp,
-    updateDoc,
-    where,
+  addDoc,
+  arrayRemove,
+  arrayUnion,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  serverTimestamp,
+  Timestamp,
+  updateDoc,
+  where,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Conversation } from './conversations';
@@ -111,7 +111,8 @@ export const addParticipantToGroup = async (
     displayName: string;
     photoURL: string;
     username: string;
-  }
+  },
+  addedBy?: string
 ): Promise<void> => {
   try {
     const conversationRef = doc(db, 'conversations', conversationId);
@@ -131,21 +132,51 @@ export const addParticipantToGroup = async (
       throw new Error('User is already in the group');
     }
 
-    await updateDoc(conversationRef, {
-      participants: arrayUnion(participantId),
-      [`participantDetails.${participantId}`]: {
-        id: participantId,
-        ...participantDetails,
-        isAdmin: false,
-        joinedAt: serverTimestamp(),
-      },
-      [`unreadCount.${participantId}`]: 0,
-      updatedAt: serverTimestamp(),
-    });
+    const isAddedByAdmin = addedBy && data.admins?.includes(addedBy);
+    const requiresApproval = data.requireApproval && !isAddedByAdmin;
 
-    // Send system notification
-    const { sendSystemMessage } = require('./messages');
-    await sendSystemMessage(conversationId, `${participantDetails.displayName} was added to the group`);
+    if (requiresApproval) {
+      // Check if already in pending requests
+      const pendingRequests = data.pendingRequests || [];
+      if (pendingRequests.some((req: any) => req.userId === participantId)) {
+        throw new Error('User already has a pending join request');
+      }
+
+      // Add to pending requests - use Timestamp.now() instead of serverTimestamp() in arrayUnion
+      await updateDoc(conversationRef, {
+        pendingRequests: arrayUnion({
+          userId: participantId,
+          ...participantDetails,
+          requestedAt: Timestamp.now(),
+          addedBy,
+        }),
+        updatedAt: serverTimestamp(),
+      });
+
+      // Send system notification
+      const { sendSystemMessage } = require('./messages');
+      await sendSystemMessage(
+        conversationId,
+        `${participantDetails.displayName} was added by ${data.participantDetails?.[addedBy!]?.displayName || 'a member'} and is pending admin approval`
+      );
+    } else {
+      // Add directly to group
+      await updateDoc(conversationRef, {
+        participants: arrayUnion(participantId),
+        [`participantDetails.${participantId}`]: {
+          id: participantId,
+          ...participantDetails,
+          isAdmin: false,
+          joinedAt: Timestamp.now(),
+        },
+        [`unreadCount.${participantId}`]: 0,
+        updatedAt: serverTimestamp(),
+      });
+
+      // Send system notification
+      const { sendSystemMessage } = require('./messages');
+      await sendSystemMessage(conversationId, `${participantDetails.displayName} was added to the group`);
+    }
   } catch (error) {
     console.error('Error adding participant to group:', error);
     throw error;
@@ -297,6 +328,11 @@ export const makeGroupAdmin = async (
       [`participantDetails.${participantId}.isAdmin`]: true,
       updatedAt: serverTimestamp(),
     });
+
+    // Send system notification
+    const { sendSystemMessage } = require('./messages');
+    const newAdminName = data.participantDetails[participantId]?.displayName || 'A member';
+    await sendSystemMessage(conversationId, `${newAdminName} is now an admin`);
   } catch (error) {
     console.error('Error making group admin:', error);
     throw error;
@@ -339,6 +375,11 @@ export const removeGroupAdmin = async (
       [`participantDetails.${participantId}.isAdmin`]: false,
       updatedAt: serverTimestamp(),
     });
+
+    // Send system notification
+    const { sendSystemMessage } = require('./messages');
+    const removedAdminName = data.participantDetails[participantId]?.displayName || 'A member';
+    await sendSystemMessage(conversationId, `${removedAdminName} is no longer an admin`);
   } catch (error) {
     console.error('Error removing group admin:', error);
     throw error;
@@ -474,7 +515,7 @@ export const joinGroupViaLink = async (
         id: userId,
         ...userDetails,
         isAdmin: false,
-        joinedAt: serverTimestamp(),
+        joinedAt: Timestamp.now(),
       },
       [`unreadCount.${userId}`]: 0,
       updatedAt: serverTimestamp(),
@@ -489,6 +530,195 @@ export const joinGroupViaLink = async (
   }
 };
 
+/**
+ * Toggle require approval setting for group
+ */
+export const toggleGroupApprovalRequired = async (
+  conversationId: string,
+  requesterId: string,
+  requireApproval: boolean
+): Promise<void> => {
+  try {
+    const conversationRef = doc(db, 'conversations', conversationId);
+    const conversationDoc = await getDoc(conversationRef);
+
+    if (!conversationDoc.exists()) {
+      throw new Error('Group chat not found');
+    }
+
+    const data = conversationDoc.data();
+    if (!data.isGroupChat) {
+      throw new Error('Not a group chat');
+    }
+
+    // Only admins can change this setting
+    if (!data.admins?.includes(requesterId)) {
+      throw new Error('Only admins can change approval settings');
+    }
+
+    await updateDoc(conversationRef, {
+      requireApproval,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error('Error toggling group approval setting:', error);
+    throw error;
+  }
+};
+
+/**
+ * Request to join group (when approval is required)
+ */
+export const requestToJoinGroup = async (
+  conversationId: string,
+  userId: string,
+  userDetails: {
+    displayName: string;
+    photoURL: string;
+    username: string;
+  }
+): Promise<void> => {
+  try {
+    const conversationRef = doc(db, 'conversations', conversationId);
+    const conversationDoc = await getDoc(conversationRef);
+
+    if (!conversationDoc.exists()) {
+      throw new Error('Group not found');
+    }
+
+    const data = conversationDoc.data();
+    if (!data.isGroupChat) {
+      throw new Error('This is not a group chat');
+    }
+
+    // Check if already a participant
+    if (data.participants.includes(userId)) {
+      throw new Error('You are already a member of this group');
+    }
+
+    // Check if already requested
+    const pendingRequests = data.pendingRequests || [];
+    if (pendingRequests.some((req: any) => req.userId === userId)) {
+      throw new Error('You have already requested to join this group');
+    }
+
+    // Add to pending requests
+    await updateDoc(conversationRef, {
+      pendingRequests: arrayUnion({
+        userId,
+        ...userDetails,
+        requestedAt: Timestamp.now(),
+      }),
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error('Error requesting to join group:', error);
+    throw error;
+  }
+};
+
+/**
+ * Approve join request
+ */
+export const approveJoinRequest = async (
+  conversationId: string,
+  userId: string,
+  approverId: string
+): Promise<void> => {
+  try {
+    const conversationRef = doc(db, 'conversations', conversationId);
+    const conversationDoc = await getDoc(conversationRef);
+
+    if (!conversationDoc.exists()) {
+      throw new Error('Group chat not found');
+    }
+
+    const data = conversationDoc.data();
+    if (!data.isGroupChat) {
+      throw new Error('Not a group chat');
+    }
+
+    // Only admins can approve requests
+    if (!data.admins?.includes(approverId)) {
+      throw new Error('Only admins can approve join requests');
+    }
+
+    // Find the request
+    const pendingRequests = data.pendingRequests || [];
+    const request = pendingRequests.find((req: any) => req.userId === userId);
+
+    if (!request) {
+      throw new Error('Join request not found');
+    }
+
+    // Remove from pending requests
+    const updatedRequests = pendingRequests.filter((req: any) => req.userId !== userId);
+
+    // Add user to group
+    await updateDoc(conversationRef, {
+      participants: arrayUnion(userId),
+      [`participantDetails.${userId}`]: {
+        id: userId,
+        displayName: request.displayName,
+        photoURL: request.photoURL,
+        username: request.username,
+        isAdmin: false,
+        joinedAt: Timestamp.now(),
+      },
+      [`unreadCount.${userId}`]: 0,
+      pendingRequests: updatedRequests,
+      updatedAt: serverTimestamp(),
+    });
+
+    // Send system notification
+    const { sendSystemMessage } = require('./messages');
+    await sendSystemMessage(conversationId, `${request.displayName} joined the group`);
+  } catch (error) {
+    console.error('Error approving join request:', error);
+    throw error;
+  }
+};
+
+/**
+ * Reject join request
+ */
+export const rejectJoinRequest = async (
+  conversationId: string,
+  userId: string,
+  rejecterId: string
+): Promise<void> => {
+  try {
+    const conversationRef = doc(db, 'conversations', conversationId);
+    const conversationDoc = await getDoc(conversationRef);
+
+    if (!conversationDoc.exists()) {
+      throw new Error('Group chat not found');
+    }
+
+    const data = conversationDoc.data();
+    if (!data.isGroupChat) {
+      throw new Error('Not a group chat');
+    }
+
+    // Only admins can reject requests
+    if (!data.admins?.includes(rejecterId)) {
+      throw new Error('Only admins can reject join requests');
+    }
+
+    // Find and remove the request
+    const pendingRequests = data.pendingRequests || [];
+    const updatedRequests = pendingRequests.filter((req: any) => req.userId !== userId);
+
+    await updateDoc(conversationRef, {
+      pendingRequests: updatedRequests,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error('Error rejecting join request:', error);
+    throw error;
+  }
+};
+
 export default {
   createGroupChat,
   addParticipantToGroup,
@@ -499,5 +729,9 @@ export default {
   updateGroupDetails,
   getUserGroupChats,
   joinGroupViaLink,
+  toggleGroupApprovalRequired,
+  requestToJoinGroup,
+  approveJoinRequest,
+  rejectJoinRequest,
 };
 

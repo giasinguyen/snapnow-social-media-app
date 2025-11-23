@@ -1,16 +1,16 @@
 import {
-    collection,
-    deleteDoc,
-    doc,
-    getDoc,
-    getDocs,
-    onSnapshot,
-    query,
-    serverTimestamp,
-    setDoc,
-    Timestamp,
-    updateDoc,
-    where,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  onSnapshot,
+  query,
+  serverTimestamp,
+  setDoc,
+  Timestamp,
+  updateDoc,
+  where,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
@@ -48,6 +48,15 @@ export interface Conversation {
     [userId: string]: string; // Nicknames set by each user for other participants
   };
   theme?: 'default' | 'purple' | 'blue' | 'dark'; // Optional theme for the conversation
+  requireApproval?: boolean; // Whether non-admin member additions require admin approval
+  pendingRequests?: Array<{
+    userId: string;
+    displayName: string;
+    photoURL: string;
+    username: string;
+    requestedAt: Timestamp;
+    addedBy?: string;
+  }>; // Pending join requests for group chats
 }
 
 export interface ConversationInput {

@@ -36,6 +36,13 @@ export default function MessagesLayout() {
           headerShown: true,
         }}
       />
+      <Stack.Screen
+        name="group-settings"
+        options={{
+          title: 'Privacy & Safety',
+          headerShown: true,
+        }}
+      />
     </Stack>
   );
 }
