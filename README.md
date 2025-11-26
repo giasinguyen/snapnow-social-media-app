@@ -576,7 +576,7 @@ npx tsc --noEmit
 
 ### Contact
 
-- **Email**: [contact@snapnow.com](mailto:contact@snapnow.com)
+- **Email**: [contact@snapnow.com](mailto:giasinguyentran@gmail.com.com)
 - **Repository**: [github.com/giasinguyen/snapnow-social-media-app](https://github.com/giasinguyen/snapnow-social-media-app)
 
 ---
