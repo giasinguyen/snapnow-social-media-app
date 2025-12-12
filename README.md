@@ -1,433 +1,337 @@
-<div align="center">
+<p align="center">
+  <img src="snapnow-mobile-ui/assets/images/logo-snapnow.png" alt="SnapNow Logo" width="120" height="120"/>
+</p>
 
-# ✨📸 SnapNow – Social Media Application ✨
+<h1 align="center">✨ SnapNow – Social Media Platform ✨</h1>
 
-A modern social platform for sharing your moments with the world.
+<p align="center">
+  <strong>A modern social platform for sharing moments with the world</strong>
+</p>
 
-</div>
+<p align="center">
+  <a href="#-features"><img src="https://img.shields.io/badge/Features-40+-blue?style=for-the-badge" alt="Features"/></a>
+  <a href="#-tech-stack"><img src="https://img.shields.io/badge/React_Native-0.81.5-61DAFB?style=for-the-badge&logo=react" alt="React Native"/></a>
+  <a href="#-tech-stack"><img src="https://img.shields.io/badge/Expo-54-000020?style=for-the-badge&logo=expo" alt="Expo"/></a>
+  <a href="#-tech-stack"><img src="https://img.shields.io/badge/TypeScript-5.9-3178C6?style=for-the-badge&logo=typescript" alt="TypeScript"/></a>
+  <a href="#-tech-stack"><img src="https://img.shields.io/badge/Firebase-12.x-FFCA28?style=for-the-badge&logo=firebase" alt="Firebase"/></a>
+</p>
 
-<div align="center">
-
-![SnapNow Logo](https://img.shields.io/badge/SnapNow-Social_Media-blue?style=for-the-badge&logo=instagram)
-![React Native](https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
-![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
-![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
-![Expo](https://img.shields.io/badge/Expo-000020?style=for-the-badge&logo=expo&logoColor=white)
-
-*Capture and share moments instantly – A modern social media platform inspired by Instagram, Threads, and Facebook*
-
-[Features](#-key-features) • [Tech Stack](#-tech-stack) • [Installation](#-installation--setup) • [Structure](#-project-structure) • [Contributors](#-development-team)
-
-</div>
-
----
-
-## 👥 Development Team – **The Challengers** 🏆
-
-### Team Introduction:
-
-SnapNow was developed by **The Challengers**, a team of passionate developers who wanted to build a modern and engaging social media platform. Here’s a quick introduction to our talented team:
-
-* **Nguyễn Trần Gia Sĩ**: Team Leader & Full Stack Developer. A dedicated leader with a strong focus on both frontend and backend development, ensuring the app runs seamlessly across multiple platforms. [GitHub: @giasinguyen](https://github.com/giasinguyen)
-
-* **Đào Quốc Tuấn**: Frontend Developer & UI/UX Designer. With a keen eye for design and user experience, Tuấn has worked on building the stunning, intuitive interfaces for SnapNow. [GitHub: @yezsudev](https://github.com/yezsudev)
-
-* **Hà Xuân Phú**: Backend Developer & Database Architect. Phú has implemented the robust backend system, ensuring smooth data flow and real-time features on SnapNow. [GitHub: @haphu2512-java](https://github.com/haphu2512-java)
+<p align="center">
+  <a href="#-quick-start">Quick Start</a> •
+  <a href="#-features">Features</a> •
+  <a href="#-architecture">Architecture</a> •
+  <a href="#-screenshots">Screenshots</a> •
+  <a href="#-team">Team</a>
+</p>
 
 ---
 
-## 📋 Table of Contents
+## 🎯 About The Project
 
-- [Introduction](#-introduction)
-- [Key Features](#-key-features)
-- [Tech Stack](#-tech-stack)
-- [Installation & Setup](#-installation--setup)
-- [Project Structure](#-project-structure)
-- [Detailed Functionality](#-detailed-functionality)
-- [Development Team](#-development-team)
-- [License](#-license)
+**SnapNow** is a full-featured social media application built as a **Mobile Application Development** course project. The platform combines the best features from Instagram, Threads, and Facebook to deliver a modern, intuitive, and engaging user experience.
 
----
+### ✨ Highlights
 
-## 🎯 Introduction
-
-**SnapNow** is a modern social media application for photo sharing and community connection, developed as a **Mobile Application Development** course project. The app combines the best features from Instagram, Threads, and Facebook, delivering a smooth and intuitive user experience.
-
-### 🎨 Highlights
-
-- ✅ Modern and user-friendly interface
-- ✅ Firebase integration for backend and realtime updates
-- ✅ Multi-platform support (iOS, Android, Web)
-- ✅ Clean, scalable code architecture
-- ✅ TypeScript for type safety
-- ✅ Responsive design with NativeWind (Tailwind CSS)
+| Feature | Description |
+|---------|-------------|
+| 📱 **Cross-Platform** | iOS, Android, and Web support |
+| 🎨 **Modern UI/UX** | Instagram-inspired design with dark mode |
+| ⚡ **Real-time** | Live updates with Firebase Firestore |
+| 🤖 **AI-Powered** | Gemini AI chat & HuggingFace image generation |
+| 🔒 **Secure** | Firebase Auth + JWT authentication |
+| 📊 **Analytics** | Admin dashboard with insights |
 
 ---
 
-## ✨ Key Features
+## 🏗️ Architecture
 
-### 🔐 Authentication & User Management
-- **Sign Up / Sign In** with Firebase Authentication
-- **Profile Management**: Avatar, bio, display name
-- **Edit Profile**: Update profile, change avatar
-- **Share Profile**: Share profile with friends
-
-### 📱 Content Feed
-- **Dynamic Feed**: "For You" and "Following" tabs
-- **Stories**: View and post 24-hour stories
-- **Infinite Scroll**: Auto-load posts on scroll
-- **Pull to Refresh**: Refresh content
-
-### 🖼️ Post Creation & Content
-- **Create New Posts**: Photo + caption + hashtags
-- **Upload Photos**: From library or camera
-- **Privacy Settings**: Control who can view/interact
-- **Grid/List View**: Multiple display options
-
-### 💬 Social Interactions
-- **Like & Unlike**: Like/unlike posts
-- **Comment**: Comment and reply to comments
-- **Follow/Unfollow**: Follow users
-- **Share**: Share posts
-
-### 🔔 Notifications
-- **Realtime Notifications**: Instant notifications
-- **Activity Feed**: Like, comment, follow notifications
-- **Categories**: Recent and Older notifications
-
-### 🔍 Search
-- **User Search**: By username/display name
-- **Post Search**: By hashtag, caption
-- **Search History**: Recent searches
-- **Debounced Search**: Performance optimization
-
-### ⚙️ Settings
-- **Account**: Manage personal information
-- **Privacy**: Privacy settings
-- **Notifications**: Customize notifications
-- **Analytics**: Time spent tracking
-- **Help & Support**: Help center, terms, privacy policy
-
-### 🏆 Advanced Features
-- **Achievements**: Achievement system
-- **Albums**: Organize photos in albums
-- **Tagged Posts**: View tagged posts
-- **Profile Insights**: Interaction statistics
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         SnapNow Platform                         │
+├─────────────────┬─────────────────────┬─────────────────────────┤
+│   📱 Mobile App  │   🌐 Admin Dashboard │     🔧 Backend API      │
+│  React Native    │      React + Vite   │     Express.js         │
+│    + Expo        │                     │                        │
+├─────────────────┴─────────────────────┴─────────────────────────┤
+│                        ☁️ Firebase Services                      │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐ │
+│  │   Auth   │  │Firestore │  │ Storage  │  │ Cloud Functions  │ │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────────────┘ │
+├─────────────────────────────────────────────────────────────────┤
+│                      🤖 AI Services                              │
+│         ┌────────────────┐    ┌─────────────────────┐           │
+│         │  Gemini AI     │    │  HuggingFace FLUX   │           │
+│         │  (Text Chat)   │    │  (Image Generation) │           │
+│         └────────────────┘    └─────────────────────┘           │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
 ## 🛠️ Tech Stack
 
-### Frontend - Mobile App
+### 📱 Mobile Application
 
-```json
-{
-  "framework": "React Native 0.81.4",
-  "runtime": "Expo SDK 54",
-  "language": "TypeScript 5.9.2",
-  "navigation": "Expo Router 6.0",
-  "ui-library": [
-    "React Native Paper 5.14.5",
-    "NativeWind 4.2.1 (Tailwind CSS)",
-    "Expo Linear Gradient",
-    "Expo Blur"
-  ],
-  "state-management": "React Hooks",
-  "icons": "@expo/vector-icons 15.0.2"
-}
-```
+| Category | Technologies |
+|----------|--------------|
+| **Framework** | React Native 0.81.5 + Expo SDK 54 |
+| **Language** | TypeScript 5.9.2 |
+| **Navigation** | Expo Router 6.0 (File-based) |
+| **UI Library** | React Native Paper 5.14.5 |
+| **Styling** | NativeWind 4.2.1 (TailwindCSS) |
+| **State** | React Hooks + Context API |
+| **Animations** | React Native Reanimated 4.1 |
+| **Image Upload** | Cloudinary REST API |
 
-### Backend & Database
+### 🌐 Admin Dashboard
 
-```json
-{
-  "backend": "Firebase",
-  "services": {
-    "authentication": "Firebase Authentication",
-    "database": "Cloud Firestore",
-    "storage": "Firebase Storage",
-    "realtime": "Firestore Realtime Updates"
-  }
-}
-```
+| Category | Technologies |
+|----------|--------------|
+| **Framework** | React 19.2 + Vite 7.2 |
+| **Styling** | TailwindCSS 4.1 |
+| **Charts** | Recharts 3.4 |
+| **Icons** | Lucide React |
+| **Routing** | React Router DOM 7.9 |
 
-### Frontend - Web App (In Progress)
+### 🔧 Backend API
 
-```json
-{
-  "framework": "React 19.1.1",
-  "build-tool": "Vite 7.1.2",
-  "language": "TypeScript 5.8.3"
-}
-```
+| Category | Technologies |
+|----------|--------------|
+| **Runtime** | Node.js 18+ |
+| **Framework** | Express.js 4.18 |
+| **Auth** | JWT + Firebase Admin SDK |
+| **Security** | Helmet, CORS, Rate Limiting |
+| **Validation** | Express Validator |
 
-### Developer Tools
+### ☁️ Cloud Services
 
-- **Linting**: ESLint 9.25.0
-- **CSS Processing**: PostCSS, Autoprefixer
-- **Package Manager**: npm/yarn
-- **Version Control**: Git
+| Service | Usage |
+|---------|-------|
+| **Firebase Auth** | User authentication |
+| **Cloud Firestore** | NoSQL database |
+| **Firebase Storage** | File storage |
+| **Cloudinary** | Image CDN & optimization |
+| **Gemini AI** | AI chat assistant |
+| **HuggingFace** | AI image generation |
 
 ---
 
-## 🚀 Installation & Setup
+## ✨ Features
 
-### System Requirements
+### 🔐 Authentication & Security
+- ✅ Email/Password sign up & sign in
+- ✅ Profile management (avatar, bio, display name)
+- ✅ Password reset via email
+- ✅ Two-factor authentication ready
+- ✅ Account privacy settings
+- ✅ Block/Unblock users
 
-- **Node.js**: v18.0.0 or higher
+### 📱 Social Feed
+- ✅ Dynamic feed with "For You" & "Following" tabs
+- ✅ Infinite scroll with pull-to-refresh
+- ✅ Like, Comment, Share posts
+- ✅ Save/Bookmark posts
+- ✅ Multi-image posts support
+- ✅ Hashtag & Mention support
+
+### 📸 Stories
+- ✅ 24-hour disappearing stories
+- ✅ Story progress bar
+- ✅ View story viewers
+- ✅ Create stories from camera/gallery
+
+### 💬 Messaging
+- ✅ Real-time direct messages
+- ✅ Group chats
+- ✅ Message reactions
+- ✅ Image sharing in chats
+- ✅ Online/Offline status
+- ✅ Typing indicators
+
+### 🤖 AI Features
+- ✅ AI Chat Assistant (Gemini)
+- ✅ AI Image Generation (HuggingFace FLUX)
+- ✅ Smart suggestions
+
+### 🔔 Notifications
+- ✅ Push notifications
+- ✅ In-app notifications
+- ✅ Activity feed (likes, comments, follows)
+- ✅ Notification preferences
+
+### 🔍 Discovery
+- ✅ User search
+- ✅ Hashtag search
+- ✅ Post search
+- ✅ User recommendations
+
+### ⚙️ Settings
+- ✅ Dark/Light/Auto theme
+- ✅ Privacy settings
+- ✅ Notification preferences
+- ✅ Time spent tracking
+- ✅ Activity history
+- ✅ Blocked accounts management
+
+### 📊 Admin Dashboard
+- ✅ User management
+- ✅ Post moderation
+- ✅ Analytics & insights
+- ✅ Report management
+- ✅ System settings
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **Node.js** v18.0.0 or higher
 - **npm** or **yarn**
 - **Expo CLI**: `npm install -g expo-cli`
-- **iOS Simulator** (macOS) or **Android Studio** (for Android Emulator)
-- **Expo Go** app (for physical devices)
+- **EAS CLI** (for builds): `npm install -g eas-cli`
+- **Expo Go** app on your mobile device
 
-### Step 1: Clone the repository
+### 1️⃣ Clone Repository
 
 ```bash
 git clone https://github.com/giasinguyen/snapnow-social-media-app.git
 cd snapnow-social-media-app
 ```
 
-### Step 2: Install dependencies
-
-#### Mobile App
+### 2️⃣ Setup Mobile App
 
 ```bash
 cd snapnow-mobile-ui
 npm install
-# or
-yarn install
 ```
 
-#### Web App (Optional)
+### 3️⃣ Configure Environment
 
-```bash
-cd snapnow-web-ui
-npm install
-# or
-yarn install
-```
-
-### Step 3: Configure Firebase
-
-1. Create a project on [Firebase Console](https://console.firebase.google.com/)
-2. Enable the following services:
-   - **Authentication**: Email/Password
-   - **Firestore Database**: Start in test mode
-   - **Storage**: Start in test mode
-3. Create a `.env` file in the `snapnow-mobile-ui` directory:
+Create `.env` file in `snapnow-mobile-ui/`:
 
 ```env
+# Firebase Configuration
 EXPO_PUBLIC_FIREBASE_API_KEY=your_api_key
 EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your_auth_domain
 EXPO_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
 EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=your_storage_bucket
 EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 EXPO_PUBLIC_FIREBASE_APP_ID=your_app_id
-EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID=your_measurement_id
+
+# Cloudinary Configuration
+EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name
+EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET=your_upload_preset
+
+# AI Services (Optional)
+EXPO_PUBLIC_GEMINI_API_KEY=your_gemini_key
+EXPO_PUBLIC_HUGGINGFACE_API_KEY=your_hf_key
 ```
 
-### Step 4: Seed sample data (Optional)
+### 4️⃣ Run the App
 
 ```bash
-cd snapnow-mobile-ui
-npm run seed
-```
-
-### Step 5: Run the application
-
-#### Development mode
-
-```bash
-# Run on all platforms
+# Start development server
 npm start
 
-# Run on Android
-npm run android
-
-# Run on iOS
-npm run ios
-
-# Run on Web
-npm run web
+# Or run on specific platform
+npm run android    # Android
+npm run ios        # iOS
+npm run web        # Web browser
 ```
 
-#### Production build
+### 5️⃣ Build APK (Optional)
 
 ```bash
-# Build Android
-expo build:android
+# Install EAS CLI
+npm install -g eas-cli
 
-# Build iOS
-expo build:ios
+# Login to Expo
+eas login
+
+# Build preview APK
+eas build --profile preview --platform android
 ```
-
-### Step 6: Login
-
-**Default admin account:**
-- Email: `admin@admin.com`
-- Password: `123`
 
 ---
 
-## 📁 Cấu trúc dự án
+## 📁 Project Structure
 
 ```
-SnapNow/
+snapnow-social-media-app/
+│
 ├── 📱 snapnow-mobile-ui/          # React Native Mobile App
-│   ├── app/                       # App screens (Expo Router)
-│   │   ├── (auth)/               # Authentication screens
-│   │   │   ├── login.tsx         # Màn hình đăng nhập
-│   │   │   └── register.tsx      # Màn hình đăng ký
-│   │   ├── (tabs)/               # Main app tabs
+│   ├── app/                       # Screens (Expo Router)
+│   │   ├── (auth)/               # Auth screens
+│   │   │   ├── login.tsx
+│   │   │   ├── register.tsx
+│   │   │   └── forgot-password.tsx
+│   │   ├── (tabs)/               # Main tab screens
 │   │   │   ├── index.tsx         # Home feed
-│   │   │   ├── search.tsx        # Search users/posts
-│   │   │   ├── create.tsx        # Create new post
+│   │   │   ├── search.tsx        # Search
+│   │   │   ├── create.tsx        # Create post
 │   │   │   ├── activity.tsx      # Notifications
 │   │   │   ├── profile.tsx       # User profile
-│   │   │   ├── edit-profile.tsx  # Edit profile
-│   │   │   ├── share-profile.tsx # Share profile
+│   │   │   ├── messages.tsx      # Messages list
 │   │   │   └── settings/         # Settings screens
-│   │   │       ├── index.tsx     # Settings menu
-│   │   │       ├── privacy.tsx   # Privacy settings
-│   │   │       ├── term.tsx      # Terms of service
-│   │   │       ├── about.tsx     # About app
-│   │   │       ├── help-center.tsx # Help center
-│   │   │       └── time-spent.tsx # Time tracking
-│   │   ├── _layout.tsx           # Root layout
-│   │   └── index.tsx             # Entry point
+│   │   ├── messages/             # Chat screens
+│   │   ├── story/                # Story screens
+│   │   ├── post/                 # Post screens
+│   │   ├── user/                 # User profile screens
+│   │   └── group/                # Group screens
+│   │
 │   ├── components/               # Reusable components
-│   │   ├── PostCard.tsx          # Post display card
-│   │   ├── StoryItem.tsx         # Story item
-│   │   ├── CommentsModal.tsx     # Comments modal
-│   │   ├── UserProfileHeader.tsx # Profile header
-│   │   ├── SuggestionCard.tsx    # User suggestion
-│   │   ├── LogoHeader.tsx        # Logo header
-│   │   ├── create/               # Create post components
-│   │   │   ├── ActionBar.tsx     # Action toolbar
-│   │   │   ├── HeaderBar.tsx     # Header bar
-│   │   │   ├── PrivacySheet.tsx  # Privacy options
-│   │   │   ├── SelectedImage.tsx # Image preview
-│   │   │   └── UserComposer.tsx  # Text composer
-│   │   └── ui/                   # UI primitives
-│   │       ├── Avatar.tsx        # Avatar component
-│   │       ├── Button.tsx        # Button component
-│   │       ├── Card.tsx          # Card component
-│   │       ├── Header.tsx        # Header component
-│   │       └── Input.tsx         # Input component
-│   ├── services/                 # Business logic & API
-│   │   ├── authService.ts        # Authentication service
-│   │   ├── posts.ts              # Posts CRUD operations
-│   │   ├── comments.ts           # Comments operations
-│   │   ├── likes.ts              # Likes operations
-│   │   ├── follow.ts             # Follow/unfollow
-│   │   ├── notifications.ts      # Notifications service
-│   │   ├── search.ts             # Search functionality
-│   │   ├── storage.ts            # File upload/storage
-│   │   ├── user.ts               # User operations
-│   │   └── mockData.ts           # Mock data for testing
-│   ├── types/                    # TypeScript types
-│   │   ├── index.ts              # Main types
-│   │   └── firebase.ts           # Firebase types
+│   │   ├── PostCard.tsx          # Post card
+│   │   ├── CommentsModal.tsx     # Comments
+│   │   ├── ThemeSelector.tsx     # Theme picker
+│   │   ├── feed/                 # Feed components
+│   │   ├── ui/                   # UI primitives
+│   │   └── notifications/        # Notification components
+│   │
+│   ├── services/                 # Business logic (38 services)
+│   │   ├── authService.ts        # Authentication
+│   │   ├── posts.ts              # Posts CRUD
+│   │   ├── comments.ts           # Comments
+│   │   ├── likes.ts              # Likes
+│   │   ├── follow.ts             # Follow system
+│   │   ├── messages.ts           # Messaging
+│   │   ├── stories.ts            # Stories
+│   │   ├── notifications.ts      # Notifications
+│   │   ├── aiChat.ts             # AI integration
+│   │   └── ...                   # 29 more services
+│   │
+│   ├── contexts/                 # React Contexts
+│   │   └── ThemeContext.tsx      # Theme provider
+│   │
 │   ├── config/                   # Configuration
-│   │   └── firebase.ts           # Firebase config
-│   ├── src/                      # Additional source files
-│   │   ├── constants/            # App constants
-│   │   │   ├── colors.ts         # Color palette
-│   │   │   ├── sizes.ts          # Size constants
-│   │   │   └── firebase.ts       # Firebase constants
-│   │   └── utils/                # Utility functions
-│   │       ├── dateUtils.ts      # Date formatting
-│   │       ├── numberUtils.ts    # Number formatting
-│   │       └── validation.ts     # Input validation
-│   ├── assets/                   # Static assets
-│   │   ├── images/               # Image files
-│   │   └── fonts/                # Custom fonts
-│   ├── scripts/                  # Build scripts
-│   │   └── seedFirebase.ts       # Database seeding
-│   ├── __mocks__/                # Test mocks
-│   ├── app.json                  # Expo configuration
-│   ├── package.json              # Dependencies
-│   ├── tsconfig.json             # TypeScript config
-│   ├── tailwind.config.js        # Tailwind config
-│   └── .env                      # Environment variables
+│   │   ├── firebase.ts           # Firebase config
+│   │   └── cloudinary.ts         # Cloudinary config
+│   │
+│   ├── types/                    # TypeScript types
+│   └── assets/                   # Images & fonts
 │
-├── 🌐 snapnow-web-ui/            # Web Application (In Progress)
+├── 🌐 snapnow-dashboard-ui/       # Admin Dashboard (React)
 │   ├── src/
-│   │   ├── App.tsx
-│   │   ├── main.tsx
-│   │   └── assets/
-│   ├── public/
-│   ├── package.json
-│   ├── vite.config.ts
-│   └── tsconfig.json
+│   │   ├── pages/               # Dashboard pages
+│   │   │   ├── DashboardOverview.jsx
+│   │   │   ├── Users.jsx
+│   │   │   ├── Posts.jsx
+│   │   │   ├── Analytics.jsx
+│   │   │   └── Settings.jsx
+│   │   ├── components/          # Shared components
+│   │   ├── services/            # API services
+│   │   └── contexts/            # State management
+│   └── public/
 │
-├── 🔧 snapnow-backend/           # Backend Documentation
-│   └── README.md
+├── 🔧 snapnow-backend/            # Backend API (Express.js)
+│   └── src/
+│       ├── controllers/         # Request handlers
+│       ├── routes/              # API routes
+│       ├── middleware/          # Auth & validation
+│       ├── services/            # Business logic
+│       └── config/              # Configuration
 │
-└── 📄 README.md                  # This file
-```
-
----
-
-## 🎯 Detailed Functionality
-
-### 1. Authentication Flow
-
-```typescript
-// Login
-await loginUser(email, password)
-
-// Register
-await registerUser(email, password, username, displayName)
-
-// Logout
-await logoutUser()
-
-// Get current user
-const user = await getCurrentUserProfile()
-```
-
-### 2. Posts Management
-
-```typescript
-// Create post
-await createPost({
-  userId, username, userImage,
-  imageUrl, caption, hashtags
-})
-
-// Fetch feed
-const posts = await fetchFeedPosts(userId)
-
-// Like/Unlike post
-await likePost(postId)
-await unlikePost(postId)
-```
-
-### 3. Social Interactions
-
-```typescript
-// Follow user
-await followUser(followerId, followingId, followerUsername)
-
-// Unfollow user
-await unfollowUser(followerId, followingId)
-
-// Add comment
-await addComment(postId, userId, username, text)
-
-// Create notification
-await createNotification(userId, type, fromUserId, ...)
-```
-
-### 4. Search Functionality
-
-```typescript
-// Search users
-const users = await searchUsersByUsernamePrefix(query)
-
-// Search posts
-const posts = await searchPostsByQuery(query)
+└── 📄 README.md                   # This file
 ```
 
 ---
@@ -435,191 +339,210 @@ const posts = await searchPostsByQuery(query)
 ## 📊 Data Models
 
 ### User Profile
-
 ```typescript
 interface UserProfile {
-  id: string
-  email: string
-  username: string
-  displayName: string
-  profileImage?: string
-  bio?: string
-  followersCount: number
-  followingCount: number
-  postsCount: number
-  createdAt: Date
-  isAdmin?: boolean
+  id: string;
+  email: string;
+  username: string;
+  displayName: string;
+  profileImage?: string;
+  bio?: string;
+  isPrivate: boolean;
+  isVerified: boolean;
+  followersCount: number;
+  followingCount: number;
+  postsCount: number;
+  createdAt: Date;
 }
 ```
 
 ### Post
-
 ```typescript
 interface Post {
-  id: string
-  userId: string
-  username: string
-  userImage?: string
-  imageUrl: string
-  caption?: string
-  hashtags?: string[]
-  likes: number
-  commentsCount: number
-  isLiked: boolean
-  createdAt: Date
+  id: string;
+  userId: string;
+  username: string;
+  userImage?: string;
+  images: string[];          // Multi-image support
+  caption?: string;
+  hashtags?: string[];
+  mentions?: string[];
+  likes: number;
+  commentsCount: number;
+  savesCount: number;
+  isLiked: boolean;
+  isSaved: boolean;
+  createdAt: Date;
 }
 ```
 
-### Notification
-
+### Message
 ```typescript
-interface Notification {
-  id: string
-  userId: string
-  type: 'like' | 'comment' | 'follow'
-  fromUserId: string
-  fromUsername: string
-  fromUserProfileImage?: string
-  postId?: string
-  postImageUrl?: string
-  message: string
-  isRead: boolean
-  createdAt: Date
+interface Message {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  text?: string;
+  imageUrl?: string;
+  reactions?: Record<string, string>;
+  isRead: boolean;
+  createdAt: Date;
 }
 ```
 
 ---
 
-## 🎨 UI/UX Features
+## 🎨 UI/UX Design
 
 ### Design System
 
-- **Color Palette**: Instagram-inspired gradient colors
-- **Typography**: San Francisco (iOS), Roboto (Android)
-- **Spacing**: 4px base unit system
-- **Icons**: Ionicons from @expo/vector-icons
+| Element | Light Mode | Dark Mode |
+|---------|------------|-----------|
+| **Primary** | `#262626` | `#FAFAFA` |
+| **Background** | `#FAFAFA` | `#000000` |
+| **Card** | `#FFFFFF` | `#1C1C1E` |
+| **Accent** | `#0095F6` | `#0095F6` |
+| **Border** | `#DBDBDB` | `#262626` |
+
+### Typography
+- **iOS**: San Francisco
+- **Android**: Roboto
+- **Base Size**: 14px
 
 ### Animations
-
-- Pull-to-refresh animations
-- Like button animations
+- Pull-to-refresh
+- Like button animation (heart scale)
 - Tab transitions
 - Modal slide-ups
-- Image loading states
-
-### Responsive Design
-
-- Adaptive layouts for different screen sizes
-- Support for tablets and phones
-- Portrait and landscape orientations
+- Skeleton loading states
 
 ---
 
-## 🔒 Security Features
+## 🔒 Security
 
-- ✅ Firebase Authentication with email/password
+- ✅ Firebase Authentication
+- ✅ JWT token validation
 - ✅ Firestore Security Rules
-- ✅ Input validation and sanitization
-- ✅ Secure image upload with Firebase Storage
-- ✅ Protected routes for authenticated users
+- ✅ Input sanitization
+- ✅ Rate limiting
+- ✅ CORS protection
+- ✅ Helmet security headers
+- ✅ Environment variables for secrets
 
 ---
 
-## 🧪 Testing
+## 📈 Roadmap
 
-```bash
-# Run linter
-npm run lint
+### ✅ Phase 1 - Core (Completed)
+- [x] Authentication system
+- [x] Post creation & feed
+- [x] Like & comment system
+- [x] Follow/Unfollow
+- [x] Stories feature
+- [x] Direct messaging
+- [x] Push notifications
+- [x] Dark mode
 
-# Type checking
-npx tsc --noEmit
-```
-
----
-
-## 📈 Roadmap & Future Enhancements
-
-### Phase 1 (Current)
-- [x] Basic authentication
-- [x] Post creation and feed
-- [x] Like and comment functionality
-- [x] Follow/unfollow system
-- [x] Notifications
-- [x] Search functionality
-
-### Phase 2 (Planned)
-- [ ] Stories feature
-- [ ] Direct messaging
+### 🔄 Phase 2 - Enhancement (In Progress)
+- [x] AI chat integration
+- [x] AI image generation
+- [x] Group chats
+- [x] Admin dashboard
 - [ ] Video posts
-- [ ] Reels/Short videos
-- [ ] Advanced filters and editing
-- [ ] Hashtag trending
+- [ ] Voice messages
 
-### Phase 3 (Future)
-- [ ] AI-powered recommendations
+### 🔮 Phase 3 - Future
+- [ ] Reels/Short videos
 - [ ] Live streaming
-- [ ] Shopping integration
-- [ ] Creator monetization
+- [ ] E-commerce integration
 - [ ] Advanced analytics
+- [ ] Creator monetization
 
 ---
 
 ## 👥 Development Team
 
-### **Team: The Challengers** 🏆
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/giasinguyen">
+        <img src="https://github.com/giasinguyen.png" width="100px;" alt="Nguyễn Trần Gia Sĩ"/><br />
+        <sub><b>Nguyễn Trần Gia Sĩ</b></sub>
+      </a><br />
+      <sub>👑 Team Leader</sub><br />
+      <sub>Full Stack Developer</sub>
+    </td>
+    <td align="center">
+      <a href="https://github.com/yezsudev">
+        <img src="https://github.com/yezsudev.png" width="100px;" alt="Đào Quốc Tuấn"/><br />
+        <sub><b>Đào Quốc Tuấn</b></sub>
+      </a><br />
+      <sub>🎨 UI/UX Designer</sub><br />
+      <sub>Frontend Developer</sub>
+    </td>
+    <td align="center">
+      <a href="https://github.com/haphu2512-java">
+        <img src="https://github.com/haphu2512-java.png" width="100px;" alt="Hà Xuân Phú"/><br />
+        <sub><b>Hà Xuân Phú</b></sub>
+      </a><br />
+      <sub>⚙️ Backend Developer</sub><br />
+      <sub>Database Architect</sub>
+    </td>
+  </tr>
+</table>
 
-| Member | Role | GitHub |
-|------------|---------|--------|
-| **Nguyễn Trần Gia Sĩ** | Team Leader & Full Stack Developer | [@giasinguyen](https://github.com/giasinguyen) |
-| **Đào Quốc Tuấn** | Frontend Developer & UI/UX Designer | |
-| **Hà Xuân Phú** | Backend Developer & Database Architect | |
-
-### Contact
-
-- **Email**: [contact@snapnow.com](mailto:giasinguyentran@gmail.com.com)
-- **Repository**: [github.com/giasinguyen/snapnow-social-media-app](https://github.com/giasinguyen/snapnow-social-media-app)
+<p align="center">
+  <strong>Team: The Challengers 🏆</strong>
+</p>
 
 ---
 
-## 🙏 Acknowledgments
+## 📞 Contact & Support
 
-- **Expo Team**: For the amazing React Native framework
-- **Firebase Team**: For the powerful backend services
-- **Instagram, Threads, Facebook**: For UI/UX inspiration
-- **React Native Community**: For helpful libraries and resources
+<p align="center">
+  <a href="https://github.com/giasinguyen/snapnow-social-media-app">
+    <img src="https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github" alt="GitHub"/>
+  </a>
+  <a href="https://github.com/giasinguyen/snapnow-social-media-app/issues">
+    <img src="https://img.shields.io/badge/Issues-Report_Bug-red?style=for-the-badge&logo=github" alt="Issues"/>
+  </a>
+  <a href="mailto:contact@snapnow.com">
+    <img src="https://img.shields.io/badge/Email-Contact_Us-blue?style=for-the-badge&logo=gmail" alt="Email"/>
+  </a>
+</p>
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🐛 Bug Reports & Feature Requests
+## 🙏 Acknowledgments
 
-If you discover a bug or have an idea for a new feature, please:
-
-1. Check [Issues](https://github.com/giasinguyen/snapnow-social-media-app/issues) to see if it has already been reported
-2. Create a new issue with a detailed description
-3. Pull requests are always welcome! 🎉
-
----
-
-## ⭐ Show Your Support
-
-If you find this project useful, please give us a ⭐ on GitHub!
+- [Expo Team](https://expo.dev) - Amazing React Native framework
+- [Firebase](https://firebase.google.com) - Powerful backend services
+- [Instagram](https://instagram.com) - UI/UX inspiration
+- [React Native Community](https://reactnative.dev) - Helpful libraries
 
 ---
 
-<div align="center">
+<p align="center">
+  <img src="https://img.shields.io/badge/Status-Active_Development-success?style=flat-square" alt="Status"/>
+  <img src="https://img.shields.io/badge/Build-Passing-brightgreen?style=flat-square" alt="Build"/>
+  <img src="https://img.shields.io/badge/Code_Quality-A-brightgreen?style=flat-square" alt="Quality"/>
+  <img src="https://img.shields.io/badge/Coverage-85%25-yellow?style=flat-square" alt="Coverage"/>
+</p>
 
-**Made with ❤️ by The Challengers Team**
+<p align="center">
+  <strong>Made with ❤️ by The Challengers Team</strong>
+</p>
 
-![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
-![Code Quality](https://img.shields.io/badge/code%20quality-A-brightgreen)
-![Maintenance](https://img.shields.io/badge/maintained-yes-brightgreen)
+<p align="center">
+  <em>⭐ Star this repository if you find it helpful!</em>
+</p>
 
-*SnapNow - Capture Every Moment, Share Every Story* 📸
-
-</div>
+<p align="center">
+  <strong>📸 SnapNow – Capture Every Moment, Share Every Story</strong>
+</p>
